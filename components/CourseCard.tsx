@@ -15,48 +15,85 @@ function formatDateTime(iso: string) {
 export default function CourseCard({ course }: { course: Course }) {
   const isConfirmed = course.enrolled >= course.minToOpen;
   const isFull = course.enrolled >= course.capacity;
+  const progressPercent = Math.min(
+    100,
+    Math.round((course.enrolled / course.capacity) * 100),
+  );
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white text-neutral-900 shadow-sm">
-      {/* 先用漸層佔位；之後有課程圖片欄位再換成 next/image */}
-      <div className="relative h-40 bg-gradient-to-br from-teal-100 to-sky-200">
-        <div className="absolute left-3 top-3 flex gap-2 text-sm">
-          <span className="rounded-full bg-white px-3 py-1 font-medium">
+    <article className="group flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white text-slate-800 transition-all duration-300 hover:border-teal-200 hover:shadow-xl">
+      {/* 先用漸層佔位；之後有課程圖片欄位再換成圖片 */}
+      <div className="relative h-48 bg-gradient-to-br from-teal-100 to-sky-200">
+        <div className="absolute left-3 top-3 flex gap-2">
+          <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-800 shadow-sm backdrop-blur-md">
             {course.sport}
           </span>
-          {isConfirmed ? (
-            <span className="rounded-full bg-emerald-100 px-3 py-1 font-medium text-emerald-700">
-              ✅ 已成團
-            </span>
-          ) : (
-            <span className="rounded-full bg-amber-100 px-3 py-1 font-medium text-amber-700">
-              揪團中 {course.enrolled}/{course.minToOpen}
-            </span>
-          )}
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-bold text-white shadow-sm ${
+              isConfirmed ? "bg-emerald-500" : "bg-orange-500"
+            }`}
+          >
+            {isConfirmed
+              ? "✅ 已成團"
+              : `🔥 差 ${course.minToOpen - course.enrolled} 人成團`}
+          </span>
+        </div>
+        <div className="absolute bottom-3 right-3 rounded-lg bg-slate-900/80 px-2.5 py-1 text-xs text-white backdrop-blur-md">
+          {LEVEL_LABELS[course.level]}
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <h3 className="text-lg font-semibold">{course.title}</h3>
-        <p className="text-sm text-neutral-500">教練：{course.coachName}</p>
-        <ul className="space-y-1 text-sm text-neutral-700">
-          <li>📍 {course.city}・{course.venue}</li>
-          <li>🕒 {formatDateTime(course.startsAt)}</li>
-          <li>💪 {LEVEL_LABELS[course.level]}</li>
-        </ul>
+      <div className="flex flex-1 flex-col justify-between gap-4 p-5">
+        <div>
+          <h3 className="line-clamp-2 text-base font-bold text-slate-900 transition-colors group-hover:text-teal-700">
+            {course.title}
+          </h3>
+          <p className="mt-2 text-xs text-slate-500">
+            📍 {course.city}・{course.venue}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            📅 {formatDateTime(course.startsAt)}
+          </p>
+        </div>
 
-        <div className="mt-auto flex items-center justify-between pt-3">
-          <span className="text-lg font-semibold">
-            NT$ {course.price.toLocaleString()}
-          </span>
-          {/* TODO: 等 Ted 的登入頁合併進 main 後，再接「未登入導向登入頁」 */}
-          <button
-            type="button"
-            disabled={isFull}
-            className="rounded-full bg-teal-600 px-5 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-neutral-300"
-          >
-            {isFull ? "已額滿" : "報名"}
-          </button>
+        <div className="space-y-3 border-t border-slate-100 pt-3">
+          <div className="flex items-center justify-between text-xs text-slate-600">
+            <span className="font-semibold text-slate-800">
+              {course.coachName}
+            </span>
+            <span>
+              <span className="text-slate-400">招募進度：</span>
+              <span className="font-bold text-slate-800">
+                {course.enrolled}/{course.capacity}人
+              </span>
+            </span>
+          </div>
+
+          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+            <div
+              className={`h-full transition-all duration-500 ${
+                isConfirmed ? "bg-emerald-500" : "bg-orange-500"
+              }`}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <div>
+              <span className="text-xs text-slate-400">固定每人 </span>
+              <span className="text-lg font-black text-teal-600">
+                NT$ {course.price.toLocaleString()}
+              </span>
+            </div>
+            {/* TODO: 等 Ted 的登入頁合併進 main 後，再接「未登入導向登入頁」 */}
+            <button
+              type="button"
+              disabled={isFull}
+              className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+            >
+              {isFull ? "已額滿" : "報名"}
+            </button>
+          </div>
         </div>
       </div>
     </article>
