@@ -1,6 +1,5 @@
 "use client";
 
-import { LICENSE_REVIEW_ESTIMATE } from "@/lib/coach-application/constants";
 import type { LicenseStatus } from "@/types/database";
 
 export type ExistingLicense = {
@@ -11,7 +10,7 @@ export type ExistingLicense = {
 };
 
 const STATUS_LABELS: Record<LicenseStatus, string> = {
-  pending: `審核中（${LICENSE_REVIEW_ESTIMATE}）`,
+  pending: "審核中",
   approved: "已通過",
   rejected: "未通過",
 };

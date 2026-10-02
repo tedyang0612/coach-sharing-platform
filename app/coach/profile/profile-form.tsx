@@ -25,7 +25,6 @@ import { TextField } from "@/components/ui/text-field";
 import {
   COACH_DOCUMENT_BUCKET,
   COACH_PHOTO_BUCKET,
-  LICENSE_REVIEW_ESTIMATE,
 } from "@/lib/coach-application/constants";
 import { DEFAULT_EDUCATION_DEGREE, parseEducation } from "@/lib/coach-application/education";
 import { uploadCoachFile } from "@/lib/coach-application/upload";
@@ -104,7 +103,7 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
 
   const [attempted, setAttempted] = useState(false);
   const [saveError, setSaveError] = useState<string>();
-  // 儲存成功後顯示的訊息；有新證照送審時會多一句預估審核時間
+  // 儲存成功後顯示的訊息；有新證照送審時會多提醒一句
   const [savedMessage, setSavedMessage] = useState<string>();
   const [isSaving, startSave] = useTransition();
 
@@ -170,7 +169,7 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
 
         setSavedMessage(
           uploadedLicenses.length > 0
-            ? `已儲存。新增的證照已送審，${LICENSE_REVIEW_ESTIMATE}完成審核。`
+            ? "已儲存。新增的證照已送審，審核結果會以通知告知。"
             : "已儲存，公開頁已更新。"
         );
         // 新增與移除的證照已經寫入，清掉暫存；最新的證照清單由頁面重新查詢後帶入
@@ -283,7 +282,7 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
 
       <Section
         title="專業證照"
-        description={`可以隨時追加證照送審（${LICENSE_REVIEW_ESTIMATE}）。任一張審核通過後，個人檔案與課程卡片會顯示「已認證」徽章。`}
+        description="可以隨時追加證照送審。任一張審核通過後，個人檔案與課程卡片會顯示「已認證」徽章。"
       >
         <ExistingLicenseList
           licenses={licenses}
