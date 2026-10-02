@@ -47,6 +47,17 @@
   - **兩種情況都要處理**，不要只判斷其中一種（可參考 `app/actions/auth.ts` 的寫法）。
 - RLS 一定要開（10 張表目前全部已開啟），新增資料表時記得一起加 policy，不要等事後補。
 
+## 時間與時區慣例（場次相關模組必讀）
+
+平台只在台灣營運，所有「教練填的日期／時間」都是台灣時間（UTC+8，無日光節約）。資料庫 `timestamptz` 實際存的是 UTC，Supabase 的 DB 與 Vercel 的 server 預設時區也都是 UTC，所以「沒指定時區」的地方都會差 8 小時。
+
+- **不要呼叫 `generate_sessions_for_course()`**（Task 00 的 `20261001000011_courses_sessions.sql`）：它用 `date + time` 組時間時沒帶時區，14:00 會被存成台灣時間 22:00；而且它是 `security definer` 又沒檢查呼叫者身分，會刪掉 open 場次並 cascade 刪除報名紀錄。場次一律在應用層切，用 `app/courses/_lib/course-input.ts` 的 `computeSessionSlots()`（Task 1.0 PR 合併後才會在 main 上）。之後會另開 migration 移除或修正這支 function，修好前請當它不存在。
+- **寫入時間**：自己組時間字串一律帶 `+08:00`（例：`2026-11-01T14:00:00+08:00`），或用同一支檔案的 `toTaipeiDate()`；不要用 `new Date("2026-11-01 14:00")` 這種沒時區的寫法（在 Vercel 上會被當成 UTC）。
+- **顯示時間**：一律指定台灣時區格式化，例如 `new Intl.DateTimeFormat("zh-TW", { timeZone: "Asia/Taipei", ... })` 或 `toLocaleString("zh-TW", { timeZone: "Asia/Taipei" })`，不要依賴執行環境的預設時區。
+- **比較時間**（截止了沒、開課前幾小時）：直接比 `timestamptz`／`Date.getTime()` 即可，這兩者本身跟時區無關，不需要轉換。
+- **依「台灣日期」篩選**（例如學員端「列出某天的課」）：SQL 用 `start_at at time zone 'Asia/Taipei'` 取日期，或在應用層把當天 00:00／24:00 用 `+08:00` 組好再用 `gte`／`lt` 查，不要直接拿 UTC 日期比。
+- **seed／測試資料**：手寫 SQL 插入場次時同樣要帶 `+08:00`，不然測出來的時間會和畫面對不起來。
+
 ## Git 分支與 PR 慣例
 
 - 分支命名：`feat/<姓名縮寫>-<任務編號>-<簡短說明>`，例如 `feat/ted-00-schema-auth`。
