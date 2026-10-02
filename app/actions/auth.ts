@@ -44,7 +44,7 @@ export async function login(
   if (error) {
     // Supabase 對「帳號不存在」跟「密碼錯誤」回傳同一種錯誤，
     // 這裡統一顯示成一句話，不特別指出是帳號還是密碼錯（避免帳號列舉）。
-    return { errors: { form: "帳號或密碼錯誤。" } };
+    return { errors: { form: "帳號或密碼錯誤，請確認後再試一次。" } };
   }
 
   redirect(redirectTo);
