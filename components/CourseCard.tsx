@@ -12,7 +12,12 @@ function formatDateTime(iso: string) {
   }).format(new Date(iso));
 }
 
-export default function CourseCard({ course }: { course: Course }) {
+interface Props {
+  course: Course;
+  distanceKm?: number | null;
+}
+
+export default function CourseCard({ course, distanceKm }: Props) {
   const isConfirmed = course.enrolled >= course.minToOpen;
   const isFull = course.enrolled >= course.capacity;
   const progressPercent = Math.min(
@@ -50,6 +55,11 @@ export default function CourseCard({ course }: { course: Course }) {
           </h3>
           <p className="mt-2 text-xs text-slate-500">
             📍 {course.city}・{course.venue}
+            {distanceKm != null && (
+              <span className="font-semibold text-teal-600">
+                ・約 {distanceKm.toFixed(1)} 公里
+              </span>
+            )}
           </p>
           <p className="mt-1 text-xs text-slate-500">
             📅 {formatDateTime(course.startsAt)}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import CourseCard from "@/components/CourseCard";
 import CourseFilters from "@/components/CourseFilters";
+import { sortByDistance } from "@/lib/courses/distance";
 import { filterCourses, parseFilters } from "@/lib/courses/filterCourses";
 import { getCourses } from "@/lib/courses/getCourses";
 
@@ -16,7 +17,11 @@ export default async function CoursesPage({
 }) {
   const allCourses = await getCourses();
   const filters = parseFilters(await searchParams);
-  const courses = filterCourses(allCourses, filters);
+  const filtered = filterCourses(allCourses, filters);
+  // 有定位就依距離排序；沒有就維持原順序
+  const courses = filters.near
+    ? sortByDistance(filtered, filters.near)
+    : filtered.map((course) => ({ course, distanceKm: null }));
   // 城市選項從資料推導，之後換成真資料不用另外維護清單
   const cities = [...new Set(allCourses.map((course) => course.city))];
 
@@ -36,18 +41,20 @@ export default async function CoursesPage({
       </p>
       {courses.length === 0 ? (
         <div className="mt-3 flex flex-col items-center gap-4 rounded-2xl border border-dashed border-neutral-300 px-4 py-16 text-center">
-          <p className="text-lg font-medium">找不到符合的課程</p>
+          <p className="text-lg font-medium">
+            附近目前暫無符合課程，試試擴大搜尋範圍或切換時段
+          </p>
           <Link
             href="/courses"
             className="rounded-full bg-teal-600 px-5 py-2 text-sm font-medium text-white hover:bg-teal-700"
           >
-            清除篩選
+            清除所有篩選
           </Link>
         </div>
       ) : (
         <div className="mt-3 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {courses.map((course) => (
-            <CourseCard key={course.id} course={course} />
+          {courses.map(({ course, distanceKm }) => (
+            <CourseCard key={course.id} course={course} distanceKm={distanceKm} />
           ))}
         </div>
       )}

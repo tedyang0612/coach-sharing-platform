@@ -10,6 +10,8 @@ export interface Course {
   sport: string;
   city: string;
   venue: string;
+  latitude: number | null; // 資料表允許為空，沒座標的課程排序時放最後
+  longitude: number | null;
   startsAt: string; // ISO 8601
   timeSlot: TimeSlot;
   level: Level;

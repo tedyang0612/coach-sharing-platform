@@ -1,3 +1,4 @@
+import type { Coordinates } from "./distance";
 import {
   LEVEL_LABELS,
   TIME_SLOT_LABELS,
@@ -6,11 +7,15 @@ import {
   type TimeSlot,
 } from "./types";
 
+// 無法取得使用者位置時，預設顯示這個城市的課程
+export const DEFAULT_CITY = "台北市";
+
 // undefined 代表「不限」
 export interface CourseFilters {
   city?: string;
   timeSlot?: TimeSlot;
   level?: Level;
+  near?: Coordinates; // 有值代表「依距離排序」
 }
 
 type RawSearchParams = { [key: string]: string | string[] | undefined };
@@ -19,16 +24,26 @@ function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function parseCoord(value: string | string[] | undefined, min: number, max: number) {
+  const raw = first(value);
+  if (!raw) return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= min && n <= max ? n : undefined;
+}
+
 // 網址可能被手動亂改，不合法的值一律當成「不限」，不要讓頁面壞掉。
 export function parseFilters(params: RawSearchParams): CourseFilters {
   const city = first(params.city);
   const slot = first(params.slot);
   const level = first(params.level);
+  const lat = parseCoord(params.lat, -90, 90);
+  const lng = parseCoord(params.lng, -180, 180);
 
   return {
     city: city || undefined,
     timeSlot: slot && slot in TIME_SLOT_LABELS ? (slot as TimeSlot) : undefined,
     level: level && level in LEVEL_LABELS ? (level as Level) : undefined,
+    near: lat !== undefined && lng !== undefined ? { lat, lng } : undefined,
   };
 }
 
@@ -42,5 +57,7 @@ export function filterCourses(courses: Course[], filters: CourseFilters) {
 }
 
 export function hasActiveFilters(filters: CourseFilters) {
-  return Boolean(filters.city || filters.timeSlot || filters.level);
+  return Boolean(
+    filters.city || filters.timeSlot || filters.level || filters.near,
+  );
 }
