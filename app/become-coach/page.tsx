@@ -90,8 +90,34 @@ export default function BecomeCoachPage() {
             ))}
           </ul>
           <p className="mt-4 text-xs leading-relaxed text-neutral-500">
-            良民證僅用於身分審核，審核完成後 7 日內刪除原檔。聯絡方式不會公開，只在場次成團後透過行前公告提供給該場次學員。
+            聯絡方式不會公開，只在場次成團後透過行前公告提供給該場次學員。
           </p>
+        </section>
+
+        <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
+          <h2 className="text-base font-bold text-neutral-900">為什麼需要良民證？</h2>
+          <dl className="mt-4 flex flex-col gap-4 text-sm">
+            <div>
+              <dt className="font-semibold text-neutral-800">讓學員安心報名</dt>
+              <dd className="mt-1 leading-relaxed text-neutral-600">
+                學員會和教練實際見面上課，平台以良民證（警察刑事紀錄證明）作為基本把關。
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-neutral-800">怎麼申請</dt>
+              {/* 申請方式與費用依內政部警政署公告（2026/10 查詢），之後若有調整請同步更新 */}
+              <dd className="mt-1 leading-relaxed text-neutral-600">
+                可在內政部警政署網站線上申請，再攜帶身分證件到警察局領取。規費每份新臺幣 100
+                元，一般約 1–3 個工作天，實際時間以各地警察局為準。
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-neutral-800">我們怎麼保管</dt>
+              <dd className="mt-1 leading-relaxed text-neutral-600">
+                僅用於身分審核，審核完成後 7 日內刪除原檔，只保留審核結果與審核日期。
+              </dd>
+            </div>
+          </dl>
         </section>
 
         <div className="flex justify-center">
