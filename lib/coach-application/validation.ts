@@ -86,10 +86,34 @@ function validateTags(tags: string[]): string | undefined {
   return undefined;
 }
 
-export function validateCoachApplication(
-  input: CoachApplicationInput
-): CoachApplicationErrors {
-  const errors: CoachApplicationErrors = {};
+// 教練個人檔案的公開欄位：申請表單（4.0）與通過後的編輯個人檔案（9.0）共用同一套規則
+export type CoachPublicProfileInput = Pick<
+  CoachApplicationInput,
+  | "hasPhoto"
+  | "sportCategories"
+  | "tags"
+  | "education"
+  | "workExperience"
+  | "bioCompetition"
+  | "bioIntro"
+>;
+
+export type CoachPublicProfileErrors = Pick<
+  CoachApplicationErrors,
+  | "photo"
+  | "sportCategories"
+  | "tags"
+  | "education"
+  | "educationItems"
+  | "workExperience"
+  | "bioCompetition"
+  | "bioIntro"
+>;
+
+export function validateCoachPublicProfile(
+  input: CoachPublicProfileInput
+): CoachPublicProfileErrors {
+  const errors: CoachPublicProfileErrors = {};
 
   if (!input.hasPhoto) errors.photo = "請上傳個人照片";
 
@@ -134,6 +158,14 @@ export function validateCoachApplication(
 
   const competitionError = contactInfoWarning(input.bioCompetition);
   if (competitionError) errors.bioCompetition = competitionError;
+
+  return errors;
+}
+
+export function validateCoachApplication(
+  input: CoachApplicationInput
+): CoachApplicationErrors {
+  const errors: CoachApplicationErrors = validateCoachPublicProfile(input);
 
   const contacts = [input.contactPhone, input.contactLine, input.contactSocial];
   if (contacts.every((value) => !value.trim())) {
