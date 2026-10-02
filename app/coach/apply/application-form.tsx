@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useTransition, type FormEvent } from "react";
+import { submitCoachApplication } from "@/app/actions/coach-application";
 import { FileField } from "@/components/coach-application/file-field";
 import {
   LicenseList,
@@ -13,18 +14,50 @@ import { Button } from "@/components/ui/button";
 import { CheckboxField } from "@/components/ui/checkbox";
 import { FormError } from "@/components/ui/form-error";
 import { TextField } from "@/components/ui/text-field";
+import type { LicenseStatus } from "@/types/database";
 import {
   CONSENT_CHECKBOX_LABEL,
   CONSENT_INTRO,
   CONSENT_ITEMS,
 } from "@/lib/coach-application/consent";
-import { YEARS_EXPERIENCE_MAX } from "@/lib/coach-application/constants";
+import {
+  COACH_DOCUMENT_BUCKET,
+  COACH_PHOTO_BUCKET,
+  YEARS_EXPERIENCE_MAX,
+} from "@/lib/coach-application/constants";
+import { uploadCoachFile } from "@/lib/coach-application/upload";
 import {
   contactInfoWarning,
   hasErrors,
   validateCoachApplication,
   type CoachApplicationErrors,
 } from "@/lib/coach-application/validation";
+
+// 補件／未通過後重新送審時，帶入先前填寫的內容（由 page.tsx 從資料庫讀出）
+export type ExistingApplication = {
+  status: "needs_more_info" | "rejected";
+  rejectionReason: string | null;
+  photoUrl: string;
+  // 良民證原檔審核完 7 天會被清掉，清掉後要重新上傳
+  hasCriminalRecord: boolean;
+  sportCategories: string[];
+  tags: string[];
+  yearsExperience: number | null;
+  bioEducation: string;
+  bioCompetition: string;
+  bioIntro: string;
+  contactPhone: string;
+  contactLine: string;
+  contactEmail: string;
+  contactSocial: string;
+  licenses: { id: string; name: string; status: LicenseStatus }[];
+};
+
+const LICENSE_STATUS_LABELS: Record<LicenseStatus, string> = {
+  pending: "審核中",
+  approved: "已通過",
+  rejected: "未通過",
+};
 
 function Section({
   title,
@@ -46,34 +79,51 @@ function Section({
   );
 }
 
-export function ApplicationForm() {
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [sportCategories, setSportCategories] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [yearsExperience, setYearsExperience] = useState("");
-  const [bioEducation, setBioEducation] = useState("");
-  const [bioCompetition, setBioCompetition] = useState("");
-  const [bioIntro, setBioIntro] = useState("");
+type ApplicationFormProps = {
+  userId: string;
+  // 有值代表是補件／未通過後重新送審
+  existing?: ExistingApplication;
+};
 
-  const [contactPhone, setContactPhone] = useState("");
-  const [contactLine, setContactLine] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [contactSocial, setContactSocial] = useState("");
+export function ApplicationForm({ userId, existing }: ApplicationFormProps) {
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [sportCategories, setSportCategories] = useState<string[]>(
+    existing?.sportCategories ?? []
+  );
+  const [tags, setTags] = useState<string[]>(existing?.tags ?? []);
+  const [yearsExperience, setYearsExperience] = useState(
+    existing?.yearsExperience == null ? "" : String(existing.yearsExperience)
+  );
+  const [bioEducation, setBioEducation] = useState(existing?.bioEducation ?? "");
+  const [bioCompetition, setBioCompetition] = useState(existing?.bioCompetition ?? "");
+  const [bioIntro, setBioIntro] = useState(existing?.bioIntro ?? "");
+
+  const [contactPhone, setContactPhone] = useState(existing?.contactPhone ?? "");
+  const [contactLine, setContactLine] = useState(existing?.contactLine ?? "");
+  const [contactEmail, setContactEmail] = useState(existing?.contactEmail ?? "");
+  const [contactSocial, setContactSocial] = useState(existing?.contactSocial ?? "");
 
   const [criminalRecord, setCriminalRecord] = useState<File | null>(null);
   const [licenses, setLicenses] = useState<LicenseDraft[]>([]);
+  // 先前上傳、這次要移除的證照（已通過的不能移除）
+  const [removedLicenseIds, setRemovedLicenseIds] = useState<string[]>([]);
+  // 同意聲明每次送審都要重新勾選
   const [consent, setConsent] = useState(false);
 
   // 按過一次送出之後才顯示必填錯誤，之後每次修改都即時重新檢查
   const [attempted, setAttempted] = useState(false);
+  const [submitError, setSubmitError] = useState<string>();
+  const [isSubmitting, startSubmit] = useTransition();
+
+  const yearsExperienceValue = yearsExperience.trim() === "" ? null : Number(yearsExperience);
 
   const validation = validateCoachApplication({
-    hasPhoto: photo !== null,
-    hasCriminalRecord: criminalRecord !== null,
+    hasPhoto: photo !== null || Boolean(existing?.photoUrl),
+    hasCriminalRecord: criminalRecord !== null || Boolean(existing?.hasCriminalRecord),
     sportCategories,
     tags,
     // 空白代表沒填；填了非數字會變成 NaN，交給檢查規則擋下
-    yearsExperience: yearsExperience.trim() === "" ? null : Number(yearsExperience),
+    yearsExperience: yearsExperienceValue,
     bioEducation,
     bioCompetition,
     bioIntro,
@@ -91,12 +141,71 @@ export function ApplicationForm() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // 上傳檔案與寫入資料庫在下一個步驟接上（需要 Storage bucket），目前只做到送出前的檢查
     setAttempted(true);
+    setSubmitError(undefined);
+    if (hasErrors(validation)) return;
+
+    startSubmit(async () => {
+      try {
+        // 先把檔案傳到 Storage，再把路徑連同其他欄位交給 Server Action 寫入資料庫。
+        // 重新送審時沒有重選的檔案不用再傳，路徑留空代表沿用先前的檔案
+        const photoPath = photo
+          ? await uploadCoachFile(COACH_PHOTO_BUCKET, userId, "photo", photo)
+          : "";
+        const criminalRecordPath = criminalRecord
+          ? await uploadCoachFile(COACH_DOCUMENT_BUCKET, userId, "criminal-record", criminalRecord)
+          : "";
+        const uploadedLicenses = [];
+        for (const license of licenses) {
+          // 檢查規則已確保每張證照都有檔案
+          if (!license.file) continue;
+          uploadedLicenses.push({
+            name: license.name,
+            filePath: await uploadCoachFile(COACH_DOCUMENT_BUCKET, userId, "license", license.file),
+          });
+        }
+
+        // 成功時 Server Action 會直接導向申請狀態頁，只有失敗才會有回傳值
+        const result = await submitCoachApplication({
+          photoPath,
+          criminalRecordPath,
+          sportCategories,
+          tags,
+          yearsExperience: yearsExperienceValue,
+          bioEducation,
+          bioCompetition,
+          bioIntro,
+          contactPhone,
+          contactLine,
+          contactEmail,
+          contactSocial,
+          licenses: uploadedLicenses,
+          removedLicenseIds,
+          consent,
+        });
+        if (result?.error) setSubmitError(result.error);
+      } catch (error) {
+        setSubmitError(error instanceof Error ? error.message : "送出失敗，請稍後再試。");
+      }
+    });
   }
 
   return (
     <form className="flex flex-col gap-6" noValidate onSubmit={handleSubmit}>
+      {existing && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <p className="text-sm font-bold text-amber-800">
+            {existing.status === "needs_more_info" ? "申請需要補件" : "上次申請未通過"}
+          </p>
+          <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-amber-900">
+            {existing.rejectionReason ?? "管理員未填寫說明，請聯繫平台。"}
+          </p>
+          <p className="mt-2 text-xs text-amber-800">
+            已帶入你先前填寫的內容，修改後送出就會重新進入審核。
+          </p>
+        </div>
+      )}
+
       <Section
         title="個人檔案"
         description="審核通過後會公開顯示在你的教練個人檔案，請勿填寫電話、Email、LINE ID 或網址。"
@@ -107,6 +216,11 @@ export function ApplicationForm() {
           kind="photo"
           file={photo}
           onChange={setPhoto}
+          existing={
+            existing?.photoUrl
+              ? { label: "沿用先前上傳的照片", imageUrl: existing.photoUrl }
+              : undefined
+          }
           error={errors.photo}
         />
 
@@ -209,6 +323,7 @@ export function ApplicationForm() {
           kind="document"
           file={criminalRecord}
           onChange={setCriminalRecord}
+          existing={existing?.hasCriminalRecord ? { label: "沿用先前上傳的良民證" } : undefined}
           error={errors.criminalRecord}
         />
       </Section>
@@ -217,6 +332,44 @@ export function ApplicationForm() {
         title="專業證照（選填）"
         description="例如 ACE、NASM 或運動協會證照，可新增多張。任一張審核通過後，個人檔案與課程卡片會顯示「已認證」徽章；沒有上傳不影響開課。"
       >
+        {existing && existing.licenses.length > 0 && (
+          <ul className="flex flex-col gap-2">
+            {existing.licenses.map((license) => {
+              const removed = removedLicenseIds.includes(license.id);
+              return (
+                <li
+                  key={license.id}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3"
+                >
+                  <span
+                    className={`min-w-0 truncate text-sm ${
+                      removed ? "text-neutral-400 line-through" : "text-neutral-900"
+                    }`}
+                  >
+                    {license.name || "未命名證照"}
+                    <span className="ml-2 text-xs text-neutral-500">
+                      {removed ? "送出後移除" : LICENSE_STATUS_LABELS[license.status]}
+                    </span>
+                  </span>
+                  {/* 已通過的證照關係到「已認證」徽章，不能自己移除 */}
+                  {license.status !== "approved" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setRemovedLicenseIds((ids) =>
+                          removed ? ids.filter((id) => id !== license.id) : [...ids, license.id]
+                        )
+                      }
+                      className="shrink-0 text-sm font-semibold text-brand hover:underline"
+                    >
+                      {removed ? "復原" : "移除"}
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
         <LicenseList value={licenses} onChange={setLicenses} errors={errors.licenses} />
       </Section>
 
@@ -241,16 +394,11 @@ export function ApplicationForm() {
       {attempted && hasErrors(validation) && (
         <FormError message="還有欄位需要修正，請往上查看紅字提示。" />
       )}
-      {attempted && !hasErrors(validation) && (
-        <p
-          role="status"
-          className="rounded-xl border border-brand bg-brand-ink px-4 py-3.5 text-sm font-bold text-brand"
-        >
-          填寫內容檢查通過。上傳與送出功能尚未開通，資料目前不會被儲存。
-        </p>
-      )}
+      {submitError && <FormError message={submitError} />}
 
-      <Button type="submit">送出申請</Button>
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "上傳並送出中…" : existing ? "重新送審" : "送出申請"}
+      </Button>
     </form>
   );
 }

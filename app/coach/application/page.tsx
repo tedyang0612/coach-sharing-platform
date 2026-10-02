@@ -22,22 +22,17 @@ export default async function CoachApplicationStatusPage() {
     redirect(`/login?redirect=${encodeURIComponent("/coach/application")}`);
   }
 
-  // 只查這一頁要顯示的欄位，不用 select("*")，避免把聯絡方式等不需要的資料一起帶出來
-  const { data: application } = await supabase
-    .from("coach_profiles")
-    .select("application_status, rejection_reason, reviewed_at")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  // 還沒申請過就先去填表
-  if (!application) {
+  // coach_profiles 只開放公開欄位的 select（migration 0020），退件原因、審核時間這些
+  // 審核欄位要透過 get_my_coach_application() 讀自己的完整申請。
+  // 還沒申請過時，這支 function 會回傳 null 或每個欄位都是 null 的一筆資料，所以用 id 判斷。
+  const { data: application } = await supabase.rpc("get_my_coach_application");
+  if (!application?.id) {
     redirect("/coach/apply");
   }
 
-  // 證照名稱欄位等資料庫補上後，再把 name 加進查詢
   const { data: licenses } = await supabase
     .from("coach_licenses")
-    .select("id, status, rejection_reason")
+    .select("id, name, status, rejection_reason")
     .eq("coach_id", user.id)
     .order("created_at", { ascending: true });
 
@@ -52,6 +47,7 @@ export default async function CoachApplicationStatusPage() {
         <LicenseStatusList
           licenses={(licenses ?? []).map((license) => ({
             id: license.id,
+            name: license.name,
             status: license.status as LicenseStatus,
             rejectionReason: license.rejection_reason,
           }))}

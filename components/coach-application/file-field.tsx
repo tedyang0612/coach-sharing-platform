@@ -17,6 +17,8 @@ type FileFieldProps = {
   hint?: string;
   file: File | null;
   onChange: (file: File | null) => void;
+  // 補件重送時：先前已上傳、這次沒有重選就沿用的檔案
+  existing?: { label: string; imageUrl?: string };
   error?: string;
 };
 
@@ -29,7 +31,16 @@ function formatSize(bytes: number): string {
  * 單一檔案選擇：選檔當下就檢查格式與大小，不符合的不會留下（PRD 4.0 AC 6）。
  * 這裡只負責「選檔」，實際上傳到 Storage 在送出時處理。
  */
-export function FileField({ label, name, kind, hint, file, onChange, error }: FileFieldProps) {
+export function FileField({
+  label,
+  name,
+  kind,
+  hint,
+  file,
+  onChange,
+  existing,
+  error,
+}: FileFieldProps) {
   const [rejectMessage, setRejectMessage] = useState<string>();
   const [preview, setPreview] = useState<{ file: File; url: string }>();
 
@@ -89,6 +100,25 @@ export function FileField({ label, name, kind, hint, file, onChange, error }: Fi
           >
             移除
           </button>
+        </div>
+      ) : existing ? (
+        <div className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+          {existing.imageUrl && (
+            // 已上傳到 Storage 的公開照片，尺寸很小，不經過 next/image 的最佳化
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={existing.imageUrl}
+              alt=""
+              className="h-14 w-14 shrink-0 rounded-lg object-cover"
+            />
+          )}
+          <p className="min-w-0 flex-1 text-sm text-neutral-700">{existing.label}</p>
+          <label
+            htmlFor={name}
+            className="shrink-0 cursor-pointer text-sm font-semibold text-brand hover:underline"
+          >
+            重新選擇
+          </label>
         </div>
       ) : (
         <label

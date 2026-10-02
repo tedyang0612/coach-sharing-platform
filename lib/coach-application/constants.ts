@@ -99,6 +99,11 @@ export const DOCUMENT_MIME_TYPES = [
   "application/pdf",
 ] as const;
 
+// Storage bucket（migration 0020）：照片公開讀取；良民證與證照只有本人與管理員可讀。
+// 檔案一律放在「{使用者 id}/」底下，Storage policy 只允許寫自己的資料夾。
+export const COACH_PHOTO_BUCKET = "coach-photos";
+export const COACH_DOCUMENT_BUCKET = "coach-documents";
+
 // PRD 系統規則總覽「聯絡資訊」的警示文案。
 export const CONTACT_INFO_WARNING =
   "為保障雙方交易安全，請勿於公開欄位填寫個人聯絡資訊";
