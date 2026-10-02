@@ -72,13 +72,21 @@ export async function signup(
   });
 
   if (error) {
+    // Confirm email 關閉時，Supabase 對重複註冊的 Email 會直接回傳錯誤
+    // （訊息通常含 "already registered" / "already exists"），不是下面
+    // identities 為空陣列的匿名化行為；這裡要攔截訊息內容才能顯示正確文案。
+    const message = error.message.toLowerCase();
+    if (message.includes("already registered") || message.includes("already exists") || message.includes("user already")) {
+      return { errors: { form: "此 Email 已被註冊，請直接登入或是用其他 Email 註冊" } };
+    }
     return { errors: { form: "註冊失敗，請稍後再試" } };
   }
 
-  // Supabase 預設不會對「Email 已被註冊」直接回傳錯誤（防止帳號列舉攻擊），
-  // 而是回傳一個 identities 是空陣列的假 user。用這個判斷才能做出 PRD 要求的提示文案。
+  // Confirm email 開啟時，Supabase 對「Email 已被註冊」不會直接回傳錯誤
+  // （防止帳號列舉攻擊），而是回傳一個 identities 是空陣列的假 user。
+  // 保留這個判斷以涵蓋兩種 Supabase 設定下的情境。
   if (data.user && data.user.identities && data.user.identities.length === 0) {
-    return { errors: { form: "此 Email 已被註冊，請直接登入" } };
+    return { errors: { form: "此 Email 已被註冊，請直接登入或是用其他 Email 註冊" } };
   }
 
   redirect(redirectTo);
