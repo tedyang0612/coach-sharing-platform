@@ -97,6 +97,9 @@ export const DOCUMENT_MIME_TYPES = [
   "application/pdf",
 ] as const;
 
+// 證照送審後顯示給教練看的預估審核時間（PM 決定）
+export const LICENSE_REVIEW_ESTIMATE = "預計 3–5 個工作天";
+
 // Storage bucket（migration 0020）：照片公開讀取；良民證與證照只有本人與管理員可讀。
 // 檔案一律放在「{使用者 id}/」底下，Storage policy 只允許寫自己的資料夾。
 export const COACH_PHOTO_BUCKET = "coach-photos";
