@@ -18,13 +18,18 @@ export default async function CoachApplyPage() {
     redirect(`/login?redirect=${encodeURIComponent("/coach/apply")}`);
   }
 
-  // 一個帳號只有一份申請，已經送過就改看申請狀態（補件重送也從那邊進）
+  // 一個帳號只有一份申請：審核中或已通過就改看申請狀態；
+  // 需補件／未通過才會從狀態頁回到這裡修改後重新送審（PRD 4.0 AC 8）
   const { data: existing } = await supabase
     .from("coach_profiles")
-    .select("id")
+    .select("application_status")
     .eq("id", user.id)
     .maybeSingle();
-  if (existing) {
+  if (
+    existing &&
+    (existing.application_status === "pending" ||
+      existing.application_status === "approved")
+  ) {
     redirect("/coach/application");
   }
 
