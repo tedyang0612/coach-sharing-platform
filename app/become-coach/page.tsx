@@ -34,7 +34,7 @@ const CHECKLIST = [
   "學經歷與簡述",
   "良民證（必填）",
   "專業證照（選填）",
-  "聯絡方式（電話、LINE、Email 或社群帳號）至少一項（不公開）",
+  "聯絡方式（電話、LINE、Email 或社群帳號）至少一項（除學員必要課務聯繫外，不作行銷用途，亦不提供給其他無關第三方。）",
 ];
 
 export default function BecomeCoachPage() {
