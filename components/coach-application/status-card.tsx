@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { LICENSE_REVIEW_ESTIMATE } from "@/lib/coach-application/constants";
 import type { CoachApplicationStatus, LicenseStatus } from "@/types/database";
 
 // 四種審核狀態各自的文案與配色（PRD 4.0 規格 3、第六章 5.1）
@@ -156,9 +155,6 @@ export function LicenseStatusList({ licenses }: { licenses: LicenseStatusItem[] 
                   {view.label}
                 </span>
               </div>
-              {license.status === "pending" && (
-                <p className="mt-2 text-xs text-neutral-500">{LICENSE_REVIEW_ESTIMATE}完成審核</p>
-              )}
               {license.status === "rejected" && license.rejectionReason && (
                 <p className="mt-2 whitespace-pre-line text-sm text-neutral-600">
                   {license.rejectionReason}
