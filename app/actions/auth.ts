@@ -21,8 +21,13 @@ const DUPLICATE_EMAIL_MESSAGE = "此 Email 已被註冊，請直接登入；\n�
 
 function safeRedirectTarget(value: FormDataEntryValue | null): string {
   const target = typeof value === "string" ? value : "/";
-  // 只接受站內的相對路徑，避免被塞外部網址做開放重導向
-  return target.startsWith("/") ? target : "/";
+  // 只接受站內的相對路徑，避免被塞外部網址做開放重導向。
+  // "//evil.com" 或 "/\evil.com" 開頭會被瀏覽器當成 protocol-relative URL
+  // 導去外部網站，單靠 startsWith("/") 擋不住，這裡額外排除。
+  if (!target.startsWith("/") || target.startsWith("//") || target.startsWith("/\\")) {
+    return "/";
+  }
+  return target;
 }
 
 export async function login(
