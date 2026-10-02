@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { contactInfoWarning } from "@/lib/coach-application/validation";
 import { createClient } from "@/lib/supabase/server";
 
 // 文字心得的長度上限。PRD 沒有規定，先設一個合理的上限避免貼入過長內容
@@ -32,6 +33,9 @@ export async function submitReview(payload: ReviewPayload): Promise<ReviewResult
   if (comment.length > COMMENT_MAX_LENGTH) {
     return { ok: false, error: `文字心得最多 ${COMMENT_MAX_LENGTH} 個字。` };
   }
+  // 心得會公開顯示在教練個人檔案，和其他公開欄位一樣不能留聯絡資訊（避免繞過平台私下交易）
+  const contactWarning = contactInfoWarning(comment);
+  if (contactWarning) return { ok: false, error: contactWarning };
 
   // 被評價的教練一律從訂單所屬的課程查出來，不採用前端傳來的值
   const { data: registration } = await supabase

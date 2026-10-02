@@ -6,6 +6,7 @@ import { submitReview } from "@/app/actions/reviews";
 import { StarInput } from "@/components/review/star-input";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
+import { contactInfoWarning } from "@/lib/coach-application/validation";
 
 const COMMENT_MAX_LENGTH = 500;
 
@@ -25,12 +26,15 @@ export function ReviewForm({ registrationId, coachId, coachName }: ReviewFormPro
 
   const commentLength = Array.from(comment.trim()).length;
   const commentTooLong = commentLength > COMMENT_MAX_LENGTH;
+  // 心得是公開內容，邊打字邊檢查聯絡資訊（電話、Email、LINE ID、網址、@帳號）
+  const contactWarning = contactInfoWarning(comment);
+  const commentInvalid = commentTooLong || contactWarning !== undefined;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAttempted(true);
     setSubmitError(undefined);
-    if (rating === 0 || commentTooLong) return;
+    if (rating === 0 || commentInvalid) return;
 
     startSubmit(async () => {
       const result = await submitReview({ registrationId, rating, comment });
@@ -84,7 +88,7 @@ export function ReviewForm({ registrationId, coachId, coachName }: ReviewFormPro
           文字心得（選填）
         </label>
         <p className="text-xs text-neutral-500">
-          心得會公開顯示在教練個人檔案，讓其他學員參考。
+          心得會公開顯示在教練個人檔案，讓其他學員參考。請勿填寫電話、Email、LINE ID 或網址。
         </p>
         <textarea
           id="comment"
@@ -93,9 +97,9 @@ export function ReviewForm({ registrationId, coachId, coachName }: ReviewFormPro
           placeholder="這堂課的感受、教練的教學方式、適合什麼程度的人…"
           value={comment}
           onChange={(event) => setComment(event.target.value)}
-          aria-invalid={commentTooLong ? true : undefined}
+          aria-invalid={commentInvalid ? true : undefined}
           className={`rounded-xl border bg-neutral-50 px-4 py-2.5 text-sm text-neutral-900 outline-none transition focus:bg-white focus:ring-2 ${
-            commentTooLong
+            commentInvalid
               ? "border-red-500 focus:border-red-500 focus:ring-red-100"
               : "border-neutral-200 focus:border-brand focus:ring-brand-ink"
           }`}
@@ -104,6 +108,7 @@ export function ReviewForm({ registrationId, coachId, coachName }: ReviewFormPro
           {commentLength}/{COMMENT_MAX_LENGTH}
           {commentTooLong && "，超過字數上限"}
         </p>
+        {contactWarning && <p className="text-xs text-red-600">{contactWarning}</p>}
       </div>
 
       {submitError && <FormError message={submitError} />}
