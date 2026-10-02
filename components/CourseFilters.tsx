@@ -7,7 +7,12 @@ import {
   hasActiveFilters,
   type CourseFilters as Filters,
 } from "@/lib/courses/filterCourses";
-import { LEVEL_LABELS, TIME_SLOT_LABELS } from "@/lib/courses/types";
+import {
+  LEVEL_LABELS,
+  PRICE_RANGES,
+  SPORTS,
+  TIME_SLOT_LABELS,
+} from "@/lib/courses/types";
 
 interface Props {
   cities: string[];
@@ -36,6 +41,8 @@ export default function CourseFilters({ cities, value }: Props) {
     if (next.city) params.set("city", next.city);
     if (next.timeSlot) params.set("slot", next.timeSlot);
     if (next.level) params.set("level", next.level);
+    if (next.sport) params.set("sport", next.sport);
+    if (next.priceRange) params.set("price", next.priceRange);
     if (next.near) {
       // 只留到小數點後 2 位（約 1 公里），分享連結時不會洩漏精確位置
       params.set("lat", next.near.lat.toFixed(2));
@@ -90,7 +97,7 @@ export default function CourseFilters({ cities, value }: Props) {
 
   return (
     <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-4">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <label className="text-sm font-medium">
           地點
           <select
@@ -104,6 +111,42 @@ export default function CourseFilters({ cities, value }: Props) {
             {cities.map((city) => (
               <option key={city} value={city}>
                 {city}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="text-sm font-medium">
+          運動種類
+          <select
+            className={`${SELECT_CLASS} mt-1 font-normal`}
+            value={value.sport ?? ""}
+            onChange={(e) =>
+              navigate({ ...value, sport: e.target.value || undefined })
+            }
+          >
+            <option value="">不限</option>
+            {SPORTS.map((sport) => (
+              <option key={sport} value={sport}>
+                {sport}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="text-sm font-medium">
+          每人費用
+          <select
+            className={`${SELECT_CLASS} mt-1 font-normal`}
+            value={value.priceRange ?? ""}
+            onChange={(e) =>
+              navigate({ ...value, priceRange: e.target.value || undefined })
+            }
+          >
+            <option value="">不限</option>
+            {PRICE_RANGES.map((range) => (
+              <option key={range.id} value={range.id}>
+                {range.label}
               </option>
             ))}
           </select>

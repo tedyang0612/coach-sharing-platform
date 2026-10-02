@@ -1,6 +1,8 @@
 import type { Coordinates } from "./distance";
 import {
   LEVEL_LABELS,
+  PRICE_RANGES,
+  SPORTS,
   TIME_SLOT_LABELS,
   type Course,
   type Level,
@@ -15,6 +17,8 @@ export interface CourseFilters {
   city?: string;
   timeSlot?: TimeSlot;
   level?: Level;
+  sport?: string;
+  priceRange?: string; // PRICE_RANGES 的 id
   near?: Coordinates; // 有值代表「依距離排序」
 }
 
@@ -36,6 +40,8 @@ export function parseFilters(params: RawSearchParams): CourseFilters {
   const city = first(params.city);
   const slot = first(params.slot);
   const level = first(params.level);
+  const sport = first(params.sport);
+  const price = first(params.price);
   const lat = parseCoord(params.lat, -90, 90);
   const lng = parseCoord(params.lng, -180, 180);
 
@@ -43,21 +49,38 @@ export function parseFilters(params: RawSearchParams): CourseFilters {
     city: city || undefined,
     timeSlot: slot && slot in TIME_SLOT_LABELS ? (slot as TimeSlot) : undefined,
     level: level && level in LEVEL_LABELS ? (level as Level) : undefined,
+    sport:
+      sport && (SPORTS as readonly string[]).includes(sport) ? sport : undefined,
+    priceRange:
+      price && PRICE_RANGES.some((range) => range.id === price)
+        ? price
+        : undefined,
     near: lat !== undefined && lng !== undefined ? { lat, lng } : undefined,
   };
 }
 
 export function filterCourses(courses: Course[], filters: CourseFilters) {
+  const range = PRICE_RANGES.find((r) => r.id === filters.priceRange);
+
   return courses.filter(
     (course) =>
       (!filters.city || course.city === filters.city) &&
       (!filters.timeSlot || course.timeSlot === filters.timeSlot) &&
-      (!filters.level || course.level === filters.level),
+      (!filters.level || course.level === filters.level) &&
+      (!filters.sport || course.sport === filters.sport) &&
+      (!range ||
+        ((range.min === undefined || course.price >= range.min) &&
+          (range.max === undefined || course.price <= range.max))),
   );
 }
 
 export function hasActiveFilters(filters: CourseFilters) {
   return Boolean(
-    filters.city || filters.timeSlot || filters.level || filters.near,
+    filters.city ||
+      filters.timeSlot ||
+      filters.level ||
+      filters.sport ||
+      filters.priceRange ||
+      filters.near,
   );
 }
