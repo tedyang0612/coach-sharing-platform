@@ -4,12 +4,13 @@
  */
 
 // MVP 運動種類（PRD v4.1 起限縮為八種）。
-// types/database.ts 的 SPORT_TYPES 目前還是舊版五種，等 Ted 更新共用清單後改成從那邊 import。
+// 共用清單是 types/database.ts 的 SPORT_TYPES，但八種版本要等 1.0 PR 合併才會在 main 上；
+// 合併後這裡改成直接 import SPORT_TYPES，不要留兩份清單。
 export const SPORT_CATEGORIES = [
   "重訓",
   "瑜珈",
   "跑酷",
-  "攀岩",
+  "抱石",
   "衝浪",
   "羽球",
   "匹克球",
@@ -46,6 +47,48 @@ export const TAG_MAX_COUNT = 5;
 export const TAG_MAX_LENGTH = 10;
 
 export const YEARS_EXPERIENCE_MAX = 60;
+
+// 證照名稱：教練自由輸入，這份清單只是輸入時的建議選項（名稱寫法一致，人工審核比較好核對）。
+export const LICENSE_SUGGESTION_GROUPS = [
+  {
+    label: "健身／重訓",
+    names: ["ACE-CPT", "NASM-CPT", "NSCA-CPT", "NSCA-CSCS", "ACSM-CPT", "AFAA"],
+  },
+  {
+    label: "瑜珈",
+    names: ["RYT 200", "RYT 500"],
+  },
+  {
+    label: "國內通用",
+    names: [
+      "體育署國民體適能指導員（初級）",
+      "體育署國民體適能指導員（中級）",
+      "運動防護員",
+      "單項協會 C 級教練證",
+      "單項協會 B 級教練證",
+      "單項協會 A 級教練證",
+    ],
+  },
+  {
+    label: "衝浪",
+    names: ["ISA 衝浪教練"],
+  },
+  {
+    label: "匹克球",
+    names: ["PPR", "IPTPA"],
+  },
+  {
+    label: "跑酷",
+    names: ["ADAPT"],
+  },
+  {
+    label: "急救",
+    names: ["CPR＋AED", "EMT-1", "紅十字會急救員"],
+  },
+] as const;
+
+export const LICENSE_SUGGESTIONS: readonly string[] =
+  LICENSE_SUGGESTION_GROUPS.flatMap((group) => [...group.names]);
 
 // 上傳檔案限制：單檔 5MB；個人照片只收圖片，良民證與證照另外可收 PDF。
 export const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
