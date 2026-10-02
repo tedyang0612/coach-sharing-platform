@@ -4,6 +4,7 @@ import { useActionState, useMemo, useState } from "react";
 import { login, type AuthFormState } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { CheckboxField } from "@/components/ui/checkbox";
+import { FormError } from "@/components/ui/form-error";
 import { TextField } from "@/components/ui/text-field";
 
 const initialState: AuthFormState = {};
@@ -52,9 +53,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
           關閉瀏覽器下次打開仍是登入狀態）。取消勾選本次 sprint 不做差異化行為。*/}
       <CheckboxField label="記住我" name="rememberMe" defaultChecked />
 
-      {state?.errors?.form && (
-        <p className="text-sm text-red-600">{state.errors.form}</p>
-      )}
+      {state?.errors?.form && <FormError message={state.errors.form} />}
 
       <Button type="submit" disabled={!canSubmit || pending}>
         {pending ? "登入中…" : "登入平台"}

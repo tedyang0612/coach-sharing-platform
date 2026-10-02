@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { signup, type AuthFormState } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
+import { FormError } from "@/components/ui/form-error";
 import { TextField } from "@/components/ui/text-field";
 
 const initialState: AuthFormState = {};
@@ -18,8 +19,6 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
     () => displayName.trim().length > 0 && EMAIL_RE.test(email) && password.length >= 6,
     [displayName, email, password]
   );
-
-  const alreadyRegistered = state?.errors?.form?.includes("已被註冊") ?? false;
 
   return (
     <form action={formAction} className="mt-6 flex flex-col gap-4">
@@ -60,22 +59,12 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
         required
       />
 
-      {state?.errors?.form && (
-        <p className="text-sm text-red-600">
-          {state.errors.form}
-          {alreadyRegistered && (
-            <>
-              {" "}
-              <a href="/login" className="font-semibold text-brand hover:underline">
-                直接登入
-              </a>
-            </>
-          )}
-        </p>
-      )}
+      {/* 「直接登入」連結已經在表單下方常駐出現（「已經有帳號了？直接登入」），
+          這裡的錯誤框不再重複放一次連結，純粹顯示文案。 */}
+      {state?.errors?.form && <FormError message={state.errors.form} />}
 
       <Button type="submit" disabled={!canSubmit || pending}>
-        {pending ? "建立帳號中…" : "免費註冊"}
+        {pending ? "建立帳號中…" : "建立帳號"}
       </Button>
     </form>
   );

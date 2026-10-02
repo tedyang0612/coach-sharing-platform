@@ -16,6 +16,9 @@ export type AuthFormState = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// 共用文案：register-form.tsx 用 .includes("已被註冊") 判斷要不要連去登入頁，改文案時兩邊要一起看過。
+const DUPLICATE_EMAIL_MESSAGE = "此 Email 已被註冊，請直接登入；\n或使用其他 Email 進行註冊。";
+
 function safeRedirectTarget(value: FormDataEntryValue | null): string {
   const target = typeof value === "string" ? value : "/";
   // 只接受站內的相對路徑，避免被塞外部網址做開放重導向
@@ -41,7 +44,7 @@ export async function login(
   if (error) {
     // Supabase 對「帳號不存在」跟「密碼錯誤」回傳同一種錯誤，
     // 這裡統一顯示成一句話，不特別指出是帳號還是密碼錯（避免帳號列舉）。
-    return { errors: { form: "帳號或密碼錯誤" } };
+    return { errors: { form: "帳號或密碼錯誤。" } };
   }
 
   redirect(redirectTo);
@@ -77,16 +80,16 @@ export async function signup(
     // identities 為空陣列的匿名化行為；這裡要攔截訊息內容才能顯示正確文案。
     const message = error.message.toLowerCase();
     if (message.includes("already registered") || message.includes("already exists") || message.includes("user already")) {
-      return { errors: { form: "此 Email 已被註冊，請直接登入或是用其他 Email 註冊" } };
+      return { errors: { form: DUPLICATE_EMAIL_MESSAGE } };
     }
-    return { errors: { form: "註冊失敗，請稍後再試" } };
+    return { errors: { form: "註冊失敗，請稍後再試。" } };
   }
 
   // Confirm email 開啟時，Supabase 對「Email 已被註冊」不會直接回傳錯誤
   // （防止帳號列舉攻擊），而是回傳一個 identities 是空陣列的假 user。
   // 保留這個判斷以涵蓋兩種 Supabase 設定下的情境。
   if (data.user && data.user.identities && data.user.identities.length === 0) {
-    return { errors: { form: "此 Email 已被註冊，請直接登入或是用其他 Email 註冊" } };
+    return { errors: { form: DUPLICATE_EMAIL_MESSAGE } };
   }
 
   redirect(redirectTo);
