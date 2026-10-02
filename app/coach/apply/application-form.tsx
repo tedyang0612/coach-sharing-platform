@@ -27,6 +27,7 @@ import {
 import {
   COACH_DOCUMENT_BUCKET,
   COACH_PHOTO_BUCKET,
+  LICENSE_REVIEW_ESTIMATE,
 } from "@/lib/coach-application/constants";
 import { DEFAULT_EDUCATION_DEGREE, parseEducation } from "@/lib/coach-application/education";
 import { uploadCoachFile } from "@/lib/coach-application/upload";
@@ -56,7 +57,7 @@ export type ExistingApplication = {
 };
 
 const LICENSE_STATUS_LABELS: Record<LicenseStatus, string> = {
-  pending: "審核中",
+  pending: `審核中（${LICENSE_REVIEW_ESTIMATE}）`,
   approved: "已通過",
   rejected: "未通過",
 };
