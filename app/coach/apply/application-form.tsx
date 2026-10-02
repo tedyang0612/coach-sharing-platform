@@ -2,6 +2,10 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import { submitCoachApplication } from "@/app/actions/coach-application";
+import {
+  EducationList,
+  type EducationDraft,
+} from "@/components/coach-application/education-list";
 import { FileField } from "@/components/coach-application/file-field";
 import {
   LicenseList,
@@ -23,8 +27,8 @@ import {
 import {
   COACH_DOCUMENT_BUCKET,
   COACH_PHOTO_BUCKET,
-  YEARS_EXPERIENCE_MAX,
 } from "@/lib/coach-application/constants";
+import { DEFAULT_EDUCATION_DEGREE, parseEducation } from "@/lib/coach-application/education";
 import { uploadCoachFile } from "@/lib/coach-application/upload";
 import {
   contactInfoWarning,
@@ -42,13 +46,11 @@ export type ExistingApplication = {
   hasCriminalRecord: boolean;
   sportCategories: string[];
   tags: string[];
-  yearsExperience: number | null;
   bioEducation: string;
   bioCompetition: string;
   bioIntro: string;
   contactPhone: string;
   contactLine: string;
-  contactEmail: string;
   contactSocial: string;
   licenses: { id: string; name: string; status: LicenseStatus }[];
 };
@@ -91,16 +93,19 @@ export function ApplicationForm({ userId, existing }: ApplicationFormProps) {
     existing?.sportCategories ?? []
   );
   const [tags, setTags] = useState<string[]>(existing?.tags ?? []);
-  const [yearsExperience, setYearsExperience] = useState(
-    existing?.yearsExperience == null ? "" : String(existing.yearsExperience)
-  );
-  const [bioEducation, setBioEducation] = useState(existing?.bioEducation ?? "");
+  // 重新送審時把先前的學經歷還原成學歷清單與工作／教學經歷；第一次申請先給一列空白學歷
+  const [previousEducation] = useState(() => parseEducation(existing?.bioEducation ?? ""));
+  const [education, setEducation] = useState<EducationDraft[]>(() => {
+    const { entries } = previousEducation;
+    if (entries.length === 0) return [{ key: 1, degree: DEFAULT_EDUCATION_DEGREE, school: "" }];
+    return entries.map((entry, index) => ({ key: index + 1, ...entry }));
+  });
+  const [workExperience, setWorkExperience] = useState(previousEducation.workExperience);
   const [bioCompetition, setBioCompetition] = useState(existing?.bioCompetition ?? "");
   const [bioIntro, setBioIntro] = useState(existing?.bioIntro ?? "");
 
   const [contactPhone, setContactPhone] = useState(existing?.contactPhone ?? "");
   const [contactLine, setContactLine] = useState(existing?.contactLine ?? "");
-  const [contactEmail, setContactEmail] = useState(existing?.contactEmail ?? "");
   const [contactSocial, setContactSocial] = useState(existing?.contactSocial ?? "");
 
   const [criminalRecord, setCriminalRecord] = useState<File | null>(null);
@@ -115,21 +120,17 @@ export function ApplicationForm({ userId, existing }: ApplicationFormProps) {
   const [submitError, setSubmitError] = useState<string>();
   const [isSubmitting, startSubmit] = useTransition();
 
-  const yearsExperienceValue = yearsExperience.trim() === "" ? null : Number(yearsExperience);
-
   const validation = validateCoachApplication({
     hasPhoto: photo !== null || Boolean(existing?.photoUrl),
     hasCriminalRecord: criminalRecord !== null || Boolean(existing?.hasCriminalRecord),
     sportCategories,
     tags,
-    // 空白代表沒填；填了非數字會變成 NaN，交給檢查規則擋下
-    yearsExperience: yearsExperienceValue,
-    bioEducation,
+    education,
+    workExperience,
     bioCompetition,
     bioIntro,
     contactPhone,
     contactLine,
-    contactEmail,
     contactSocial,
     licenses: licenses.map((license) => ({
       name: license.name,
@@ -171,13 +172,12 @@ export function ApplicationForm({ userId, existing }: ApplicationFormProps) {
           criminalRecordPath,
           sportCategories,
           tags,
-          yearsExperience: yearsExperienceValue,
-          bioEducation,
+          education: education.map(({ degree, school }) => ({ degree, school })),
+          workExperience,
           bioCompetition,
           bioIntro,
           contactPhone,
           contactLine,
-          contactEmail,
           contactSocial,
           licenses: uploadedLicenses,
           removedLicenseIds,
@@ -232,31 +232,26 @@ export function ApplicationForm({ userId, existing }: ApplicationFormProps) {
 
         <TagInput value={tags} onChange={setTags} />
 
-        <TextField
-          label="訓練／教學年資（選填）"
-          name="yearsExperience"
-          type="number"
-          inputMode="numeric"
-          min={0}
-          max={YEARS_EXPERIENCE_MAX}
-          placeholder="例：5"
-          value={yearsExperience}
-          onChange={(event) => setYearsExperience(event.target.value)}
-          error={errors.yearsExperience}
-        />
-
         {/* 公開欄位邊打字邊檢查聯絡資訊，偵測到就即時警示（PRD 第六章 7） */}
-        <TextAreaField
-          label="個人學／經歷＊"
-          name="bioEducation"
-          placeholder="例：體育大學運動科學系畢業，曾任健身房教練 3 年"
-          value={bioEducation}
-          onChange={(event) => setBioEducation(event.target.value)}
-          error={contactInfoWarning(bioEducation) ?? errors.bioEducation}
+        <EducationList
+          value={education}
+          onChange={setEducation}
+          error={errors.education}
+          itemErrors={errors.educationItems}
         />
 
         <TextAreaField
-          label="比賽經驗（選填）"
+          label="工作／教學經歷（選填）"
+          name="workExperience"
+          rows={3}
+          placeholder="例：知名健身房 5 年教練經驗"
+          value={workExperience}
+          onChange={(event) => setWorkExperience(event.target.value)}
+          error={contactInfoWarning(workExperience)}
+        />
+
+        <TextAreaField
+          label="比賽經歷（選填）"
           name="bioCompetition"
           placeholder="例：2023 全國健美錦標賽 75kg 級第 3 名"
           value={bioCompetition}
@@ -276,7 +271,7 @@ export function ApplicationForm({ userId, existing }: ApplicationFormProps) {
 
       <Section
         title="聯絡方式"
-        description="至少填寫一項。不會公開，僅供平台聯繫，以及場次成團後透過行前公告提供給該場次學員。"
+        description="電話、LINE、社群帳號至少填寫一項。不會公開，僅供平台聯繫，以及場次成團後透過行前公告提供給該場次學員。Email 通知會寄到你註冊帳號的信箱，不用另外填寫。"
       >
         <TextField
           label="電話"
@@ -292,16 +287,6 @@ export function ApplicationForm({ userId, existing }: ApplicationFormProps) {
           name="contactLine"
           value={contactLine}
           onChange={(event) => setContactLine(event.target.value)}
-        />
-        <TextField
-          label="Email"
-          name="contactEmail"
-          type="email"
-          autoComplete="email"
-          placeholder="coach@example.com"
-          value={contactEmail}
-          onChange={(event) => setContactEmail(event.target.value)}
-          error={errors.contactEmail}
         />
         <TextField
           label="社群帳號"

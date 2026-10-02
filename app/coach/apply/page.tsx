@@ -52,13 +52,11 @@ export default async function CoachApplyPage() {
           Boolean(application.criminal_record_url) && !application.criminal_record_deleted,
         sportCategories: application.sport_categories ?? [],
         tags: application.tags ?? [],
-        yearsExperience: application.years_experience,
         bioEducation: application.bio_education ?? "",
         bioCompetition: application.bio_competition ?? "",
         bioIntro: application.bio_intro ?? "",
         contactPhone: application.contact_phone ?? "",
         contactLine: application.contact_line ?? "",
-        contactEmail: application.contact_email ?? "",
         contactSocial: application.contact_social ?? "",
         licenses: (licenses ?? []).map((license) => ({
           id: license.id,

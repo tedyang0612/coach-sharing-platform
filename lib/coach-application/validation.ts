@@ -11,9 +11,9 @@ import {
   SPORT_CATEGORIES,
   TAG_MAX_COUNT,
   TAG_MAX_LENGTH,
-  YEARS_EXPERIENCE_MAX,
 } from "./constants";
 import { CONTACT_INFO_LABELS, detectContactInfo } from "./contact-detection";
+import { EDUCATION_DEGREES, type EducationEntry } from "./education";
 
 export type CoachApplicationInput = {
   // 檔案本身另外用 validateUploadFile() 檢查，這裡只看「有沒有」
@@ -22,14 +22,14 @@ export type CoachApplicationInput = {
 
   sportCategories: string[];
   tags: string[];
-  yearsExperience: number | null;
-  bioEducation: string;
+  education: EducationEntry[];
+  workExperience: string;
   bioCompetition: string;
   bioIntro: string;
 
+  // 聯絡方式三項至少填一項；Email 通知寄到註冊帳號的信箱，這裡不另外填
   contactPhone: string;
   contactLine: string;
-  contactEmail: string;
   contactSocial: string;
 
   licenses: { name: string; hasFile: boolean }[];
@@ -40,19 +40,18 @@ export type CoachApplicationErrors = {
   photo?: string;
   sportCategories?: string;
   tags?: string;
-  yearsExperience?: string;
-  bioEducation?: string;
+  // education 是整體錯誤（例如一筆都沒填）；educationItems 的 key 是學歷在清單裡的位置
+  education?: string;
+  educationItems?: Record<number, string>;
+  workExperience?: string;
   bioCompetition?: string;
   bioIntro?: string;
   contact?: string;
-  contactEmail?: string;
   criminalRecord?: string;
   // key 是證照在清單裡的位置（從 0 開始）
   licenses?: Record<number, string>;
   consent?: string;
 };
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** 公開欄位含聯絡資訊時回傳警示文字，沒有則回傳 undefined。 */
 export function contactInfoWarning(text: string): string | undefined {
@@ -107,35 +106,38 @@ export function validateCoachApplication(
   const tagsError = validateTags(input.tags);
   if (tagsError) errors.tags = tagsError;
 
-  if (input.yearsExperience !== null) {
-    const years = input.yearsExperience;
-    if (!Number.isInteger(years) || years < 0 || years > YEARS_EXPERIENCE_MAX) {
-      errors.yearsExperience = `年資請填 0–${YEARS_EXPERIENCE_MAX} 的整數`;
+  if (input.education.length === 0) {
+    errors.education = "請至少填寫一筆學歷";
+  } else {
+    const educationItemErrors: Record<number, string> = {};
+    input.education.forEach((entry, index) => {
+      if (!(EDUCATION_DEGREES as readonly string[]).includes(entry.degree)) {
+        educationItemErrors[index] = "請選擇學位";
+      } else if (!entry.school.trim()) {
+        educationItemErrors[index] = "請填寫學校科系";
+      } else {
+        const warning = contactInfoWarning(entry.school);
+        if (warning) educationItemErrors[index] = warning;
+      }
+    });
+    if (Object.keys(educationItemErrors).length > 0) {
+      errors.educationItems = educationItemErrors;
     }
   }
-
-  const educationError = requiredPublicText(input.bioEducation, "請填寫個人學／經歷");
-  if (educationError) errors.bioEducation = educationError;
 
   const introError = requiredPublicText(input.bioIntro, "請填寫簡述");
   if (introError) errors.bioIntro = introError;
 
-  // 比賽經驗選填，但有填就一樣是公開欄位
+  // 工作／教學經歷、比賽經歷都是選填，但有填就一樣是公開欄位
+  const workExperienceError = contactInfoWarning(input.workExperience);
+  if (workExperienceError) errors.workExperience = workExperienceError;
+
   const competitionError = contactInfoWarning(input.bioCompetition);
   if (competitionError) errors.bioCompetition = competitionError;
 
-  const contacts = [
-    input.contactPhone,
-    input.contactLine,
-    input.contactEmail,
-    input.contactSocial,
-  ];
+  const contacts = [input.contactPhone, input.contactLine, input.contactSocial];
   if (contacts.every((value) => !value.trim())) {
     errors.contact = "聯絡方式請至少填寫一項";
-  }
-  const email = input.contactEmail.trim();
-  if (email && !EMAIL_RE.test(email)) {
-    errors.contactEmail = "請輸入正確格式的 Email";
   }
 
   if (!input.hasCriminalRecord) errors.criminalRecord = "請上傳良民證";

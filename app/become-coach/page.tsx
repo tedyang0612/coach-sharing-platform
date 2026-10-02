@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 const BENEFITS = [
   {
     title: "自訂價格與成團人數",
-    body: "自己設定每人費用與人數下限，報名截止時達到下限才成團開課。",
+    body: "自由設定每人費用與人數上限下限，報名截止預設為開課前 24 小時。",
   },
   {
     title: "平台代收、每週三撥款",
@@ -24,17 +24,17 @@ const BENEFITS = [
 ];
 
 const STEPS = [
-  { title: "填寫申請", body: "個人資料、聯絡方式，並上傳良民證。" },
-  { title: "平台審核", body: "由管理員人工審核，結果會以站內通知告知。" },
+  { title: "填寫申請", body: "個人資料、聯絡方式，並上傳良民證以及相關證照。" },
+  { title: "平台審核", body: "由管理員人工審核，結果會以站內通知及 Email 告知。" },
   { title: "開始開課", body: "審核通過後開放教練工作台，個人檔案同步公開。" },
 ];
 
 const CHECKLIST = [
   "個人照片",
-  "學經歷與簡述",
+  "學歷與簡述",
   "良民證（必填）",
   "專業證照（選填）",
-  "聯絡方式（電話、LINE、Email 或社群帳號）至少一項（除學員必要課務聯繫外，不作行銷用途，亦不提供給其他無關第三方。）",
+  "聯絡方式：電話、LINE 或社群帳號至少一項（除學員必要課務聯繫外，不作行銷用途，亦不提供給其他無關第三方。）",
 ];
 
 export default function BecomeCoachPage() {
@@ -44,7 +44,7 @@ export default function BecomeCoachPage() {
         <header className="flex flex-col items-center gap-3 text-center">
           <LogoBadge />
           <h1 className="text-2xl font-bold text-neutral-900 sm:text-3xl">
-            成為夠練教練
+            成為夠練
           </h1>
           <p className="max-w-lg text-sm text-neutral-500">
             上架你的小班課，報名、收款與成團判斷交給平台，你專心教學就好。

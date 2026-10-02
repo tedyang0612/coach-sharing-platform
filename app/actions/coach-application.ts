@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { COACH_PHOTO_BUCKET } from "@/lib/coach-application/constants";
+import { formatEducation, type EducationEntry } from "@/lib/coach-application/education";
 import { hasErrors, validateCoachApplication } from "@/lib/coach-application/validation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -12,13 +13,12 @@ export type CoachApplicationPayload = {
   criminalRecordPath: string;
   sportCategories: string[];
   tags: string[];
-  yearsExperience: number | null;
-  bioEducation: string;
+  education: EducationEntry[];
+  workExperience: string;
   bioCompetition: string;
   bioIntro: string;
   contactPhone: string;
   contactLine: string;
-  contactEmail: string;
   contactSocial: string;
   // 這次新增的證照
   licenses: { name: string; filePath: string }[];
@@ -76,13 +76,12 @@ export async function submitCoachApplication(
     hasCriminalRecord: payload.criminalRecordPath !== "" || keepsCriminalRecord,
     sportCategories: payload.sportCategories,
     tags: payload.tags,
-    yearsExperience: payload.yearsExperience,
-    bioEducation: payload.bioEducation,
+    education: payload.education,
+    workExperience: payload.workExperience,
     bioCompetition: payload.bioCompetition,
     bioIntro: payload.bioIntro,
     contactPhone: payload.contactPhone,
     contactLine: payload.contactLine,
-    contactEmail: payload.contactEmail,
     contactSocial: payload.contactSocial,
     licenses: payload.licenses.map((license) => ({
       name: license.name,
@@ -106,13 +105,16 @@ export async function submitCoachApplication(
   const fields = {
     sport_categories: payload.sportCategories,
     tags: payload.tags.map((tag) => tag.trim()),
-    years_experience: payload.yearsExperience,
-    bio_education: payload.bioEducation.trim(),
+    // 年資欄位已從表單拿掉（改由「工作／教學經歷」說明），固定清空
+    years_experience: null,
+    // 學歷與工作／教學經歷一起存在學經歷欄位（格式見 lib/coach-application/education.ts）
+    bio_education: formatEducation(payload.education, payload.workExperience),
     bio_competition: emptyToNull(payload.bioCompetition),
     bio_intro: payload.bioIntro.trim(),
     contact_phone: emptyToNull(payload.contactPhone),
     contact_line: emptyToNull(payload.contactLine),
-    contact_email: emptyToNull(payload.contactEmail),
+    // contact_email 不再由表單填寫（Email 一律用註冊帳號的信箱），固定清空
+    contact_email: null,
     contact_social: emptyToNull(payload.contactSocial),
     // 個人照片是公開 bucket，存可以直接顯示的網址；良民證與證照是私有 bucket，只存路徑
     ...(payload.photoPath && {

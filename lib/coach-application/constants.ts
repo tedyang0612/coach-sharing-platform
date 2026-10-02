@@ -46,8 +46,6 @@ export const PRESET_TAGS: readonly string[] = PRESET_TAG_GROUPS.flatMap(
 export const TAG_MAX_COUNT = 5;
 export const TAG_MAX_LENGTH = 10;
 
-export const YEARS_EXPERIENCE_MAX = 60;
-
 // 證照名稱：教練自由輸入，這份清單只是輸入時的建議選項（名稱寫法一致，人工審核比較好核對）。
 export const LICENSE_SUGGESTION_GROUPS = [
   {

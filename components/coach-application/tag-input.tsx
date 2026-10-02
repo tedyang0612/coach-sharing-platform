@@ -23,6 +23,9 @@ export function TagInput({ value, onChange }: TagInputProps) {
 
   const isFull = value.length >= TAG_MAX_COUNT;
   const keyword = draft.trim();
+  // 邊打字邊檢查字數，超過上限就立刻變紅框並提示，不用等到按「新增」
+  const isTooLong = Array.from(keyword).length > TAG_MAX_LENGTH;
+  const shownError = isTooLong ? `每個特色 Tag 最多 ${TAG_MAX_LENGTH} 個字` : error;
 
   function addTag(raw: string) {
     const tag = raw.trim();
@@ -96,18 +99,23 @@ export function TagInput({ value, onChange }: TagInputProps) {
             setError(undefined);
           }}
           onKeyDown={handleKeyDown}
-          className="min-w-0 flex-1 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand-ink disabled:opacity-50"
+          aria-invalid={shownError ? true : undefined}
+          className={`min-w-0 flex-1 rounded-xl border bg-neutral-50 px-4 py-2.5 text-sm text-neutral-900 outline-none transition focus:bg-white focus:ring-2 disabled:opacity-50 ${
+            isTooLong
+              ? "border-red-500 focus:border-red-500 focus:ring-red-100"
+              : "border-neutral-200 focus:border-brand focus:ring-brand-ink"
+          }`}
         />
         <button
           type="button"
-          disabled={isFull || !keyword}
+          disabled={isFull || !keyword || isTooLong}
           onClick={() => addTag(draft)}
           className="shrink-0 rounded-xl border border-brand px-4 text-sm font-semibold text-brand transition hover:bg-brand-ink disabled:cursor-not-allowed disabled:opacity-40"
         >
           新增
         </button>
       </div>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {shownError && <p className="text-xs text-red-600">{shownError}</p>}
 
       {!isFull && suggestionGroups.length > 0 && (
         <div className="mt-1 flex flex-col gap-2 rounded-xl border border-neutral-200 p-3">
