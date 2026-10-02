@@ -162,33 +162,61 @@ export function validateCoachPublicProfile(
   return errors;
 }
 
-export function validateCoachApplication(
-  input: CoachApplicationInput
-): CoachApplicationErrors {
-  const errors: CoachApplicationErrors = validateCoachPublicProfile(input);
-
+function validateContacts(
+  input: Pick<CoachApplicationInput, "contactPhone" | "contactLine" | "contactSocial">
+): string | undefined {
   const contacts = [input.contactPhone, input.contactLine, input.contactSocial];
-  if (contacts.every((value) => !value.trim())) {
-    errors.contact = "聯絡方式請至少填寫一項";
-  }
+  return contacts.every((value) => !value.trim()) ? "聯絡方式請至少填寫一項" : undefined;
+}
 
-  if (!input.hasCriminalRecord) errors.criminalRecord = "請上傳良民證";
-
+function validateLicenses(
+  licenses: CoachApplicationInput["licenses"]
+): Record<number, string> | undefined {
   const licenseErrors: Record<number, string> = {};
-  input.licenses.forEach((license, index) => {
+  licenses.forEach((license, index) => {
     if (!license.name.trim()) {
       licenseErrors[index] = "請填寫證照名稱";
     } else if (!license.hasFile) {
       licenseErrors[index] = "請上傳證照檔案";
     } else {
-      // 證照名稱之後會顯示在教練個人檔案，同樣算公開欄位
+      // 證照名稱會顯示在教練個人檔案，同樣算公開欄位
       const warning = contactInfoWarning(license.name);
       if (warning) licenseErrors[index] = warning;
     }
   });
-  if (Object.keys(licenseErrors).length > 0) errors.licenses = licenseErrors;
+  return Object.keys(licenseErrors).length > 0 ? licenseErrors : undefined;
+}
+
+export function validateCoachApplication(
+  input: CoachApplicationInput
+): CoachApplicationErrors {
+  const errors: CoachApplicationErrors = validateCoachPublicProfile(input);
+
+  const contactError = validateContacts(input);
+  if (contactError) errors.contact = contactError;
+
+  if (!input.hasCriminalRecord) errors.criminalRecord = "請上傳良民證";
+
+  const licenseErrors = validateLicenses(input.licenses);
+  if (licenseErrors) errors.licenses = licenseErrors;
 
   if (!input.consent) errors.consent = "請勾選同意個資蒐集聲明後再送出";
+
+  return errors;
+}
+
+// 審核通過後的「編輯個人檔案」（9.0）：公開欄位＋聯絡方式＋證照；良民證與同意聲明不在這裡處理
+export type CoachProfileEditInput = Omit<CoachApplicationInput, "hasCriminalRecord" | "consent">;
+export type CoachProfileEditErrors = Omit<CoachApplicationErrors, "criminalRecord" | "consent">;
+
+export function validateCoachProfileEdit(input: CoachProfileEditInput): CoachProfileEditErrors {
+  const errors: CoachProfileEditErrors = validateCoachPublicProfile(input);
+
+  const contactError = validateContacts(input);
+  if (contactError) errors.contact = contactError;
+
+  const licenseErrors = validateLicenses(input.licenses);
+  if (licenseErrors) errors.licenses = licenseErrors;
 
   return errors;
 }

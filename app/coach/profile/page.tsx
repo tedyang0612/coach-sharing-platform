@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { LicenseStatus } from "@/types/database";
 import { ProfileForm } from "./profile-form";
 
 export const metadata: Metadata = {
@@ -19,18 +20,19 @@ export default async function CoachProfileEditPage() {
     redirect(`/login?redirect=${encodeURIComponent("/coach/profile")}`);
   }
 
-  // 只需要公開欄位，直接查 coach_profiles 即可（這些欄位在 select 白名單內）
-  const { data: profile } = await supabase
-    .from("coach_profiles")
-    .select(
-      "application_status, photo_url, sport_categories, tags, bio_education, bio_competition, bio_intro"
-    )
-    .eq("id", user.id)
-    .maybeSingle();
+  // 聯絡方式不在 coach_profiles 的 select 白名單內，要透過 function 讀自己的完整資料；
+  // 還沒申請過時回傳 null 或每個欄位都是 null 的一筆資料，所以用 id 判斷
+  const { data: profile } = await supabase.rpc("get_my_coach_application");
 
   // 還沒申請、審核中、需補件、未通過：個人檔案尚未公開，先看申請狀態
-  if (!profile) redirect("/coach/apply");
+  if (!profile?.id) redirect("/coach/apply");
   if (profile.application_status !== "approved") redirect("/coach/application");
+
+  const { data: licenses } = await supabase
+    .from("coach_licenses")
+    .select("id, name, status, rejection_reason")
+    .eq("coach_id", user.id)
+    .order("created_at", { ascending: true });
 
   return (
     <main className="flex-1 px-4 py-8 sm:px-6 sm:py-12">
@@ -39,7 +41,7 @@ export default async function CoachProfileEditPage() {
           <div>
             <h1 className="text-2xl font-bold text-neutral-900">編輯個人檔案</h1>
             <p className="mt-1 text-sm text-neutral-500">
-              這些內容會公開顯示在你的教練個人檔案，請勿填寫電話、Email、LINE ID 或網址。
+              修改公開資料、聯絡方式，或追加專業證照。
             </p>
           </div>
           <Link
@@ -59,7 +61,16 @@ export default async function CoachProfileEditPage() {
             bioEducation: profile.bio_education ?? "",
             bioCompetition: profile.bio_competition ?? "",
             bioIntro: profile.bio_intro ?? "",
+            contactPhone: profile.contact_phone ?? "",
+            contactLine: profile.contact_line ?? "",
+            contactSocial: profile.contact_social ?? "",
           }}
+          licenses={(licenses ?? []).map((license) => ({
+            id: license.id,
+            name: license.name,
+            status: license.status as LicenseStatus,
+            rejectionReason: license.rejection_reason,
+          }))}
         />
       </div>
     </main>
