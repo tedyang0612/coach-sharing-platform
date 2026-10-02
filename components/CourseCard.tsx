@@ -12,6 +12,32 @@ function formatDateTime(iso: string) {
   }).format(new Date(iso));
 }
 
+// 頭像網址來自 Supabase Storage（外部網域），next.config.ts 還沒設定圖片網域，
+// 所以先用一般 <img>；沒有頭像時顯示姓名首字。
+function CoachAvatar({ name, photoUrl }: { name: string; photoUrl: string | null }) {
+  if (photoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={photoUrl}
+        alt={name}
+        loading="lazy"
+        className="h-7 w-7 rounded-full object-cover"
+      />
+    );
+  }
+  return (
+    <span
+      aria-hidden="true"
+      className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700"
+    >
+      {Array.from(name)[0]}
+    </span>
+  );
+}
+
+const MAX_VISIBLE_TAGS = 3;
+
 interface Props {
   course: Course;
   distanceKm?: number | null;
@@ -67,15 +93,62 @@ export default function CourseCard({ course, distanceKm }: Props) {
         </div>
 
         <div className="space-y-3 border-t border-slate-100 pt-3">
-          <div className="flex items-center justify-between text-xs text-slate-600">
-            <span className="font-semibold text-slate-800">
-              {course.coachName}
-            </span>
-            <span>
-              <span className="text-slate-400">招募進度：</span>
-              <span className="font-bold text-slate-800">
-                {course.enrolled}/{course.capacity}人
+          <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
+            <div className="flex min-w-0 items-center gap-2">
+              <CoachAvatar
+                name={course.coachName}
+                photoUrl={course.coachPhotoUrl}
+              />
+              <span className="truncate font-semibold text-slate-800">
+                {course.coachName}
               </span>
+              {course.coachVerified && (
+                <span className="shrink-0 rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-700">
+                  ✓ 已認證
+                </span>
+              )}
+            </div>
+            <span className="shrink-0">
+              {course.coachRating !== null ? (
+                <>
+                  <span className="text-amber-500">★</span>{" "}
+                  <span className="font-bold text-slate-800">
+                    {/* 捨去而不是四捨五入，避免 4.95 顯示成滿分 5.0 */}
+                    {(Math.floor(course.coachRating * 10) / 10).toFixed(1)}
+                  </span>
+                  <span className="text-slate-400">
+                    {" "}
+                    ({course.coachReviewCount})
+                  </span>
+                </>
+              ) : (
+                <span className="text-slate-400">尚無評價</span>
+              )}
+            </span>
+          </div>
+
+          {course.coachTags.length > 0 && (
+            <ul className="flex flex-wrap gap-1.5">
+              {course.coachTags.slice(0, MAX_VISIBLE_TAGS).map((tag) => (
+                <li
+                  key={tag}
+                  className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600"
+                >
+                  {tag}
+                </li>
+              ))}
+              {course.coachTags.length > MAX_VISIBLE_TAGS && (
+                <li className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-400">
+                  +{course.coachTags.length - MAX_VISIBLE_TAGS}
+                </li>
+              )}
+            </ul>
+          )}
+
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-slate-400">招募進度</span>
+            <span className="font-bold text-slate-800">
+              {course.enrolled}/{course.capacity}人
             </span>
           </div>
 

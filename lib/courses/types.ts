@@ -19,6 +19,13 @@ export interface Course {
   // 公開顯示的教練名稱：暱稱優先，沒填暱稱就用真實姓名。
   // 判斷在查詢層（getCourses）做，真實姓名不放進這個型別。
   coachName: string;
+  // 以下對應 Ted 公開的 coach_profiles 欄位（photo_url / is_verified / tags）
+  coachPhotoUrl: string | null;
+  coachVerified: boolean;
+  coachTags: string[];
+  // 評價要從評價表統計，不在 coach_profiles；沒有評價時為 null
+  coachRating: number | null;
+  coachReviewCount: number;
   price: number;
   enrolled: number;
   minToOpen: number; // 達到這個人數才成團
