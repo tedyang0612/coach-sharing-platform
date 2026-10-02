@@ -4,6 +4,7 @@ import CourseFilters from "@/components/CourseFilters";
 import { sortByDistance } from "@/lib/courses/distance";
 import { filterCourses, parseFilters } from "@/lib/courses/filterCourses";
 import { getCourses } from "@/lib/courses/getCourses";
+import { sortByStartTime } from "@/lib/courses/sortCourses";
 
 export const metadata = {
   title: "找課程｜教練共課平台",
@@ -17,8 +18,9 @@ export default async function CoursesPage({
 }) {
   const allCourses = await getCourses();
   const filters = parseFilters(await searchParams);
-  const filtered = filterCourses(allCourses, filters);
-  // 有定位就依距離排序；沒有就維持原順序
+  // 基本排序固定依開課時間由近到遠；有定位時再依距離排序，
+  // 距離相同或沒有座標的課程維持開課時間的順序（排序是穩定的）。
+  const filtered = sortByStartTime(filterCourses(allCourses, filters));
   const courses = filters.near
     ? sortByDistance(filtered, filters.near)
     : filtered.map((course) => ({ course, distanceKm: null }));
