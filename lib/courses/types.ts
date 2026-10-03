@@ -67,14 +67,9 @@ export const LEVEL_LABELS: Record<Level, string> = {
   advanced: "進階",
 };
 
-// 篩選下拉的程度選項與順序（初階／中階／進階／全程度）。
-// 選初階／中階／進階時，全程度的課任何人都能上，會一併列出；選全程度只列全程度的課。
-export const FILTER_LEVELS = [
-  "beginner",
-  "intermediate",
-  "advanced",
-  "unlimited",
-] as const;
+// 篩選的程度選項與順序：不限（不篩選）、初階、中階、進階。
+// 全程度的課任何人都能上，所以選初階／中階／進階時一律一併列出；不限也會列出，不需要單獨篩選它。
+export const FILTER_LEVELS = ["beginner", "intermediate", "advanced"] as const;
 export type FilterLevel = (typeof FILTER_LEVELS)[number];
 
 // 運動項目：產品決定的固定清單。
