@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
+  <!-- 佔位圖：AI 生成封面圖到了之後直接替換本檔（或新增檔案並更新 app/courses/_lib/cover-image.ts 的 COVER_GALLERY） -->
+  <rect width="1200" height="675" fill="#2f6f4e"/>
+  <circle cx="1040" cy="120" r="260" fill="#eaf3ed" opacity="0.08"/>
+  <circle cx="140" cy="600" r="200" fill="#eaf3ed" opacity="0.06"/>
+  <text x="600" y="350" text-anchor="middle" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif" font-size="96" font-weight="700" fill="#eaf3ed">重訓</text>
+  <text x="600" y="430" text-anchor="middle" font-family="'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif" font-size="32" fill="#eaf3ed" opacity="0.7">夠練 GoLand</text>
+</svg>
