@@ -3,7 +3,7 @@
 // 開課／編輯課程表單（PRD 1.0）。
 // - 必填欄位齊全、且沒有驗證錯誤前，發布按鈕維持 disabled（AC1：不是送出後才報錯）
 // - 公開欄位即時檢查聯絡資訊（規格5）
-// - 依時間區間＋每堂長度即時預覽場次（規格2）；預覽只顯示「14:00–15:00」，不顯示時長
+// - 場次時間逐堂設定（10/3 組員討論）：第一堂手動選開始／結束，「＋ 新增一堂」接續上一堂並沿用時長
 // - 編輯且已有人報名（locked）：只能改課程須知與封面圖，其他欄位 disabled
 
 import { useActionState, useState } from "react";
@@ -17,17 +17,17 @@ import {
   COURSE_LEVELS,
   DEFAULT_DEADLINE_HOURS,
   SCHEDULE_FIELDS,
-  computeLeftover,
-  computeSessionSlots,
   hasAllRequiredFields,
+  parseSlots,
+  serializeSlots,
   validateCourseValues,
   type CourseField,
   type CourseFieldErrors,
   type CourseFormValues,
 } from "../_lib/course-input";
-import { formatTimeRange } from "../_lib/format";
 import { CoverPicker } from "./cover-picker";
 import { FormSection, SelectField, TextAreaField } from "./fields";
+import { SlotsEditor } from "./slots-editor";
 
 type CourseAction = (prev: CourseFormState, formData: FormData) => Promise<CourseFormState>;
 
@@ -47,54 +47,7 @@ type Props = {
   locked?: boolean;
 };
 
-const DURATION_OPTIONS = [30, 45, 60, 90, 120, 150, 180];
 const DEADLINE_OPTIONS = [24, 36, 48, 72];
-
-// 時間用下拉選單、24 小時制、每 30 分鐘一格：原生 <input type="time"> 依系統語系顯示上午／下午，
-// 捲動時不會自動切換，而且要點到時鐘圖示才開得了，教練回饋不直覺。
-const TIME_STEP_MINUTES = 30;
-const FIRST_SLOT = 6 * 60; // 06:00
-const LAST_SLOT = 23 * 60; // 23:00
-const TIME_GROUPS: { label: string; from: number; to: number }[] = [
-  { label: "上午", from: 0, to: 12 * 60 },
-  { label: "下午", from: 12 * 60, to: 18 * 60 },
-  { label: "晚上", from: 18 * 60, to: 24 * 60 },
-];
-
-function toHHMM(minutes: number): string {
-  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
-}
-
-const TIME_SLOTS: string[] = [];
-for (let m = FIRST_SLOT; m <= LAST_SLOT; m += TIME_STEP_MINUTES) TIME_SLOTS.push(toHHMM(m));
-
-/** 時間選項；after 有值時只列出晚於它的時間（結束時間用）。舊資料不在格點上的值也保留，避免編輯時被清掉 */
-function TimeOptions({ after, current }: { after?: string; current: string }) {
-  const slots = current && !TIME_SLOTS.includes(current) ? [...TIME_SLOTS, current].sort() : TIME_SLOTS;
-  const visible = after ? slots.filter((t) => t > after) : slots;
-  return (
-    <>
-      <option value="" disabled>
-        請選擇
-      </option>
-      {TIME_GROUPS.map((g) => {
-        const items = visible.filter((t) => {
-          const [h, m] = t.split(":").map(Number);
-          return h * 60 + m >= g.from && h * 60 + m < g.to;
-        });
-        return items.length === 0 ? null : (
-          <optgroup key={g.label} label={g.label}>
-            {items.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </optgroup>
-        );
-      })}
-    </>
-  );
-}
 
 /** 點日期欄位任何地方都打開日曆（原生只有點到圖示才會開）；不支援 showPicker 的瀏覽器維持原本行為 */
 function openDatePicker(e: { currentTarget: HTMLInputElement }) {
@@ -132,12 +85,7 @@ export function CourseForm({ action, initialValues, districts, mode, sourceId, c
   const isEditable = (f: CourseField) => !locked || ALWAYS_EDITABLE_FIELDS.includes(f);
 
   function set(field: CourseField, value: string) {
-    setValues((v) => {
-      const next = { ...v, [field]: value };
-      // 開始時間改到結束時間之後：結束時間已不在選項裡，直接清掉讓教練重選
-      if (field === "time_range_start" && next.time_range_end && next.time_range_end <= value) next.time_range_end = "";
-      return next;
-    });
+    setValues((v) => ({ ...v, [field]: value }));
     setEditedSinceSubmit((s) => (s.has(field) ? s : new Set(s).add(field)));
   }
 
@@ -160,28 +108,11 @@ export function CourseForm({ action, initialValues, districts, mode, sourceId, c
     return touched[f] || (values[f] !== "" && clientErrors[f] !== "此欄位為必填") ? clientErrors[f] : undefined;
   }
 
-  // 場次預覽：時間欄位都合法才算
-  const preview =
-    !clientErrors.session_date && !clientErrors.time_range_start && !clientErrors.time_range_end &&
-    !clientErrors.session_duration_minutes && values.session_date && values.time_range_start &&
-    values.time_range_end && values.session_duration_minutes
-      ? computeSessionSlots({
-          session_date: values.session_date,
-          time_range_start: values.time_range_start,
-          time_range_end: values.time_range_end,
-          session_duration_minutes: Number(values.session_duration_minutes),
-          registration_deadline_hours: Number(values.registration_deadline_hours || DEFAULT_DEADLINE_HOURS),
-        })
-      : [];
-
-  const leftover =
-    preview.length > 0
-      ? computeLeftover({
-          time_range_start: values.time_range_start,
-          time_range_end: values.time_range_end,
-          session_duration_minutes: Number(values.session_duration_minutes),
-        })
-      : null;
+  const slots = parseSlots(values.session_slots) ?? [];
+  // 時間表的錯誤：「還沒填完」由 disabled 的按鈕表達，不另外顯示；填完後才顯示重疊等錯誤
+  const slotsFilled = slots.length > 0 && slots.every((sl) => sl.start && sl.end);
+  const slotsServerError = state.errors?.session_slots && !editedSinceSubmit.has("session_slots") ? state.errors.session_slots : undefined;
+  const slotsError = slotsServerError ?? (slotsFilled ? clientErrors.session_slots : undefined);
 
   const fieldProps = (f: CourseField) => ({
     name: f,
@@ -245,7 +176,7 @@ export function CourseForm({ action, initialValues, districts, mode, sourceId, c
         />
       </FormSection>
 
-      <FormSection title="時間與地點" description="系統會依開始／結束時間與每堂長度，自動產生固定場次，每個場次各自計算名額與成團。">
+      <FormSection title="時間與地點" description="每一堂都是固定場次，各自計算名額與成團。">
         <div className="grid gap-4 sm:grid-cols-2">
           <SelectField
             label="縣市 *"
@@ -291,39 +222,12 @@ export function CourseForm({ action, initialValues, districts, mode, sourceId, c
           {...fieldProps("session_date")}
         />
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <SelectField label="開始時間 *" {...fieldProps("time_range_start")}>
-            <TimeOptions current={values.time_range_start} />
-          </SelectField>
-          <SelectField label="結束時間 *" {...fieldProps("time_range_end")}>
-            <TimeOptions current={values.time_range_end} after={values.time_range_start || undefined} />
-          </SelectField>
-          <div className="col-span-2 sm:col-span-1">
-            <SelectField label="每堂長度 *" {...fieldProps("session_duration_minutes")}>
-              <option value="" disabled>
-                請選擇
-              </option>
-              {DURATION_OPTIONS.map((m) => (
-                <option key={m} value={m}>
-                  {m} 分鐘
-                </option>
-              ))}
-            </SelectField>
-          </div>
-        </div>
-
-        {preview.length > 0 && (
-          <div className="rounded-xl bg-brand-ink/60 px-4 py-3">
-            <p className="text-xs font-semibold text-brand">
-              將產生 {preview.length} 個場次：{preview.map((slot) => formatTimeRange(slot.startAt, slot.endAt)).join("、")}
-            </p>
-            {leftover && (
-              <p className="mt-1.5 text-xs text-amber-700">
-                {leftover.start}–{leftover.end}（{leftover.minutes} 分鐘）不足一堂課，不會產生場次。可調整時間區間或每堂長度。
-              </p>
-            )}
-          </div>
-        )}
+        <SlotsEditor
+          slots={slots}
+          onChange={(next) => set("session_slots", serializeSlots(next))}
+          disabled={!isEditable("session_slots")}
+          error={slotsError}
+        />
 
         <SelectField
           label="報名截止"
