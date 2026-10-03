@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LEVEL_LABELS, type Course } from "@/lib/courses/types";
 
 function formatDateTime(iso: string) {
@@ -32,6 +33,27 @@ function CoachAvatar({ name, photoUrl }: { name: string; photoUrl: string | null
       className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700"
     >
       {Array.from(name)[0]}
+    </span>
+  );
+}
+
+// 「已認證」只留圖示（UI 討論結論）。這是暫時的圖示；
+// 牛牛的 <VerifiedBadge />（PR #11）合併後換成那個元件。
+function VerifiedIcon() {
+  return (
+    <span title="認證教練" className="inline-flex shrink-0">
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="11" className="fill-amber-400" />
+        <path
+          d="m7.5 12.3 3 3 6-6.6"
+          fill="none"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="stroke-white"
+        />
+      </svg>
+      <span className="sr-only">已認證教練</span>
     </span>
   );
 }
@@ -99,22 +121,22 @@ export default function CourseCard({ course, distanceKm }: Props) {
                 name={course.coachName}
                 photoUrl={course.coachPhotoUrl}
               />
-              <span className="truncate font-semibold text-slate-800">
+              {/* 卡片本身不是連結，所以教練名稱可以直接放連結（連結不能巢狀） */}
+              <Link
+                href={`/coaches/${course.coachId}`}
+                className="truncate font-semibold text-slate-800 hover:underline"
+              >
                 {course.coachName}
-              </span>
-              {course.coachVerified && (
-                <span className="shrink-0 rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-700">
-                  ✓ 已認證
-                </span>
-              )}
+              </Link>
+              {course.coachVerified && <VerifiedIcon />}
             </div>
             <span className="shrink-0">
               {course.coachRating !== null ? (
                 <>
                   <span className="text-amber-500">★</span>{" "}
                   <span className="font-bold text-slate-800">
-                    {/* 捨去而不是四捨五入，避免 4.95 顯示成滿分 5.0 */}
-                    {(Math.floor(course.coachRating * 10) / 10).toFixed(1)}
+                    {/* 資料庫的 avg_rating 已四捨五入到小數一位，直接顯示才會和教練檔案一致 */}
+                    {course.coachRating.toFixed(1)}
                   </span>
                   <span className="text-slate-400">
                     {" "}
