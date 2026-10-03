@@ -15,7 +15,6 @@ export interface Course {
   latitude: number | null; // 資料表允許為空，沒座標的課程排序時放最後
   longitude: number | null;
   startsAt: string; // ISO 8601
-  timeSlot: TimeSlot;
   level: Level;
   // 公開顯示的教練名稱：暱稱優先，沒填暱稱就用真實姓名。
   // 判斷在查詢層（getCourses）做，真實姓名不放進這個型別。
@@ -27,9 +26,28 @@ export interface Course {
 }
 
 export const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
-  morning: "早上（06–12）",
-  afternoon: "下午（12–18）",
-  evening: "晚上（18–22）",
+  morning: "上午（06:00–11:59）",
+  afternoon: "下午（12:00–17:59）",
+  evening: "晚上（18:00–23:59）",
+};
+
+// 快速時段的範圍，單位是「當天的第幾分鐘」，頭尾都含（上午 0600–1159）
+export const TIME_SLOT_RANGES: Record<TimeSlot, readonly [number, number]> = {
+  morning: [6 * 60, 11 * 60 + 59],
+  afternoon: [12 * 60, 17 * 60 + 59],
+  evening: [18 * 60, 23 * 60 + 59],
+};
+
+// 星期篩選：1 = 星期一 … 7 = 星期日（ISO 8601）
+export const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
+export const WEEKDAY_LABELS: Record<number, string> = {
+  1: "一",
+  2: "二",
+  3: "三",
+  4: "四",
+  5: "五",
+  6: "六",
+  7: "日",
 };
 
 export const LEVEL_LABELS: Record<Level, string> = {
