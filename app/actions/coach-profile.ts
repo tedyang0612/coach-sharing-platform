@@ -3,10 +3,16 @@
 import { revalidatePath } from "next/cache";
 import { COACH_PHOTO_BUCKET } from "@/lib/coach-application/constants";
 import { formatEducation, type EducationEntry } from "@/lib/coach-application/education";
-import { hasErrors, validateCoachProfileEdit } from "@/lib/coach-application/validation";
+import {
+  hasErrors,
+  resolveCoachDisplayName,
+  validateCoachProfileEdit,
+} from "@/lib/coach-application/validation";
 import { createClient } from "@/lib/supabase/server";
 
 export type CoachProfilePayload = {
+  // 只能改暱稱；真實姓名是核對良民證用的，通過審核後不開放自行修改
+  nickname: string;
   // 留空字串代表沿用目前的照片；有值是剛上傳到 Storage 的路徑
   photoPath: string;
   sportCategories: string[];
@@ -48,17 +54,17 @@ export async function updateCoachProfile(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "登入已過期，請重新登入後再儲存。" };
 
-  const { data: current } = await supabase
-    .from("coach_profiles")
-    .select("application_status, photo_url")
-    .eq("id", user.id)
-    .maybeSingle();
+  // 真實姓名不在 select 白名單內，要透過 function 讀自己的完整資料
+  const { data: currentRow } = await supabase.rpc("get_my_coach_application");
+  const current = currentRow?.id ? currentRow : null;
   if (!current || current.application_status !== "approved") {
     return { ok: false, error: "只有審核通過的教練可以編輯個人檔案。" };
   }
 
   // 第二道防線：和申請表單共用同一套規則（含禁填聯絡資訊、聯絡方式至少一項、證照要有名稱）
   const errors = validateCoachProfileEdit({
+    realName: current.real_name ?? "",
+    nickname: payload.nickname,
     hasPhoto: payload.photoPath !== "" || Boolean(current.photo_url),
     sportCategories: payload.sportCategories,
     tags: payload.tags,
@@ -90,6 +96,7 @@ export async function updateCoachProfile(
   const { error: profileError } = await supabase
     .from("coach_profiles")
     .update({
+      display_name: resolveCoachDisplayName(current.real_name ?? "", payload.nickname),
       sport_categories: payload.sportCategories,
       tags: payload.tags.map((tag) => tag.trim()),
       bio_education: formatEducation(payload.education, payload.workExperience),

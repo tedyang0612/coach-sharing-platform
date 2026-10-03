@@ -33,14 +33,13 @@ async function loadCoachProfile(coachId: string): Promise<CoachProfileData | nul
   const { data: profile } = await supabase
     .from("coach_profiles")
     .select(
-      "id, photo_url, sport_categories, tags, bio_education, bio_competition, bio_intro, is_verified, application_status, avg_rating, review_count"
+      "id, display_name, photo_url, sport_categories, tags, bio_education, bio_competition, bio_intro, is_verified, application_status, avg_rating, review_count"
     )
     .eq("id", coachId)
     .maybeSingle();
   if (!profile || profile.application_status !== "approved") return null;
 
-  const [account, licenses, reviews, courses] = await Promise.all([
-    supabase.from("profiles").select("display_name").eq("id", coachId).maybeSingle(),
+  const [licenses, reviews, courses] = await Promise.all([
     supabase.rpc("get_coach_approved_license_names", { p_coach_id: coachId }),
     supabase
       .from("reviews")
@@ -69,7 +68,8 @@ async function loadCoachProfile(coachId: string): Promise<CoachProfileData | nul
   const { entries, workExperience } = parseEducation(profile.bio_education ?? "");
 
   return {
-    name: account.data?.display_name ?? "教練",
+    // 公開顯示的教練名稱（有暱稱用暱稱，沒有用真實姓名），由教練申請時寫入
+    name: profile.display_name || "教練",
     photoUrl: profile.photo_url,
     isVerified: Boolean(profile.is_verified),
     sportCategories: profile.sport_categories ?? [],

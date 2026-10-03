@@ -55,6 +55,12 @@ export default async function CoachProfileEditPage() {
         <ProfileForm
           userId={user.id}
           initial={{
+            realName: profile.real_name ?? "",
+            // display_name 等於真實姓名，代表沒有另外設定暱稱
+            nickname:
+              profile.display_name && profile.display_name !== profile.real_name
+                ? profile.display_name
+                : "",
             photoUrl: profile.photo_url ?? "",
             sportCategories: profile.sport_categories ?? [],
             tags: profile.tags ?? [],

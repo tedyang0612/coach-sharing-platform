@@ -31,11 +31,14 @@ import { uploadCoachFile } from "@/lib/coach-application/upload";
 import {
   contactInfoWarning,
   hasErrors,
+  resolveCoachDisplayName,
   validateCoachProfileEdit,
   type CoachProfileEditErrors,
 } from "@/lib/coach-application/validation";
 
 export type CoachProfileFormValues = {
+  realName: string;
+  nickname: string;
   photoUrl: string;
   sportCategories: string[];
   tags: string[];
@@ -80,6 +83,7 @@ function Section({
  * 只有良民證不能在這裡動。欄位與檢查規則和申請表單共用。
  */
 export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
+  const [nickname, setNickname] = useState(initial.nickname);
   const [photo, setPhoto] = useState<File | null>(null);
   const [sportCategories, setSportCategories] = useState(initial.sportCategories);
   const [tags, setTags] = useState(initial.tags);
@@ -108,6 +112,8 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
   const [isSaving, startSave] = useTransition();
 
   const validation = validateCoachProfileEdit({
+    realName: initial.realName,
+    nickname,
     hasPhoto: photo !== null || initial.photoUrl !== "",
     sportCategories,
     tags,
@@ -149,6 +155,7 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
         }
 
         const result = await updateCoachProfile({
+          nickname,
           photoPath,
           sportCategories,
           tags,
@@ -191,6 +198,35 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
       // 儲存成功後只要再動到任何欄位，就把「已儲存」的提示收起來
       onChange={() => setSavedMessage(undefined)}
     >
+      <Section
+        title="姓名"
+        description="學員看到的是暱稱；沒填暱稱的話，會以真實姓名作為公開顯示的教練名稱。"
+      >
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-semibold text-neutral-800">真實姓名</span>
+          <p className="rounded-xl border border-neutral-200 bg-neutral-100 px-4 py-2.5 text-sm text-neutral-600">
+            {initial.realName || "（未填寫）"}
+          </p>
+          <p className="text-xs text-neutral-500">
+            真實姓名用於核對良民證，通過審核後無法自行修改。如需更正，請聯繫平台。
+          </p>
+        </div>
+        <TextField
+          label="暱稱（選填）"
+          name="nickname"
+          placeholder="例：Amy 教練"
+          value={nickname}
+          onChange={(event) => setNickname(event.target.value)}
+          error={contactInfoWarning(nickname) ?? errors.nickname}
+        />
+        <p className="-mt-2 text-xs text-neutral-500">
+          學員會看到的名稱：
+          <span className="font-semibold text-neutral-800">
+            {resolveCoachDisplayName(initial.realName, nickname)}
+          </span>
+        </p>
+      </Section>
+
       <Section
         title="公開資料"
         description="會公開顯示在你的教練個人檔案，請勿填寫電話、Email、LINE ID 或網址。"
