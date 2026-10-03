@@ -7,7 +7,6 @@ import { FormError } from "@/components/ui/form-error";
 import { TextField } from "@/components/ui/text-field";
 
 const initialState: AuthFormState = {};
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function RegisterForm({ redirectTo }: { redirectTo: string }) {
   const [state, formAction, pending] = useActionState(signup, initialState);
@@ -15,8 +14,11 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // 8.0 QA 修正：按鈕只看「有沒有填」，不看格式對不對——
+  // 格式／長度等驗證錯誤交給送出後的 server action 判斷並顯示在對應欄位下面，
+  // 不然使用者會卡在「上面欄位格式錯但看不到錯誤提示、按鈕又按不下去」的情境。
   const canSubmit = useMemo(
-    () => displayName.trim().length > 0 && EMAIL_RE.test(email) && password.length >= 6,
+    () => displayName.trim().length > 0 && email.trim().length > 0 && password.length > 0,
     [displayName, email, password]
   );
 
