@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   DEFAULT_CITY,
   hasActiveFilters,
+  isTimeRangeInvalid,
   type CourseFilters as Filters,
 } from "@/lib/courses/filterCourses";
 import {
@@ -13,6 +14,8 @@ import {
   PRICE_RANGES,
   SPORT_CHIP_ORDER,
   TIME_SLOT_LABELS,
+  WEEKDAYS,
+  WEEKDAY_LABELS,
 } from "@/lib/courses/types";
 
 interface Props {
@@ -22,6 +25,50 @@ interface Props {
 }
 
 type LocationState = "idle" | "loading" | "denied" | "error";
+
+// 篩選用的 Chip：原生 radio／checkbox 加樣式，單選、複選與鍵盤操作都不用另外寫。
+// label 要 relative：隱藏用的 sr-only 輸入框是絕對定位，不加的話手機上會撐寬整頁
+function Chip({
+  type,
+  name,
+  value,
+  checked,
+  onChange,
+  title,
+  children,
+}: {
+  type: "radio" | "checkbox";
+  name: string;
+  value: string;
+  checked: boolean;
+  onChange: () => void;
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="relative shrink-0 cursor-pointer" title={title}>
+      <input
+        type={type}
+        name={name}
+        value={value}
+        checked={checked}
+        onChange={onChange}
+        className="peer sr-only"
+      />
+      <span className="block whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-1.5 text-sm font-medium text-neutral-700 transition peer-checked:border-teal-600 peer-checked:bg-teal-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-teal-600 peer-focus-visible:ring-offset-2 hover:border-teal-400">
+        {children}
+      </span>
+    </label>
+  );
+}
+
+// 在清單裡加入或移除一個值（複選用）
+function toggle<T>(list: T[] | undefined, item: T): T[] | undefined {
+  const next = list?.includes(item)
+    ? list.filter((x) => x !== item)
+    : [...(list ?? []), item];
+  return next.length ? next : undefined;
+}
 
 const SELECT_CLASS =
   "w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm";
@@ -46,7 +93,10 @@ export default function CourseFilters({
     const params = new URLSearchParams();
     if (next.city) params.set("city", next.city);
     if (next.city && next.district) params.set("district", next.district);
-    if (next.timeSlot) params.set("slot", next.timeSlot);
+    if (next.weekdays?.length) params.set("days", next.weekdays.join(","));
+    if (next.timeSlots?.length) params.set("slot", next.timeSlots.join(","));
+    if (next.timeFrom) params.set("from", next.timeFrom);
+    if (next.timeTo) params.set("to", next.timeTo);
     if (next.level) params.set("level", next.level);
     if (next.sport) params.set("sport", next.sport);
     if (next.priceRange) params.set("price", next.priceRange);
@@ -110,29 +160,115 @@ export default function CourseFilters({
       <fieldset className="min-w-0">
         <legend className="mb-2 text-sm font-medium">運動種類</legend>
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0">
-          {[{ value: "", label: "全部" }, ...SPORT_CHIP_ORDER.map((sport) => ({ value: sport, label: sport }))].map(
-            (chip) => (
-              <label key={chip.value || "all"} className="relative shrink-0 cursor-pointer">
-                <input
-                  type="radio"
-                  name="sport"
-                  value={chip.value}
-                  checked={(value.sport ?? "") === chip.value}
-                  onChange={() =>
-                    navigate({ ...value, sport: chip.value || undefined })
-                  }
-                  className="peer sr-only"
-                />
-                <span className="block whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-1.5 text-sm font-medium text-neutral-700 transition peer-checked:border-teal-600 peer-checked:bg-teal-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-teal-600 peer-focus-visible:ring-offset-2 hover:border-teal-400">
-                  {chip.label}
-                </span>
-              </label>
-            ),
-          )}
+          {[
+            { value: "", label: "全部" },
+            ...SPORT_CHIP_ORDER.map((sport) => ({ value: sport, label: sport })),
+          ].map((chip) => (
+            <Chip
+              key={chip.value || "all"}
+              type="radio"
+              name="sport"
+              value={chip.value}
+              checked={(value.sport ?? "") === chip.value}
+              onChange={() =>
+                navigate({ ...value, sport: chip.value || undefined })
+              }
+            >
+              {chip.label}
+            </Chip>
+          ))}
         </div>
       </fieldset>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      {/* 星期可複選（OR），可單獨使用，也可以和日期、時段組合。日期等 UI 草圖出來再加 */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <fieldset className="min-w-0">
+          <legend className="mb-2 text-sm font-medium">星期</legend>
+          <div className="flex flex-wrap gap-2">
+            {WEEKDAYS.map((day) => (
+              <Chip
+                key={day}
+                type="checkbox"
+                name="days"
+                value={String(day)}
+                checked={value.weekdays?.includes(day) ?? false}
+                onChange={() =>
+                  navigate({ ...value, weekdays: toggle(value.weekdays, day) })
+                }
+                title={`星期${WEEKDAY_LABELS[day]}`}
+              >
+                <span aria-hidden="true">{WEEKDAY_LABELS[day]}</span>
+                <span className="sr-only">星期{WEEKDAY_LABELS[day]}</span>
+              </Chip>
+            ))}
+          </div>
+        </fieldset>
+
+        {/* 時段有兩種方式：快速時段（可複選，OR）或指定開始／結束時間，擇一使用 */}
+        <fieldset className="min-w-0">
+          <legend className="mb-2 text-sm font-medium">時段</legend>
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(TIME_SLOT_LABELS) as Array<keyof typeof TIME_SLOT_LABELS>).map(
+              (slot) => (
+                <Chip
+                  key={slot}
+                  type="checkbox"
+                  name="slot"
+                  value={slot}
+                  checked={value.timeSlots?.includes(slot) ?? false}
+                  onChange={() =>
+                    navigate({
+                      ...value,
+                      timeSlots: toggle(value.timeSlots, slot),
+                      timeFrom: undefined,
+                      timeTo: undefined,
+                    })
+                  }
+                >
+                  {TIME_SLOT_LABELS[slot]}
+                </Chip>
+              ),
+            )}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+            <span className="font-medium">指定時間</span>
+            <input
+              type="time"
+              aria-label="開始時間"
+              value={value.timeFrom ?? ""}
+              onChange={(e) =>
+                navigate({
+                  ...value,
+                  timeFrom: e.target.value || undefined,
+                  timeSlots: undefined,
+                })
+              }
+              className="w-36 rounded-xl border border-neutral-300 bg-white px-3 py-1.5"
+            />
+            <span aria-hidden="true">–</span>
+            <input
+              type="time"
+              aria-label="結束時間"
+              value={value.timeTo ?? ""}
+              onChange={(e) =>
+                navigate({
+                  ...value,
+                  timeTo: e.target.value || undefined,
+                  timeSlots: undefined,
+                })
+              }
+              className="w-36 rounded-xl border border-neutral-300 bg-white px-3 py-1.5"
+            />
+          </div>
+          {isTimeRangeInvalid(value) && (
+            <p className="mt-1 text-xs text-orange-600">
+              結束時間要晚於開始時間，目前沒有套用指定時間。
+            </p>
+          )}
+        </fieldset>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-sm font-medium">
           地點
           <select
@@ -188,27 +324,6 @@ export default function CourseFilters({
             {PRICE_RANGES.map((range) => (
               <option key={range.id} value={range.id}>
                 {range.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="text-sm font-medium">
-          時段
-          <select
-            className={`${SELECT_CLASS} mt-1 font-normal`}
-            value={value.timeSlot ?? ""}
-            onChange={(e) =>
-              navigate({
-                ...value,
-                timeSlot: (e.target.value || undefined) as Filters["timeSlot"],
-              })
-            }
-          >
-            <option value="">不限</option>
-            {Object.entries(TIME_SLOT_LABELS).map(([slot, label]) => (
-              <option key={slot} value={slot}>
-                {label}
               </option>
             ))}
           </select>
