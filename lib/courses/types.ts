@@ -14,9 +14,19 @@ export interface Course {
   venue: string;
   startsAt: string; // ISO 8601
   level: Level;
-  // 公開顯示的教練名稱：暱稱優先，沒填暱稱就用真實姓名。
-  // 判斷在查詢層（getCourses）做，真實姓名不放進這個型別。
+  // 對應 courses.coach_id（= coach_profiles.id），教練名稱連到 /coaches/{coachId}
+  coachId: string;
+  // 公開顯示的教練名稱：對應 coach_profiles.display_name（有填暱稱是暱稱，沒填是真實姓名）。
+  // 不要用 profiles.display_name（那是帳號暱稱）；真實姓名不放進這個型別。
   coachName: string;
+  // 以下對應 Ted 公開的 coach_profiles 欄位（photo_url / is_verified / tags）；
+  // 查詢要明確列出欄位，不能用 select("*")
+  coachPhotoUrl: string | null;
+  coachVerified: boolean;
+  coachTags: string[];
+  // 對應 coach_profiles.avg_rating（資料庫已四捨五入到小數一位，沒有評價時為 null）與 review_count
+  coachRating: number | null;
+  coachReviewCount: number;
   price: number;
   enrolled: number;
   minToOpen: number; // 達到這個人數才開課

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LEVEL_LABELS, type Course } from "@/lib/courses/types";
 
 function formatDateTime(iso: string) {
@@ -11,6 +12,53 @@ function formatDateTime(iso: string) {
     timeZone: "Asia/Taipei",
   }).format(new Date(iso));
 }
+
+// 頭像網址來自 Supabase Storage（外部網域），next.config.ts 還沒設定圖片網域，
+// 所以先用一般 <img>；沒有頭像時顯示姓名首字。
+function CoachAvatar({ name, photoUrl }: { name: string; photoUrl: string | null }) {
+  if (photoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={photoUrl}
+        alt={name}
+        loading="lazy"
+        className="h-7 w-7 rounded-full object-cover"
+      />
+    );
+  }
+  return (
+    <span
+      aria-hidden="true"
+      className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700"
+    >
+      {Array.from(name)[0]}
+    </span>
+  );
+}
+
+// 「已認證」只留圖示（UI 討論結論）。這是暫時的圖示；
+// 牛牛的 <VerifiedBadge />（PR #11）合併後換成那個元件。
+function VerifiedIcon() {
+  return (
+    <span title="認證教練" className="inline-flex shrink-0">
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="11" className="fill-amber-400" />
+        <path
+          d="m7.5 12.3 3 3 6-6.6"
+          fill="none"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="stroke-white"
+        />
+      </svg>
+      <span className="sr-only">已認證教練</span>
+    </span>
+  );
+}
+
+const MAX_VISIBLE_TAGS = 3;
 
 interface Props {
   course: Course;
@@ -50,7 +98,11 @@ export default function CourseCard({ course }: Props) {
       <div className="flex flex-1 flex-col justify-between gap-4 p-5">
         <div>
           <h3 className="line-clamp-2 text-base font-bold text-slate-900 transition-colors group-hover:text-teal-700">
-            {course.title}
+            {/* 課程詳情頁（學員端）還沒做，等 Ted 的資料層合併後再做；做好之前點下去是 404。
+                只有標題是連結，整張卡片不是，這樣教練名稱的連結才不會巢狀 */}
+            <Link href={`/courses/${course.id}`} className="hover:underline">
+              {course.title}
+            </Link>
           </h3>
           <p className="mt-2 text-xs text-slate-500">
             📍 {course.city}・{course.venue}
@@ -61,15 +113,62 @@ export default function CourseCard({ course }: Props) {
         </div>
 
         <div className="space-y-3 border-t border-slate-100 pt-3">
-          <div className="flex items-center justify-between text-xs text-slate-600">
-            <span className="font-semibold text-slate-800">
-              {course.coachName}
+          <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
+            <div className="flex min-w-0 items-center gap-2">
+              <CoachAvatar
+                name={course.coachName}
+                photoUrl={course.coachPhotoUrl}
+              />
+              {/* 卡片本身不是連結，所以教練名稱可以直接放連結（連結不能巢狀） */}
+              <Link
+                href={`/coaches/${course.coachId}`}
+                className="truncate font-semibold text-slate-800 hover:underline"
+              >
+                {course.coachName}
+              </Link>
+              {course.coachVerified && <VerifiedIcon />}
+            </div>
+            <span className="shrink-0">
+              {course.coachRating !== null ? (
+                <>
+                  <span className="text-amber-500">★</span>{" "}
+                  <span className="font-bold text-slate-800">
+                    {/* 資料庫的 avg_rating 已四捨五入到小數一位，直接顯示才會和教練檔案一致 */}
+                    {course.coachRating.toFixed(1)}
+                  </span>
+                  <span className="text-slate-400">
+                    {" "}
+                    ({course.coachReviewCount})
+                  </span>
+                </>
+              ) : (
+                <span className="text-slate-400">尚無評價</span>
+              )}
             </span>
-            <span>
-              <span className="text-slate-400">招募進度：</span>
-              <span className="font-bold text-slate-800">
-                {course.enrolled}/{course.capacity}人
-              </span>
+          </div>
+
+          {course.coachTags.length > 0 && (
+            <ul className="flex flex-wrap gap-1.5">
+              {course.coachTags.slice(0, MAX_VISIBLE_TAGS).map((tag) => (
+                <li
+                  key={tag}
+                  className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600"
+                >
+                  {tag}
+                </li>
+              ))}
+              {course.coachTags.length > MAX_VISIBLE_TAGS && (
+                <li className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-400">
+                  +{course.coachTags.length - MAX_VISIBLE_TAGS}
+                </li>
+              )}
+            </ul>
+          )}
+
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-slate-400">招募進度</span>
+            <span className="font-bold text-slate-800">
+              {course.enrolled}/{course.capacity}人
             </span>
           </div>
 
