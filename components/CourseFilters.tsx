@@ -229,6 +229,10 @@ export default function CourseFilters({ cities, value }: Props) {
             {showFallbackNote
               ? `無法取得位置（已拒絕定位權限），先顯示「${DEFAULT_CITY}」的課程，可用上方「地點」改選。`
               : "無法取得位置：你已拒絕定位權限，可改用上方「地點」篩選。"}
+            {/* 瀏覽器拒絕過一次就不會再跳出詢問，使用者得自己去設定開回來 */}
+            <span className="mt-1 block text-xs text-orange-700">
+              想使用定位：請到瀏覽器的網站設定（網址列左側的圖示）把「位置」改成允許，手機也要確認系統的「定位服務」是開著的，再按「使用我的位置」（必要時重新整理頁面）。
+            </span>
           </span>
         )}
         {locationState === "error" && (
