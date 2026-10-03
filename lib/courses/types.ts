@@ -2,8 +2,8 @@
 // 刻意不放進 types/（Ted 維護）；等 Ted 的 schema 合併後，再對齊 types/database.ts 的 courses 欄位。
 
 export type TimeSlot = "morning" | "afternoon" | "evening";
-// 值對應資料庫 courses.level。課程的程度只有初階、中階、進階三種（沒有「全程度」，教練開課也不能選）
-export type Level = "beginner" | "intermediate" | "advanced";
+// 值對應資料庫 courses.level；unlimited 顯示為「不限」
+export type Level = "unlimited" | "beginner" | "intermediate" | "advanced";
 
 export interface Course {
   id: string;
@@ -49,13 +49,20 @@ export const WEEKDAY_LABELS: Record<number, string> = {
 };
 
 export const LEVEL_LABELS: Record<Level, string> = {
+  unlimited: "不限",
   beginner: "初階",
   intermediate: "中階",
   advanced: "進階",
 };
 
-// 篩選的程度選項與順序：不限（不篩選）、初階、中階、進階。「不限」不是資料值，只是沒有選程度。
-export const FILTER_LEVELS = ["beginner", "intermediate", "advanced"] as const satisfies readonly Level[];
+// 篩選的程度選項與順序：不限、初階、中階、進階。「不限」也是一種篩選：選它只列程度為「不限」的課；
+// 一個都沒選才是不篩選（面板的「清除」或「已套用條件」的 ✕ 可以取消）。
+export const FILTER_LEVELS = [
+  "unlimited",
+  "beginner",
+  "intermediate",
+  "advanced",
+] as const satisfies readonly Level[];
 
 // 運動項目：產品決定的固定清單。
 // types/database.ts 的 SPORT_TYPES 目前還是舊清單，之後要請 Ted 對齊這份。
