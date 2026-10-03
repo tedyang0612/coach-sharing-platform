@@ -12,6 +12,9 @@ import {
   COURSE_FIELDS,
   computeSessionSlots,
   formDataToCourseValues,
+  parseSlots,
+  serializeSlots,
+  slotsFromCourse,
   validateCourseValues,
   type CourseFieldErrors,
   type CourseInput,
@@ -127,7 +130,7 @@ export async function createCourse(_prev: CourseFormState, formData: FormData): 
 /**
  * 編輯課程。
  * - 任一場次有有效報名 → 只更新課程須知（notes）與封面圖，其他欄位就算有送也忽略（PRD 系統規則）
- * - 未鎖定且改到日期／時段／課程長度／報名截止 → 重切場次；但只要有任何報名紀錄或非 open 的場次就不允許，
+ * - 未鎖定且改到日期／場次時間表／報名截止 → 重建場次；但只要有任何報名紀錄或非 open 的場次就不允許，
  *   因為刪除舊場次會 cascade 刪掉報名紀錄
  */
 export async function updateCourse(_prev: CourseFormState, formData: FormData): Promise<CourseFormState> {
@@ -159,9 +162,7 @@ export async function updateCourse(_prev: CourseFormState, formData: FormData): 
 
   const scheduleChanged =
     course.session_date !== values.session_date ||
-    course.time_range_start.slice(0, 5) !== values.time_range_start ||
-    course.time_range_end.slice(0, 5) !== values.time_range_end ||
-    String(course.session_duration_minutes) !== values.session_duration_minutes ||
+    serializeSlots(slotsFromCourse(course)) !== serializeSlots(parseSlots(values.session_slots) ?? []) ||
     String(course.registration_deadline_hours) !== (values.registration_deadline_hours || "24");
   const needsRegenerate = !course.is_template && course.status === "published" && scheduleChanged;
 
@@ -223,6 +224,10 @@ export async function saveCourseAsTemplate(
 
   const { error } = await ctx.supabase.from("courses").insert({
     ...fields,
+    // 舊欄位（not null）一併帶過去；session_slots 為 null 的舊資料也能靠這三欄推回時間表
+    time_range_start: course.time_range_start,
+    time_range_end: course.time_range_end,
+    session_duration_minutes: course.session_duration_minutes,
     latitude: course.latitude,
     longitude: course.longitude,
     city: course.city,

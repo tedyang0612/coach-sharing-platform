@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { NotCoachNotice, PageShell } from "@/app/courses/_components/page-shell";
 import { SessionStatusBadge } from "@/app/courses/_components/status-badge";
 import { resolveCoverUrl } from "@/app/courses/_lib/cover-image";
+import { slotsFromCourse } from "@/app/courses/_lib/course-input";
 import { formatPrice, formatSessionTime } from "@/app/courses/_lib/format";
 import { getCoachContext, listMyCourses, listMyTemplates } from "@/app/courses/_lib/queries";
 import { SESSION_DISPLAY_LABELS, sessionDisplayStatus, type SessionDisplayStatus } from "@/app/courses/_lib/session-rules";
@@ -138,7 +139,7 @@ function TemplateList({ templates }: { templates: Awaited<ReturnType<typeof list
             <p className="font-semibold text-neutral-900">{t.title}</p>
             <p className="text-xs text-neutral-500">
               {t.sport_type}｜{formatPrice(t.price_per_person)}／人｜{t.min_participants}–{t.max_participants} 人｜
-              {t.time_range_start.slice(0, 5)}–{t.time_range_end.slice(0, 5)}
+              {slotsFromCourse(t).length} 堂（{slotsFromCourse(t).map((sl) => `${sl.start}–${sl.end}`).join("、")}）
             </p>
             <div className="mt-3 flex gap-2">
               <Link

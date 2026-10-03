@@ -111,6 +111,8 @@ export interface Course {
   is_template: boolean;
   template_source_id: string | null;
   cover_image_url: string | null; // null＝依運動項目顯示預設圖（20261002000018）
+  // 每一堂的時間表（台灣時間 HH:MM，20261003000027）；null＝舊資料，依 time_range_*／session_duration_minutes 平均切分
+  session_slots: { start: string; end: string }[] | null;
   // 縣市／行政區（20261002000021）：清單與 2.0 篩選共用，定案前先允許 null，之後再改必填
   city: string | null;
   district: string | null;
