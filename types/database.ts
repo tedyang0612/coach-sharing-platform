@@ -111,12 +111,19 @@ export interface Course {
   is_template: boolean;
   template_source_id: string | null;
   cover_image_url: string | null; // null＝依運動項目顯示預設圖（20261002000018）
-  // 縣市／行政區（20261002000021）：清單與 2.0 篩選共用，定案前先允許 null，之後再改必填
-  city: string | null;
-  district: string | null;
+  // 縣市／行政區（20261003000034）：參照 districts.id，縣市由 districts.city 反查；草稿可為 null，發布時必填
+  district_id: number | null;
 
   created_at: string;
   updated_at: string;
+}
+
+// 縣市／行政區參照表（20261003000033，內政部資料，全部用「台」）；只讀
+export interface District {
+  id: number;
+  towncode: string; // 內政部鄉鎮市區代碼（8 碼）
+  city: string; // 縣市
+  district: string; // 鄉鎮市區
 }
 
 export interface Session {
