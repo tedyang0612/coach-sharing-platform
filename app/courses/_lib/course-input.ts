@@ -20,7 +20,7 @@ export const MAX_SESSIONS = 10;
 
 // 時間下拉選單的範圍與間隔（10 分鐘一格）
 export const TIME_STEP_MINUTES = 10;
-export const EARLIEST_TIME = 6 * 60; // 06:00
+export const EARLIEST_TIME = 0; // 00:00（10/3 組員討論：小時 00–23 都可選）
 export const LATEST_TIME = 23 * 60 + 50; // 23:50
 
 // 平台目前只在台灣營運，台灣沒有日光節約時間，固定 +08:00。

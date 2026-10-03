@@ -1,17 +1,16 @@
 "use client";
 
 // 場次時間設定（10/3 組員討論後的版本）：教練逐堂設定開始／結束時間，每堂時長可以不同。
-//   第 1 堂  [14:00] – [15:00]  [＋ 新增一堂]
-//   第 2 堂  [15:00] – [16:30]  ✕
-// - 第一堂選了開始時間、結束時間還沒選（或早於開始）時，結束時間自動帶 +60 分鐘
+//   第 1 堂  [14]:[00] – [15]:[00]  [＋ 新增一堂]
+//   第 2 堂  [15]:[00] – [16]:[30]  ✕
+// - 時間拆成「小時（00–23）」與「分鐘（00、10…50）」兩個下拉選單；選了小時就自動帶分鐘（沿用原本的分鐘或 00）
+// - 選了開始時間，結束時間自動帶 +60 分鐘；之後再調開始時間，結束時間跟著平移、保持時長
 // - 「＋ 新增一堂」接續上一堂的結束時間、沿用上一堂的時長
-// - 第 2 堂以後的開始時間只列出「上一堂結束之後」的選項；結束時間只列出晚於開始的選項，
-//   打開下拉選單時就從合理的時間開始，不用從 06:00 往下捲
+// - 第 2 堂以後的開始時間只列出「上一堂結束之後」的選項；結束時間只列出晚於開始的選項
 // - 堂與堂之間可以有空檔，但不能重疊（驗證在 validateSlots）
 
 import {
   DEFAULT_DURATION_MINUTES,
-  EARLIEST_TIME,
   LATEST_TIME,
   MAX_SESSIONS,
   TIME_STEP_MINUTES,
@@ -23,44 +22,84 @@ import {
   type SessionSlotInput,
 } from "../_lib/course-input";
 
-const TIME_GROUPS: { label: string; from: number; to: number }[] = [
-  { label: "上午", from: 0, to: 12 * 60 },
-  { label: "下午", from: 12 * 60, to: 18 * 60 },
-  { label: "晚上", from: 18 * 60, to: 24 * 60 },
-];
-
-const ALL_TIMES: string[] = [];
-for (let m = EARLIEST_TIME; m <= LATEST_TIME; m += TIME_STEP_MINUTES) ALL_TIMES.push(toHHMM(m));
-
-/** 時間選項：列出 min（含）～max（含）之間的時間，加上目前選的值；舊資料不在格點上的值也保留，避免編輯時被清掉 */
-function TimeOptions({ current, min, max }: { current: string; min?: string; max?: string }) {
-  const times = current && !ALL_TIMES.includes(current) ? [...ALL_TIMES, current].sort() : ALL_TIMES;
-  // 目前選的值一定保留：例如上一堂延長後，這一堂的開始時間變成「早於可選範圍」，
-  // 下拉選單仍要顯示實際的值，搭配下方的重疊錯誤，不能默默顯示成別的時間
-  const visible = times.filter((t) => t === current || ((!min || t >= min) && (!max || t <= max)));
-  return (
-    <>
-      <option value="" disabled>
-        請選擇
-      </option>
-      {TIME_GROUPS.map((g) => {
-        const items = visible.filter((t) => minutesOf(t) >= g.from && minutesOf(t) < g.to);
-        return items.length === 0 ? null : (
-          <optgroup key={g.label} label={g.label}>
-            {items.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </optgroup>
-        );
-      })}
-    </>
-  );
-}
+const pad = (n: number) => String(n).padStart(2, "0");
+const HOURS = Array.from({ length: 24 }, (_, h) => pad(h));
+const MINUTES = Array.from({ length: 60 / TIME_STEP_MINUTES }, (_, i) => pad(i * TIME_STEP_MINUTES));
 
 const SELECT_CLASS =
-  "w-full min-w-0 rounded-xl border border-neutral-200 bg-neutral-50 px-2 py-2.5 sm:px-3 text-sm text-neutral-900 outline-none transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand-ink disabled:cursor-not-allowed disabled:opacity-60";
+  "w-full min-w-0 rounded-xl border border-neutral-200 bg-neutral-50 px-2 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand-ink disabled:cursor-not-allowed disabled:opacity-60 sm:w-[4.5rem]";
+
+/**
+ * 一個時間＝小時＋分鐘兩個下拉選單。
+ * min：可選的最早時間（含）；早於它的小時／分鐘不列出。目前選的值一定保留（例如上一堂延長後，
+ * 這一堂的開始時間早於可選範圍，仍顯示實際的值，搭配下方的重疊錯誤）。
+ */
+function TimeSelect({
+  value,
+  min,
+  onChange,
+  disabled,
+  label,
+}: {
+  value: string;
+  min?: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+  label: string;
+}) {
+  const [hour, minute] = value ? value.split(":") : ["", ""];
+  const minMinutes = min ? minutesOf(min) : 0;
+
+  // 小時：這個小時裡至少有一個分鐘 ≥ min 才列出
+  const hours = HOURS.filter((h) => h === hour || Number(h) * 60 + 50 >= minMinutes);
+  // 分鐘：同一個小時時只列 ≥ min 的分鐘
+  const minutes = MINUTES.filter((m) => m === minute || !hour || Number(hour) * 60 + Number(m) >= minMinutes);
+
+  function pickHour(h: string) {
+    // 沿用原本的分鐘；沒選過或會早於 min 時，改成這個小時裡最早可選的分鐘
+    const keep = minute && Number(h) * 60 + Number(minute) >= minMinutes ? minute : undefined;
+    const first = MINUTES.find((m) => Number(h) * 60 + Number(m) >= minMinutes) ?? "00";
+    onChange(`${h}:${keep ?? first}`);
+  }
+
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-1 sm:flex-none">
+      <select
+        aria-label={`${label}（時）`}
+        value={hour}
+        disabled={disabled}
+        onChange={(e) => pickHour(e.target.value)}
+        className={SELECT_CLASS}
+      >
+        <option value="" disabled>
+          時
+        </option>
+        {hours.map((h) => (
+          <option key={h} value={h}>
+            {h}
+          </option>
+        ))}
+      </select>
+      <span className="text-neutral-400">:</span>
+      <select
+        aria-label={`${label}（分）`}
+        value={minute}
+        disabled={disabled || !hour}
+        onChange={(e) => onChange(`${hour}:${e.target.value}`)}
+        className={SELECT_CLASS}
+      >
+        <option value="" disabled>
+          分
+        </option>
+        {minutes.map((m) => (
+          <option key={m} value={m}>
+            {m}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
 
 type Props = {
   slots: SessionSlotInput[];
@@ -88,10 +127,12 @@ export function SlotsEditor({ slots, onChange, disabled = false, error }: Props)
       slots.map((slot, i) => {
         if (i !== index) return slot;
         const updated = { ...slot, ...patch };
-        // 改了開始時間、結束時間還沒選或變成早於開始：結束時間自動帶入（沿用原本時長，沒有就 60 分鐘）
-        if (patch.start && (!updated.end || updated.end <= updated.start)) {
+        // 改開始時間時，結束時間跟著平移、保持原本的時長（還沒有時長就用預設 60 分鐘），
+        // 例：14:00–15:00 把分鐘改成 30 → 14:30–15:30。超過當天最晚時間時保留原本的結束時間，交給驗證提示
+        if (patch.start) {
           const prevDuration = slot.start && slot.end ? minutesOf(slot.end) - minutesOf(slot.start) : 0;
-          updated.end = addMinutes(updated.start, prevDuration > 0 ? prevDuration : DEFAULT_DURATION_MINUTES) ?? "";
+          const shifted = addMinutes(updated.start, prevDuration > 0 ? prevDuration : DEFAULT_DURATION_MINUTES);
+          updated.end = shifted ?? (updated.end > updated.start ? updated.end : "");
         }
         return updated;
       })
@@ -102,33 +143,33 @@ export function SlotsEditor({ slots, onChange, disabled = false, error }: Props)
     <div className="flex flex-col gap-2">
       <span className="text-sm font-semibold text-neutral-800">場次時間 *</span>
 
-      <ol className="flex flex-col gap-2">
+      <ol className="flex flex-col gap-3 sm:gap-2">
         {slots.map((slot, i) => {
           const prevEnd = i > 0 ? slots[i - 1].end : undefined;
           return (
-            <li key={i} className="flex items-center gap-2">
-              <span className="w-11 shrink-0 text-xs font-semibold text-neutral-600 sm:w-12 sm:text-sm">第 {i + 1} 堂</span>
-              <select
-                aria-label={`第 ${i + 1} 堂開始時間`}
-                value={slot.start}
-                disabled={disabled}
-                onChange={(e) => update(i, { start: e.target.value })}
-                className={SELECT_CLASS}
-              >
-                <TimeOptions current={slot.start} min={prevEnd || undefined} max={toHHMM(LATEST_TIME - TIME_STEP_MINUTES)} />
-              </select>
-              <span className="text-neutral-400">–</span>
-              <select
-                aria-label={`第 ${i + 1} 堂結束時間`}
-                value={slot.end}
-                disabled={disabled}
-                onChange={(e) => update(i, { end: e.target.value })}
-                className={SELECT_CLASS}
-              >
-                <TimeOptions current={slot.end} min={slot.start ? addMinutes(slot.start, TIME_STEP_MINUTES) ?? undefined : undefined} />
-              </select>
-              {/* 手機寬度只顯示「＋」，把空間留給時間選單；sm 以上顯示完整文字 */}
-              <div className="w-10 shrink-0 sm:w-28">
+            // 手機：第一行「第 N 堂 ……… ＋／✕」，第二行時間；sm 以上排成一行
+            <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-1.5 sm:flex-nowrap">
+              <span className="w-12 shrink-0 text-sm font-semibold text-neutral-600">第 {i + 1} 堂</span>
+
+              <div className="order-3 flex w-full items-center gap-2 sm:order-2 sm:w-auto">
+                <TimeSelect
+                  label={`第 ${i + 1} 堂開始時間`}
+                  value={slot.start}
+                  min={prevEnd || undefined}
+                  onChange={(start) => update(i, { start })}
+                  disabled={disabled}
+                />
+                <span className="text-neutral-400">–</span>
+                <TimeSelect
+                  label={`第 ${i + 1} 堂結束時間`}
+                  value={slot.end}
+                  min={slot.start ? addMinutes(slot.start, TIME_STEP_MINUTES) ?? toHHMM(LATEST_TIME) : undefined}
+                  onChange={(end) => update(i, { end })}
+                  disabled={disabled}
+                />
+              </div>
+
+              <div className="order-2 ml-auto shrink-0 sm:order-3 sm:ml-0">
                 {i === 0 ? (
                   <button
                     type="button"
@@ -136,10 +177,9 @@ export function SlotsEditor({ slots, onChange, disabled = false, error }: Props)
                     disabled={!canAdd}
                     aria-label="新增一堂"
                     title={addBlockedReason ?? "新增一堂"}
-                    className="h-10 w-full rounded-xl border border-brand text-base font-bold text-brand sm:text-xs transition hover:bg-brand-ink disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-400 disabled:hover:bg-transparent"
+                    className="h-10 rounded-xl border border-brand px-3 text-xs font-bold text-brand transition hover:bg-brand-ink disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-400 disabled:hover:bg-transparent"
                   >
-                    <span aria-hidden>＋</span>
-                    <span className="hidden sm:inline"> 新增一堂</span>
+                    ＋ 新增一堂
                   </button>
                 ) : (
                   !disabled && (
