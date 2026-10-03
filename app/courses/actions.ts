@@ -225,7 +225,6 @@ export async function saveCourseAsTemplate(
     ...fields,
     latitude: course.latitude,
     longitude: course.longitude,
-    district_id: course.district_id,
     coach_id: ctx.userId,
     status: "draft",
     is_template: true,
