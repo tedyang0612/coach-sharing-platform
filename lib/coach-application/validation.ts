@@ -16,6 +16,10 @@ import { CONTACT_INFO_LABELS, detectContactInfo } from "./contact-detection";
 import { EDUCATION_DEGREES, type EducationEntry } from "./education";
 
 export type CoachApplicationInput = {
+  // 真實姓名必填、不公開（管理員核對良民證用）；暱稱選填，是公開顯示的教練名稱
+  realName: string;
+  nickname: string;
+
   // 檔案本身另外用 validateUploadFile() 檢查，這裡只看「有沒有」
   hasPhoto: boolean;
   hasCriminalRecord: boolean;
@@ -37,6 +41,8 @@ export type CoachApplicationInput = {
 };
 
 export type CoachApplicationErrors = {
+  realName?: string;
+  nickname?: string;
   photo?: string;
   sportCategories?: string;
   tags?: string;
@@ -84,6 +90,35 @@ function validateTags(tags: string[]): string | undefined {
     if (warning) return warning;
   }
   return undefined;
+}
+
+export const NAME_MAX_LENGTH = 20;
+
+/** 真實姓名必填；暱稱選填，但會公開顯示，所以和其他公開欄位一樣不能含聯絡資訊。 */
+export function validateCoachNames(input: {
+  realName: string;
+  nickname: string;
+}): { realName?: string; nickname?: string } {
+  const errors: { realName?: string; nickname?: string } = {};
+  const realName = input.realName.trim();
+  if (!realName) errors.realName = "請填寫真實姓名";
+  else if (Array.from(realName).length > NAME_MAX_LENGTH) {
+    errors.realName = `真實姓名最多 ${NAME_MAX_LENGTH} 個字`;
+  }
+
+  const nickname = input.nickname.trim();
+  if (Array.from(nickname).length > NAME_MAX_LENGTH) {
+    errors.nickname = `暱稱最多 ${NAME_MAX_LENGTH} 個字`;
+  } else {
+    const warning = contactInfoWarning(nickname);
+    if (warning) errors.nickname = warning;
+  }
+  return errors;
+}
+
+/** 公開顯示的教練名稱：有填暱稱用暱稱，沒填就沿用真實姓名（PM 決定）。 */
+export function resolveCoachDisplayName(realName: string, nickname: string): string {
+  return nickname.trim() || realName.trim();
 }
 
 // 教練個人檔案的公開欄位：申請表單（4.0）與通過後的編輯個人檔案（9.0）共用同一套規則
@@ -192,6 +227,10 @@ export function validateCoachApplication(
 ): CoachApplicationErrors {
   const errors: CoachApplicationErrors = validateCoachPublicProfile(input);
 
+  const nameErrors = validateCoachNames(input);
+  if (nameErrors.realName) errors.realName = nameErrors.realName;
+  if (nameErrors.nickname) errors.nickname = nameErrors.nickname;
+
   const contactError = validateContacts(input);
   if (contactError) errors.contact = contactError;
 
@@ -211,6 +250,10 @@ export type CoachProfileEditErrors = Omit<CoachApplicationErrors, "criminalRecor
 
 export function validateCoachProfileEdit(input: CoachProfileEditInput): CoachProfileEditErrors {
   const errors: CoachProfileEditErrors = validateCoachPublicProfile(input);
+
+  const nameErrors = validateCoachNames(input);
+  if (nameErrors.realName) errors.realName = nameErrors.realName;
+  if (nameErrors.nickname) errors.nickname = nameErrors.nickname;
 
   const contactError = validateContacts(input);
   if (contactError) errors.contact = contactError;

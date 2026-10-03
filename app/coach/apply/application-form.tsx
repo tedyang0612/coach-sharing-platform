@@ -34,6 +34,7 @@ import { uploadCoachFile } from "@/lib/coach-application/upload";
 import {
   contactInfoWarning,
   hasErrors,
+  resolveCoachDisplayName,
   validateCoachApplication,
   type CoachApplicationErrors,
 } from "@/lib/coach-application/validation";
@@ -41,6 +42,8 @@ import {
 // 補件／未通過後重新送審時，帶入先前填寫的內容（由 page.tsx 從資料庫讀出）
 export type ExistingApplication = {
   status: "needs_more_info" | "rejected";
+  realName: string;
+  nickname: string;
   rejectionReason: string | null;
   photoUrl: string;
   // 良民證原檔審核完 7 天會被清掉，清掉後要重新上傳
@@ -83,6 +86,8 @@ type ApplicationFormProps = {
 };
 
 export function ApplicationForm({ userId, existing }: ApplicationFormProps) {
+  const [realName, setRealName] = useState(existing?.realName ?? "");
+  const [nickname, setNickname] = useState(existing?.nickname ?? "");
   const [photo, setPhoto] = useState<File | null>(null);
   const [sportCategories, setSportCategories] = useState<string[]>(
     existing?.sportCategories ?? []
@@ -116,6 +121,8 @@ export function ApplicationForm({ userId, existing }: ApplicationFormProps) {
   const [isSubmitting, startSubmit] = useTransition();
 
   const validation = validateCoachApplication({
+    realName,
+    nickname,
     hasPhoto: photo !== null || Boolean(existing?.photoUrl),
     hasCriminalRecord: criminalRecord !== null || Boolean(existing?.hasCriminalRecord),
     sportCategories,
@@ -163,6 +170,8 @@ export function ApplicationForm({ userId, existing }: ApplicationFormProps) {
 
         // 成功時 Server Action 會直接導向申請狀態頁，只有失敗才會有回傳值
         const result = await submitCoachApplication({
+          realName,
+          nickname,
           photoPath,
           criminalRecordPath,
           sportCategories,
@@ -200,6 +209,35 @@ export function ApplicationForm({ userId, existing }: ApplicationFormProps) {
           </p>
         </div>
       )}
+
+      <Section
+        title="姓名"
+        description="真實姓名只給管理員核對良民證，不會公開。學員看到的是暱稱；沒填暱稱的話，會以真實姓名作為公開顯示的教練名稱。"
+      >
+        <TextField
+          label="真實姓名＊"
+          name="realName"
+          autoComplete="name"
+          placeholder="請與良民證上的姓名相同"
+          value={realName}
+          onChange={(event) => setRealName(event.target.value)}
+          error={errors.realName}
+        />
+        <TextField
+          label="暱稱（選填）"
+          name="nickname"
+          placeholder="例：Amy 教練"
+          value={nickname}
+          onChange={(event) => setNickname(event.target.value)}
+          error={contactInfoWarning(nickname) ?? errors.nickname}
+        />
+        <p className="-mt-2 text-xs text-neutral-500">
+          學員會看到的名稱：
+          <span className="font-semibold text-neutral-800">
+            {resolveCoachDisplayName(realName, nickname) || "（請先填寫真實姓名）"}
+          </span>
+        </p>
+      </Section>
 
       <Section
         title="個人檔案"

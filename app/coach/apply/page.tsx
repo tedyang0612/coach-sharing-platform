@@ -47,6 +47,12 @@ export default async function CoachApplyPage() {
       existing = {
         status: application.application_status,
         rejectionReason: application.rejection_reason,
+        realName: application.real_name ?? "",
+        // display_name 等於真實姓名，代表當初沒填暱稱
+        nickname:
+          application.display_name && application.display_name !== application.real_name
+            ? application.display_name
+            : "",
         photoUrl: application.photo_url,
         hasCriminalRecord:
           Boolean(application.criminal_record_url) && !application.criminal_record_deleted,
