@@ -47,6 +47,14 @@
   - **兩種情況都要處理**，不要只判斷其中一種（可參考 `app/actions/auth.ts` 的寫法）。
 - RLS 一定要開（10 張表目前全部已開啟），新增資料表時記得一起加 policy，不要等事後補。
 
+### Schema 變動一律走 migration 檔，不要叫 Ted 貼 SQL Editor
+
+這條是 2026-10-03 補上的規則，起因是線上共用專案曾經因為 schema 改動被手動貼到 SQL Editor 執行、沒走 migration 檔，導致 CLI 的追蹤表（`supabase_migrations.schema_migrations`）跟實際資料庫狀態對不上，`supabase db push` 直接報錯中斷（花了不少力氣才用 `supabase migration repair` 修復）。
+
+- **任何 `CREATE TABLE`／`ALTER TABLE`／`CREATE POLICY`／`CREATE OR REPLACE FUNCTION`／`CREATE TRIGGER` 等 schema 層級的改動，一律寫成新的 migration 檔**放進 `supabase/migrations/`（檔名延續現有的時間戳格式），**不要叫 Ted 直接貼到 Supabase SQL Editor 執行**。想驗證的話用 `npx supabase db push --dry-run`（線上）或 `npx supabase db reset`（本機 Docker），確認沒問題後用 `npx supabase db push` 正式套用。
+- 新增欄位時，順便檢查這張表有沒有既有的「鎖欄位」guard trigger（例如 `guard_coach_application_fields()`、`guard_registration_insert()`），需不需要同步調整白名單，避免新欄位被悄悄鎖死或忽略不更新。
+- **純測試資料（INSERT／UPDATE／SELECT，不含 schema 變動）不受這條限制**，可以直接請 Ted 貼到 SQL Editor 執行，這類操作不會被 CLI 追蹤，也不會造成 `db push` 衝突。
+
 ## 時間與時區慣例（場次相關模組必讀）
 
 平台只在台灣營運，所有「教練填的日期／時間」都是台灣時間（UTC+8，無日光節約）。資料庫 `timestamptz` 實際存的是 UTC，Supabase 的 DB 與 Vercel 的 server 預設時區也都是 UTC，所以「沒指定時區」的地方都會差 8 小時。
