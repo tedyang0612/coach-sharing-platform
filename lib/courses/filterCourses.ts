@@ -5,7 +5,7 @@ import {
   TIME_SLOT_LABELS,
   TIME_SLOT_RANGES,
   type Course,
-  type FilterLevel,
+  type Level,
   type TimeSlot,
 } from "./types";
 import { DEFAULT_SORT, type SortMode } from "./sort";
@@ -20,7 +20,7 @@ export interface CourseFilters {
   timeSlots?: TimeSlot[]; // 快速時段，可複選（OR）；和指定時間擇一
   timeFrom?: string; // 指定時間的開始，"HH:MM"
   timeTo?: string; // 指定時間的結束，"HH:MM"
-  level?: FilterLevel;
+  level?: Level;
   sport?: string;
   priceRange?: string; // PRICE_RANGES 的 id
 }
@@ -131,7 +131,7 @@ export function parseFilters(params: RawSearchParams): CourseFilters {
     timeTo,
     level:
       level && (FILTER_LEVELS as readonly string[]).includes(level)
-        ? (level as FilterLevel)
+        ? (level as Level)
         : undefined,
     sport:
       sport && (SPORTS as readonly string[]).includes(sport) ? sport : undefined,
@@ -172,9 +172,7 @@ export function filterCourses(courses: Course[], filters: CourseFilters) {
       (!useCustomTime ||
         ((!filters.timeFrom || start!.minutes >= toMinutes(filters.timeFrom)) &&
           (!filters.timeTo || start!.minutes <= toMinutes(filters.timeTo)))) &&
-      (!filters.level ||
-        course.level === filters.level ||
-        course.level === "unlimited") &&
+      (!filters.level || course.level === filters.level) &&
       (!filters.sport || course.sport === filters.sport) &&
       (!range ||
         ((range.min === undefined || course.price >= range.min) &&
