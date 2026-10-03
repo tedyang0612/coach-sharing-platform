@@ -25,6 +25,14 @@ export function PageShell({
           <LogoBadge size="sm" />
           <span className="text-base font-bold text-neutral-900">夠練 GoLand</span>
           <span className="ml-1 rounded-full bg-brand-ink px-2 py-0.5 text-xs font-semibold text-brand">教練工作台</span>
+          <nav className="ml-auto flex items-center gap-1 text-sm font-semibold">
+            <Link href="/coach/courses" className="rounded-lg px-2.5 py-1.5 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900">
+              我的課程
+            </Link>
+            <Link href="/coach/courses/new" className="rounded-lg bg-brand px-2.5 py-1.5 text-white hover:opacity-90">
+              ＋ 建立課程
+            </Link>
+          </nav>
         </div>
       </header>
 
