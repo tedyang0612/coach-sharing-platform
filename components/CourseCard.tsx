@@ -39,8 +39,8 @@ export default function CourseCard({ course, distanceKm }: Props) {
             }`}
           >
             {isConfirmed
-              ? "✅ 已成團"
-              : `🔥 差 ${course.minToOpen - course.enrolled} 人成團`}
+              ? "✅ 已開課"
+              : `🔥 差 ${course.minToOpen - course.enrolled} 人開課`}
           </span>
         </div>
         <div className="absolute bottom-3 right-3 rounded-lg bg-slate-900/80 px-2.5 py-1 text-xs text-white backdrop-blur-md">

@@ -21,7 +21,7 @@ export interface Course {
   coachName: string;
   price: number;
   enrolled: number;
-  minToOpen: number; // 達到這個人數才成團
+  minToOpen: number; // 達到這個人數才開課
   capacity: number;
 }
 
