@@ -14,6 +14,7 @@ import {
   PRICE_RANGES,
   SPORT_CHIP_ORDER,
   TIME_SLOT_LABELS,
+  type TimeSlot,
   WEEKDAYS,
   WEEKDAY_LABELS,
 } from "@/lib/courses/types";
@@ -25,6 +26,119 @@ interface Props {
 }
 
 type LocationState = "idle" | "loading" | "denied" | "error";
+
+// 星期與快速時段的顯示文字（下拉按鈕和「已套用條件」標籤共用）
+function weekdaysLabel(weekdays: number[] | undefined) {
+  if (!weekdays?.length) return undefined;
+  const [first, ...rest] = weekdays;
+  return `星期${WEEKDAY_LABELS[first]}${rest.map((day) => `＋${WEEKDAY_LABELS[day]}`).join("")}`;
+}
+
+function slotsLabel(slots: TimeSlot[] | undefined) {
+  if (!slots?.length) return undefined;
+  return slots.map((slot) => TIME_SLOT_LABELS[slot].split("（")[0]).join("＋");
+}
+
+// 指定時間的下拉選項：每 30 分鐘一個；網址帶了不在清單內的時間時，補進去才不會顯示成空白
+function timeOptions(current: string | undefined) {
+  const options = Array.from({ length: 48 }, (_, i) => {
+    const h = String(Math.floor(i / 2)).padStart(2, "0");
+    return `${h}:${i % 2 ? "30" : "00"}`;
+  });
+  if (current && !options.includes(current)) {
+    options.push(current);
+    options.sort();
+  }
+  return options;
+}
+
+// 勾選式下拉（可複選）：用 <details> 做，不加套件。點外面或按 Esc 會收起來
+function MultiSelect({
+  id,
+  label,
+  options,
+  selected,
+  summary,
+  onToggle,
+}: {
+  id: string;
+  label: string;
+  options: { value: string; label: string }[];
+  selected: string[];
+  summary: string;
+  onToggle: (value: string) => void;
+}) {
+  const ref = useRef<HTMLDetailsElement>(null);
+
+  useEffect(() => {
+    function closeOnOutsideOrEscape(event: MouseEvent | KeyboardEvent) {
+      const el = ref.current;
+      if (!el?.open) return;
+      if (event instanceof KeyboardEvent) {
+        if (event.key === "Escape") {
+          el.open = false;
+          el.querySelector("summary")?.focus();
+        }
+      } else if (!el.contains(event.target as Node)) {
+        el.open = false;
+      }
+    }
+    document.addEventListener("mousedown", closeOnOutsideOrEscape);
+    document.addEventListener("keydown", closeOnOutsideOrEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideOrEscape);
+      document.removeEventListener("keydown", closeOnOutsideOrEscape);
+    };
+  }, []);
+
+  return (
+    <div className="text-sm font-medium">
+      <span id={`${id}-label`}>{label}</span>
+      <details ref={ref} className="relative mt-1">
+        <summary
+          id={id}
+          aria-labelledby={`${id}-label`}
+          className="flex w-full cursor-pointer list-none items-center justify-between gap-2 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm font-normal [&::-webkit-details-marker]:hidden"
+        >
+          <span className="truncate">{summary}</span>
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" className="shrink-0 text-neutral-500">
+            <path d="m2 4 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </summary>
+        <div className="absolute z-20 mt-1 w-full min-w-[13rem] rounded-xl border border-neutral-200 bg-white p-1.5 shadow-lg">
+          {options.map((option) => (
+            <label
+              key={option.value}
+              className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 font-normal hover:bg-neutral-50"
+            >
+              <input
+                type="checkbox"
+                checked={selected.includes(option.value)}
+                onChange={() => onToggle(option.value)}
+                className="h-4 w-4 accent-teal-600"
+              />
+              {option.label}
+            </label>
+          ))}
+        </div>
+      </details>
+    </div>
+  );
+}
+
+interface AppliedTag {
+  key: string;
+  label: string;
+  jumpTo: () => void;
+  remove: () => void;
+}
+
+// 點「已套用條件」的標籤時，捲到對應的篩選器並把焦點放上去
+function focusControl(selector: string) {
+  const el = document.querySelector<HTMLElement>(selector);
+  el?.scrollIntoView({ block: "center", behavior: "smooth" });
+  el?.focus({ preventScroll: true });
+}
 
 // 篩選用的 Chip：原生 radio／checkbox 加樣式，單選、複選與鍵盤操作都不用另外寫。
 // label 要 relative：隱藏用的 sr-only 輸入框是絕對定位，不加的話手機上會撐寬整頁
@@ -152,6 +266,90 @@ export default function CourseFilters({
 
   const showFallbackNote = usedFallback && value.city === DEFAULT_CITY;
 
+  // 已套用條件：每個條件一個標籤，點標籤跳到對應的篩選器修改，點 ✕ 移除。
+  // 地點標籤移除時先清行政區，再按一次才清縣市。
+  const appliedTags: AppliedTag[] = [];
+  if (value.sport) {
+    appliedTags.push({
+      key: "sport",
+      label: value.sport,
+      jumpTo: () => focusControl('input[name="sport"]:checked'),
+      remove: () => navigate({ ...value, sport: undefined }),
+    });
+  }
+  if (value.city) {
+    appliedTags.push({
+      key: "city",
+      label: value.district ? `${value.city}・${value.district}` : value.city,
+      jumpTo: () =>
+        focusControl(value.district ? "#filter-district" : "#filter-city"),
+      remove: () =>
+        navigate(
+          value.district
+            ? { ...value, district: undefined }
+            : { ...value, city: undefined },
+        ),
+    });
+  }
+  if (value.weekdays?.length) {
+    appliedTags.push({
+      key: "weekdays",
+      label: weekdaysLabel(value.weekdays) ?? "",
+      jumpTo: () => focusControl("#filter-weekdays"),
+      remove: () => navigate({ ...value, weekdays: undefined }),
+    });
+  }
+  const customTimeApplied =
+    (value.timeFrom || value.timeTo) && !isTimeRangeInvalid(value);
+  if (value.timeSlots?.length) {
+    appliedTags.push({
+      key: "slots",
+      label: slotsLabel(value.timeSlots) ?? "",
+      jumpTo: () => focusControl("#filter-slots"),
+      remove: () => navigate({ ...value, timeSlots: undefined }),
+    });
+  } else if (customTimeApplied) {
+    appliedTags.push({
+      key: "time",
+      label:
+        value.timeFrom && value.timeTo
+          ? `${value.timeFrom}–${value.timeTo}`
+          : value.timeFrom
+            ? `${value.timeFrom} 之後`
+            : `${value.timeTo} 之前`,
+      jumpTo: () => focusControl("#filter-time-from"),
+      remove: () =>
+        navigate({ ...value, timeFrom: undefined, timeTo: undefined }),
+    });
+  }
+  if (value.priceRange) {
+    const range = PRICE_RANGES.find((r) => r.id === value.priceRange);
+    if (range) {
+      appliedTags.push({
+        key: "price",
+        label: range.label,
+        jumpTo: () => focusControl("#filter-price"),
+        remove: () => navigate({ ...value, priceRange: undefined }),
+      });
+    }
+  }
+  if (value.level) {
+    appliedTags.push({
+      key: "level",
+      label: LEVEL_LABELS[value.level],
+      jumpTo: () => focusControl("#filter-level"),
+      remove: () => navigate({ ...value, level: undefined }),
+    });
+  }
+  if (value.near) {
+    appliedTags.push({
+      key: "near",
+      label: "📍 依距離排序",
+      jumpTo: () => focusControl("#filter-city"),
+      remove: () => navigate({ ...value, near: undefined }),
+    });
+  }
+
   return (
     <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-4">
       {/* 運動種類是最高層級的搜尋條件：單選 Chips 放在其他篩選上面。
@@ -180,98 +378,11 @@ export default function CourseFilters({
         </div>
       </fieldset>
 
-      {/* 星期可複選（OR），可單獨使用，也可以和日期、時段組合。日期等 UI 草圖出來再加 */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <fieldset className="min-w-0">
-          <legend className="mb-2 text-sm font-medium">星期</legend>
-          <div className="flex flex-wrap gap-2">
-            {WEEKDAYS.map((day) => (
-              <Chip
-                key={day}
-                type="checkbox"
-                name="days"
-                value={String(day)}
-                checked={value.weekdays?.includes(day) ?? false}
-                onChange={() =>
-                  navigate({ ...value, weekdays: toggle(value.weekdays, day) })
-                }
-                title={`星期${WEEKDAY_LABELS[day]}`}
-              >
-                <span aria-hidden="true">{WEEKDAY_LABELS[day]}</span>
-                <span className="sr-only">星期{WEEKDAY_LABELS[day]}</span>
-              </Chip>
-            ))}
-          </div>
-        </fieldset>
-
-        {/* 時段有兩種方式：快速時段（可複選，OR）或指定開始／結束時間，擇一使用 */}
-        <fieldset className="min-w-0">
-          <legend className="mb-2 text-sm font-medium">時段</legend>
-          <div className="flex flex-wrap gap-2">
-            {(Object.keys(TIME_SLOT_LABELS) as Array<keyof typeof TIME_SLOT_LABELS>).map(
-              (slot) => (
-                <Chip
-                  key={slot}
-                  type="checkbox"
-                  name="slot"
-                  value={slot}
-                  checked={value.timeSlots?.includes(slot) ?? false}
-                  onChange={() =>
-                    navigate({
-                      ...value,
-                      timeSlots: toggle(value.timeSlots, slot),
-                      timeFrom: undefined,
-                      timeTo: undefined,
-                    })
-                  }
-                >
-                  {TIME_SLOT_LABELS[slot]}
-                </Chip>
-              ),
-            )}
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-            <span className="font-medium">指定時間</span>
-            <input
-              type="time"
-              aria-label="開始時間"
-              value={value.timeFrom ?? ""}
-              onChange={(e) =>
-                navigate({
-                  ...value,
-                  timeFrom: e.target.value || undefined,
-                  timeSlots: undefined,
-                })
-              }
-              className="w-36 rounded-xl border border-neutral-300 bg-white px-3 py-1.5"
-            />
-            <span aria-hidden="true">–</span>
-            <input
-              type="time"
-              aria-label="結束時間"
-              value={value.timeTo ?? ""}
-              onChange={(e) =>
-                navigate({
-                  ...value,
-                  timeTo: e.target.value || undefined,
-                  timeSlots: undefined,
-                })
-              }
-              className="w-36 rounded-xl border border-neutral-300 bg-white px-3 py-1.5"
-            />
-          </div>
-          {isTimeRangeInvalid(value) && (
-            <p className="mt-1 text-xs text-orange-600">
-              結束時間要晚於開始時間，目前沒有套用指定時間。
-            </p>
-          )}
-        </fieldset>
-      </div>
-
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-sm font-medium">
           地點
           <select
+            id="filter-city"
             className={`${SELECT_CLASS} mt-1 font-normal`}
             value={value.city ?? ""}
             onChange={(e) =>
@@ -295,6 +406,7 @@ export default function CourseFilters({
         <label className="text-sm font-medium">
           行政區
           <select
+            id="filter-district"
             className={`${SELECT_CLASS} mt-1 font-normal disabled:bg-neutral-100 disabled:text-neutral-400`}
             value={value.district ?? ""}
             disabled={!value.city}
@@ -311,9 +423,96 @@ export default function CourseFilters({
           </select>
         </label>
 
+        {/* 星期可複選（OR）：勾選式下拉。日期等 UI 草圖出來再加 */}
+        <MultiSelect
+          id="filter-weekdays"
+          label="星期"
+          options={WEEKDAYS.map((day) => ({
+            value: String(day),
+            label: `星期${WEEKDAY_LABELS[day]}`,
+          }))}
+          selected={(value.weekdays ?? []).map(String)}
+          summary={weekdaysLabel(value.weekdays) ?? "不限"}
+          onToggle={(day) =>
+            navigate({ ...value, weekdays: toggle(value.weekdays, Number(day)) })
+          }
+        />
+
+        {/* 時段有兩種方式，擇一使用：快速時段（可複選，OR），或指定開始／結束時間 */}
+        <MultiSelect
+          id="filter-slots"
+          label="時段（快速選擇）"
+          options={(Object.keys(TIME_SLOT_LABELS) as TimeSlot[]).map((slot) => ({
+            value: slot,
+            label: TIME_SLOT_LABELS[slot],
+          }))}
+          selected={value.timeSlots ?? []}
+          summary={slotsLabel(value.timeSlots) ?? "不限"}
+          onToggle={(slot) =>
+            navigate({
+              ...value,
+              timeSlots: toggle(value.timeSlots, slot as TimeSlot),
+              timeFrom: undefined,
+              timeTo: undefined,
+            })
+          }
+        />
+
+        <label className="text-sm font-medium">
+          指定時間：開始
+          <select
+            id="filter-time-from"
+            className={`${SELECT_CLASS} mt-1 font-normal`}
+            value={value.timeFrom ?? ""}
+            onChange={(e) =>
+              navigate({
+                ...value,
+                timeFrom: e.target.value || undefined,
+                timeSlots: undefined,
+              })
+            }
+          >
+            <option value="">不限</option>
+            {timeOptions(value.timeFrom).map((time) => (
+              <option key={time} value={time}>
+                {time}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="text-sm font-medium">
+          指定時間：結束
+          <select
+            id="filter-time-to"
+            className={`${SELECT_CLASS} mt-1 font-normal`}
+            value={value.timeTo ?? ""}
+            onChange={(e) =>
+              navigate({
+                ...value,
+                timeTo: e.target.value || undefined,
+                timeSlots: undefined,
+              })
+            }
+          >
+            <option value="">不限</option>
+            {timeOptions(value.timeTo).map((time) => (
+              <option key={time} value={time}>
+                {time}
+              </option>
+            ))}
+          </select>
+          {isTimeRangeInvalid(value) && (
+            <span className="mt-1 block text-xs font-normal text-orange-600">
+              結束時間要晚於開始時間，目前沒有套用指定時間。
+            </span>
+          )}
+        </label>
+
         <label className="text-sm font-medium">
           每人費用
           <select
+            id="filter-price"
             className={`${SELECT_CLASS} mt-1 font-normal`}
             value={value.priceRange ?? ""}
             onChange={(e) =>
@@ -332,6 +531,7 @@ export default function CourseFilters({
         <label className="text-sm font-medium">
           運動程度
           <select
+            id="filter-level"
             className={`${SELECT_CLASS} mt-1 font-normal`}
             value={value.level ?? ""}
             onChange={(e) =>
@@ -353,6 +553,37 @@ export default function CourseFilters({
           </select>
         </label>
       </div>
+
+      {appliedTags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3 text-sm">
+          <span className="font-medium text-neutral-700">已套用條件</span>
+          <ul className="flex flex-wrap gap-2">
+            {appliedTags.map((tag) => (
+              <li
+                key={tag.key}
+                className="inline-flex items-center rounded-full border border-teal-200 bg-teal-50 text-teal-800"
+              >
+                <button
+                  type="button"
+                  onClick={tag.jumpTo}
+                  aria-label={`修改條件：${tag.label}`}
+                  className="rounded-l-full py-1 pl-3 pr-1.5 hover:underline"
+                >
+                  {tag.label}
+                </button>
+                <button
+                  type="button"
+                  onClick={tag.remove}
+                  aria-label={`移除條件：${tag.label}`}
+                  className="rounded-r-full py-1 pl-1 pr-2.5 text-teal-600 hover:text-teal-900"
+                >
+                  <span aria-hidden="true">✕</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-3 border-t border-neutral-100 pt-3 text-sm">
         {value.near ? (
