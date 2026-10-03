@@ -188,7 +188,7 @@ export function filterCourses(courses: Course[], filters: CourseFilters) {
           (!filters.timeTo || start!.minutes <= toMinutes(filters.timeTo)))) &&
       (!filters.level ||
         course.level === filters.level ||
-        (filters.level !== "unlimited" && course.level === "unlimited")) &&
+        course.level === "unlimited") &&
       (!filters.sport || course.sport === filters.sport) &&
       (!range ||
         ((range.min === undefined || course.price >= range.min) &&

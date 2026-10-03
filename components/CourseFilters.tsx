@@ -521,6 +521,14 @@ export default function CourseFilters({
           active={Boolean(value.level)}
           onClear={() => navigate({ ...value, level: undefined })}
         >
+          <PanelOption
+            type="radio"
+            name="level"
+            checked={!value.level}
+            onChange={() => navigate({ ...value, level: undefined })}
+          >
+            不限
+          </PanelOption>
           {FILTER_LEVELS.map((level) => (
             <PanelOption
               key={level}
