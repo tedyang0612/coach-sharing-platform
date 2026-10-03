@@ -7,7 +7,7 @@
 // - 編輯且已有人報名（locked）：只能改課程須知與封面圖，其他欄位 disabled
 
 import { useActionState, useState } from "react";
-import { SPORT_TYPES } from "@/types/database";
+import { SPORT_TYPES, type District } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
 import { TextField } from "@/components/ui/text-field";
@@ -34,6 +34,8 @@ type CourseAction = (prev: CourseFormState, formData: FormData) => Promise<Cours
 type Props = {
   action: CourseAction;
   initialValues: CourseFormValues;
+  /** 縣市／行政區清單（districts 表，已依官方代碼排序） */
+  districts: District[];
   mode: "create" | "edit";
   /** 從範本／複製建立時的來源課程 id（記錄到 template_source_id） */
   sourceId?: string;
@@ -109,9 +111,13 @@ function todayInTaipei(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei" }).format(new Date());
 }
 
-export function CourseForm({ action, initialValues, mode, sourceId, courseId, isTemplate = false, locked = false }: Props) {
+export function CourseForm({ action, initialValues, districts, mode, sourceId, courseId, isTemplate = false, locked = false }: Props) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [values, setValues] = useState(initialValues);
+  // 縣市只是行政區的篩選用下拉，不送出；送出的是 district_id（縣市由它反查）
+  const [city, setCity] = useState(() => districts.find((d) => String(d.id) === initialValues.district_id)?.city ?? "");
+  const cities = [...new Set(districts.map((d) => d.city))];
+  const cityDistricts = districts.filter((d) => d.city === city);
   const [touched, setTouched] = useState<Partial<Record<CourseField, boolean>>>({});
   const [coverUploading, setCoverUploading] = useState(false);
 
@@ -240,6 +246,38 @@ export function CourseForm({ action, initialValues, mode, sourceId, courseId, is
       </FormSection>
 
       <FormSection title="時間與地點" description="系統會依開始／結束時間與每堂長度，自動產生固定場次，每個場次各自計算名額與成團。">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SelectField
+            label="縣市 *"
+            id="course-city"
+            value={city}
+            disabled={!isEditable("district_id")}
+            onChange={(e) => {
+              setCity(e.target.value);
+              set("district_id", ""); // 換縣市後原本的行政區不再適用，清掉讓教練重選
+            }}
+          >
+            <option value="" disabled>
+              請選擇
+            </option>
+            {cities.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField label="行政區 *" {...fieldProps("district_id")} disabled={!isEditable("district_id") || !city}>
+            <option value="" disabled>
+              {city ? "請選擇" : "請先選擇縣市"}
+            </option>
+            {cityDistricts.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.district}
+              </option>
+            ))}
+          </SelectField>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField label="場館名稱 *" placeholder="例如：XX 運動中心 3F 重訓區" {...fieldProps("location_name")} />
           <TextField label="地址 *" placeholder="供學員以 Google Map 定位" {...fieldProps("location_address")} />
