@@ -38,7 +38,7 @@ export default function CourseCard({ course }: Props) {
             }`}
           >
             {isConfirmed
-              ? "✅ 已開課"
+              ? "✅ 已達開課人數"
               : `🔥 差 ${course.minToOpen - course.enrolled} 人開課`}
           </span>
         </div>
