@@ -16,6 +16,8 @@ export interface Course {
   startsAt: string; // ISO 8601
   timeSlot: TimeSlot;
   level: Level;
+  // 公開顯示的教練名稱：暱稱優先，沒填暱稱就用真實姓名。
+  // 判斷在查詢層（getCourses）做，真實姓名不放進這個型別。
   coachName: string;
   price: number;
   enrolled: number;
@@ -36,9 +38,14 @@ export const LEVEL_LABELS: Record<Level, string> = {
   advanced: "進階",
 };
 
-// 篩選用的程度：不含「全程度」。全程度的課任何人都能上，
-// 所以選初級／中級／進階時一律一併列出，不需要單獨篩選它。
-export const FILTER_LEVELS = ["beginner", "intermediate", "advanced"] as const;
+// 篩選下拉的程度選項與順序（初級／中級／進階／全程度）。
+// 選初級／中級／進階時，全程度的課任何人都能上，會一併列出；選全程度只列全程度的課。
+export const FILTER_LEVELS = [
+  "beginner",
+  "intermediate",
+  "advanced",
+  "unlimited",
+] as const;
 export type FilterLevel = (typeof FILTER_LEVELS)[number];
 
 // 運動項目：產品決定的固定清單。

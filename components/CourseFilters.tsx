@@ -186,7 +186,10 @@ export default function CourseFilters({ cities, value }: Props) {
               })
             }
           >
-            <option value="">不限</option>
+            {/* 程度只有四個選項，沒有「不限」；還沒選時顯示提示文字，清除請用下方「清除所有篩選」 */}
+            <option value="" disabled hidden>
+              請選擇程度
+            </option>
             {FILTER_LEVELS.map((level) => (
               <option key={level} value={level}>
                 {LEVEL_LABELS[level]}
@@ -234,6 +237,17 @@ export default function CourseFilters({ cities, value }: Props) {
               ? `暫時無法取得位置，先顯示「${DEFAULT_CITY}」的課程，可用上方「地點」改選。`
               : "暫時無法取得位置，請稍後再試，或改用上方「地點」篩選。"}
           </span>
+        )}
+
+        {/* 程度下拉沒有「不限」，所以有任何條件時都要能一次清掉 */}
+        {hasActiveFilters(value) && (
+          <button
+            type="button"
+            onClick={() => router.replace(pathname, { scroll: false })}
+            className="ml-auto text-neutral-500 underline hover:text-neutral-800"
+          >
+            清除所有篩選
+          </button>
         )}
       </div>
     </div>
