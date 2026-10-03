@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import FilterPill from "@/components/FilterPill";
 import {
   DEFAULT_CITY,
   hasActiveFilters,
+  isDateRangeInvalid,
   isTimeRangeInvalid,
   type CourseFilters as Filters,
 } from "@/lib/courses/filterCourses";
@@ -52,78 +54,46 @@ function timeOptions(current: string | undefined) {
   return options;
 }
 
-// 勾選式下拉（可複選）：用 <details> 做，不加套件。點外面或按 Esc 會收起來
-function MultiSelect({
-  id,
-  label,
-  options,
-  selected,
-  summary,
-  onToggle,
+// 面板裡的一個選項（單選用 radio、複選用 checkbox）
+function PanelOption({
+  type,
+  name,
+  checked,
+  onChange,
+  children,
 }: {
-  id: string;
-  label: string;
-  options: { value: string; label: string }[];
-  selected: string[];
-  summary: string;
-  onToggle: (value: string) => void;
+  type: "radio" | "checkbox";
+  name: string;
+  checked: boolean;
+  onChange: () => void;
+  children: React.ReactNode;
 }) {
-  const ref = useRef<HTMLDetailsElement>(null);
-
-  useEffect(() => {
-    function closeOnOutsideOrEscape(event: MouseEvent | KeyboardEvent) {
-      const el = ref.current;
-      if (!el?.open) return;
-      if (event instanceof KeyboardEvent) {
-        if (event.key === "Escape") {
-          el.open = false;
-          el.querySelector("summary")?.focus();
-        }
-      } else if (!el.contains(event.target as Node)) {
-        el.open = false;
-      }
-    }
-    document.addEventListener("mousedown", closeOnOutsideOrEscape);
-    document.addEventListener("keydown", closeOnOutsideOrEscape);
-    return () => {
-      document.removeEventListener("mousedown", closeOnOutsideOrEscape);
-      document.removeEventListener("keydown", closeOnOutsideOrEscape);
-    };
-  }, []);
-
   return (
-    <div className="text-sm font-medium">
-      <span id={`${id}-label`}>{label}</span>
-      <details ref={ref} className="relative mt-1">
-        <summary
-          id={id}
-          aria-labelledby={`${id}-label`}
-          className="flex w-full cursor-pointer list-none items-center justify-between gap-2 rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm font-normal [&::-webkit-details-marker]:hidden"
-        >
-          <span className="truncate">{summary}</span>
-          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" className="shrink-0 text-neutral-500">
-            <path d="m2 4 4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </summary>
-        <div className="absolute z-20 mt-1 w-full min-w-[13rem] rounded-xl border border-neutral-200 bg-white p-1.5 shadow-lg">
-          {options.map((option) => (
-            <label
-              key={option.value}
-              className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 font-normal hover:bg-neutral-50"
-            >
-              <input
-                type="checkbox"
-                checked={selected.includes(option.value)}
-                onChange={() => onToggle(option.value)}
-                className="h-4 w-4 accent-teal-600"
-              />
-              {option.label}
-            </label>
-          ))}
-        </div>
-      </details>
-    </div>
+    <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-normal text-neutral-800 hover:bg-neutral-50">
+      <input
+        type={type}
+        name={name}
+        checked={checked}
+        onChange={onChange}
+        className="h-4 w-4 accent-teal-600"
+      />
+      {children}
+    </label>
   );
+}
+
+// 「2026-10-20」→「10/20」
+function shortDate(date: string) {
+  return `${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}`;
+}
+
+// 點「已套用條件」的標籤時，打開對應的膠囊面板並把焦點放上去
+function openPill(id: string) {
+  const summary = document.getElementById(id);
+  const details = summary?.closest("details");
+  if (details) details.open = true;
+  summary?.scrollIntoView({ block: "center", behavior: "smooth" });
+  summary?.focus({ preventScroll: true });
 }
 
 interface AppliedTag {
@@ -184,9 +154,6 @@ function toggle<T>(list: T[] | undefined, item: T): T[] | undefined {
   return next.length ? next : undefined;
 }
 
-const SELECT_CLASS =
-  "w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm";
-
 export default function CourseFilters({
   cities,
   districtsByCity,
@@ -207,6 +174,8 @@ export default function CourseFilters({
     const params = new URLSearchParams();
     if (next.city) params.set("city", next.city);
     if (next.city && next.district) params.set("district", next.district);
+    if (next.date) params.set("date", next.date);
+    if (next.dateTo) params.set("dateTo", next.dateTo);
     if (next.weekdays?.length) params.set("days", next.weekdays.join(","));
     if (next.timeSlots?.length) params.set("slot", next.timeSlots.join(","));
     if (next.timeFrom) params.set("from", next.timeFrom);
@@ -281,8 +250,7 @@ export default function CourseFilters({
     appliedTags.push({
       key: "city",
       label: value.district ? `${value.city}・${value.district}` : value.city,
-      jumpTo: () =>
-        focusControl(value.district ? "#filter-district" : "#filter-city"),
+      jumpTo: () => openPill("filter-region"),
       remove: () =>
         navigate(
           value.district
@@ -291,11 +259,25 @@ export default function CourseFilters({
         ),
     });
   }
+  const dateApplied = (value.date || value.dateTo) && !isDateRangeInvalid(value);
+  if (dateApplied) {
+    appliedTags.push({
+      key: "date",
+      label:
+        value.date && value.dateTo
+          ? `${shortDate(value.date)}–${shortDate(value.dateTo)}`
+          : value.date
+            ? shortDate(value.date)
+            : `${shortDate(value.dateTo!)} 之前`,
+      jumpTo: () => openPill("filter-date"),
+      remove: () => navigate({ ...value, date: undefined, dateTo: undefined }),
+    });
+  }
   if (value.weekdays?.length) {
     appliedTags.push({
       key: "weekdays",
       label: weekdaysLabel(value.weekdays) ?? "",
-      jumpTo: () => focusControl("#filter-weekdays"),
+      jumpTo: () => openPill("filter-weekdays"),
       remove: () => navigate({ ...value, weekdays: undefined }),
     });
   }
@@ -305,7 +287,7 @@ export default function CourseFilters({
     appliedTags.push({
       key: "slots",
       label: slotsLabel(value.timeSlots) ?? "",
-      jumpTo: () => focusControl("#filter-slots"),
+      jumpTo: () => openPill("filter-slots"),
       remove: () => navigate({ ...value, timeSlots: undefined }),
     });
   } else if (customTimeApplied) {
@@ -317,7 +299,7 @@ export default function CourseFilters({
           : value.timeFrom
             ? `${value.timeFrom} 之後`
             : `${value.timeTo} 之前`,
-      jumpTo: () => focusControl("#filter-time-from"),
+      jumpTo: () => openPill("filter-time"),
       remove: () =>
         navigate({ ...value, timeFrom: undefined, timeTo: undefined }),
     });
@@ -328,7 +310,7 @@ export default function CourseFilters({
       appliedTags.push({
         key: "price",
         label: range.label,
-        jumpTo: () => focusControl("#filter-price"),
+        jumpTo: () => openPill("filter-price"),
         remove: () => navigate({ ...value, priceRange: undefined }),
       });
     }
@@ -337,7 +319,7 @@ export default function CourseFilters({
     appliedTags.push({
       key: "level",
       label: LEVEL_LABELS[value.level],
-      jumpTo: () => focusControl("#filter-level"),
+      jumpTo: () => openPill("filter-level"),
       remove: () => navigate({ ...value, level: undefined }),
     });
   }
@@ -345,7 +327,7 @@ export default function CourseFilters({
     appliedTags.push({
       key: "near",
       label: "📍 依距離排序",
-      jumpTo: () => focusControl("#filter-city"),
+      jumpTo: () => focusControl("#locate-button"),
       remove: () => navigate({ ...value, near: undefined }),
     });
   }
@@ -378,180 +360,259 @@ export default function CourseFilters({
         </div>
       </fieldset>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="text-sm font-medium">
-          地點
-          <select
-            id="filter-city"
-            className={`${SELECT_CLASS} mt-1 font-normal`}
-            value={value.city ?? ""}
-            onChange={(e) =>
-              // 換縣市時行政區要清掉，否則會留著上一個縣市的行政區
-              navigate({
-                ...value,
-                city: e.target.value || undefined,
-                district: undefined,
-              })
-            }
-          >
-            <option value="">不限</option>
-            {cities.map((city) => (
-              <option key={city} value={city}>
-                {city}
-              </option>
-            ))}
-          </select>
-        </label>
+      {/* 第二排：膠囊下拉（地區、日期、星期、時段、程度、指定時段、價格區間），點開是面板 */}
+      <div className="flex flex-wrap gap-2" role="group" aria-label="篩選條件">
+        <FilterPill
+          id="filter-region"
+          label="地區"
+          active={Boolean(value.city)}
+          wide
+          onClear={() =>
+            navigate({ ...value, city: undefined, district: undefined })
+          }
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="px-2 pb-1 text-xs font-semibold text-neutral-500">縣市</p>
+              <PanelOption
+                type="radio"
+                name="region-city"
+                checked={!value.city}
+                onChange={() =>
+                  navigate({ ...value, city: undefined, district: undefined })
+                }
+              >
+                不限
+              </PanelOption>
+              {cities.map((city) => (
+                <PanelOption
+                  key={city}
+                  type="radio"
+                  name="region-city"
+                  checked={value.city === city}
+                  onChange={() =>
+                    // 換縣市時行政區要清掉，否則會留著上一個縣市的行政區
+                    navigate({ ...value, city, district: undefined })
+                  }
+                >
+                  {city}
+                </PanelOption>
+              ))}
+            </div>
+            <div>
+              <p className="px-2 pb-1 text-xs font-semibold text-neutral-500">行政區</p>
+              {value.city ? (
+                <>
+                  <PanelOption
+                    type="radio"
+                    name="region-district"
+                    checked={!value.district}
+                    onChange={() => navigate({ ...value, district: undefined })}
+                  >
+                    不限
+                  </PanelOption>
+                  {(districtsByCity[value.city] ?? []).map((district) => (
+                    <PanelOption
+                      key={district}
+                      type="radio"
+                      name="region-district"
+                      checked={value.district === district}
+                      onChange={() => navigate({ ...value, district })}
+                    >
+                      {district}
+                    </PanelOption>
+                  ))}
+                </>
+              ) : (
+                <p className="px-2 py-1.5 text-sm text-neutral-400">請先選縣市</p>
+              )}
+            </div>
+          </div>
+        </FilterPill>
 
-        <label className="text-sm font-medium">
-          行政區
-          <select
-            id="filter-district"
-            className={`${SELECT_CLASS} mt-1 font-normal disabled:bg-neutral-100 disabled:text-neutral-400`}
-            value={value.district ?? ""}
-            disabled={!value.city}
-            onChange={(e) =>
-              navigate({ ...value, district: e.target.value || undefined })
-            }
-          >
-            <option value="">{value.city ? "不限" : "請先選縣市"}</option>
-            {(districtsByCity[value.city ?? ""] ?? []).map((district) => (
-              <option key={district} value={district}>
-                {district}
-              </option>
-            ))}
-          </select>
-        </label>
+        <FilterPill
+          id="filter-date"
+          label="日期"
+          active={Boolean(value.date || value.dateTo)}
+          onClear={() => navigate({ ...value, date: undefined, dateTo: undefined })}
+        >
+          <div className="space-y-2 text-sm">
+            <label className="block font-medium">
+              日期
+              <input
+                type="date"
+                value={value.date ?? ""}
+                onChange={(e) =>
+                  navigate({ ...value, date: e.target.value || undefined })
+                }
+                className="mt-1 w-full rounded-xl border border-neutral-300 bg-white px-3 py-1.5 font-normal"
+              />
+            </label>
+            <label className="block font-medium">
+              到（選填，填了就是日期區間）
+              <input
+                type="date"
+                value={value.dateTo ?? ""}
+                onChange={(e) =>
+                  navigate({ ...value, dateTo: e.target.value || undefined })
+                }
+                className="mt-1 w-full rounded-xl border border-neutral-300 bg-white px-3 py-1.5 font-normal"
+              />
+            </label>
+            {isDateRangeInvalid(value) && (
+              <p className="text-xs text-orange-600">
+                結束日期要晚於開始日期，目前沒有套用日期。
+              </p>
+            )}
+          </div>
+        </FilterPill>
 
-        {/* 星期可複選（OR）：勾選式下拉。日期等 UI 草圖出來再加 */}
-        <MultiSelect
+        <FilterPill
           id="filter-weekdays"
           label="星期"
-          options={WEEKDAYS.map((day) => ({
-            value: String(day),
-            label: `星期${WEEKDAY_LABELS[day]}`,
-          }))}
-          selected={(value.weekdays ?? []).map(String)}
-          summary={weekdaysLabel(value.weekdays) ?? "不限"}
-          onToggle={(day) =>
-            navigate({ ...value, weekdays: toggle(value.weekdays, Number(day)) })
-          }
-        />
+          active={Boolean(value.weekdays?.length)}
+          onClear={() => navigate({ ...value, weekdays: undefined })}
+        >
+          {WEEKDAYS.map((day) => (
+            <PanelOption
+              key={day}
+              type="checkbox"
+              name="weekday"
+              checked={value.weekdays?.includes(day) ?? false}
+              onChange={() =>
+                navigate({ ...value, weekdays: toggle(value.weekdays, day) })
+              }
+            >
+              星期{WEEKDAY_LABELS[day]}
+            </PanelOption>
+          ))}
+        </FilterPill>
 
-        {/* 時段有兩種方式，擇一使用：快速時段（可複選，OR），或指定開始／結束時間 */}
-        <MultiSelect
+        {/* 時段有兩種方式，擇一使用：這裡的快速時段（可複選，OR），或「指定時段」的開始／結束時間 */}
+        <FilterPill
           id="filter-slots"
-          label="時段（快速選擇）"
-          options={(Object.keys(TIME_SLOT_LABELS) as TimeSlot[]).map((slot) => ({
-            value: slot,
-            label: TIME_SLOT_LABELS[slot],
-          }))}
-          selected={value.timeSlots ?? []}
-          summary={slotsLabel(value.timeSlots) ?? "不限"}
-          onToggle={(slot) =>
-            navigate({
-              ...value,
-              timeSlots: toggle(value.timeSlots, slot as TimeSlot),
-              timeFrom: undefined,
-              timeTo: undefined,
-            })
+          label="時段"
+          active={Boolean(value.timeSlots?.length)}
+          onClear={() => navigate({ ...value, timeSlots: undefined })}
+        >
+          {(Object.keys(TIME_SLOT_LABELS) as TimeSlot[]).map((slot) => (
+            <PanelOption
+              key={slot}
+              type="checkbox"
+              name="slot"
+              checked={value.timeSlots?.includes(slot) ?? false}
+              onChange={() =>
+                navigate({
+                  ...value,
+                  timeSlots: toggle(value.timeSlots, slot),
+                  timeFrom: undefined,
+                  timeTo: undefined,
+                })
+              }
+            >
+              {TIME_SLOT_LABELS[slot]}
+            </PanelOption>
+          ))}
+        </FilterPill>
+
+        <FilterPill
+          id="filter-level"
+          label="程度"
+          active={Boolean(value.level)}
+          onClear={() => navigate({ ...value, level: undefined })}
+        >
+          {FILTER_LEVELS.map((level) => (
+            <PanelOption
+              key={level}
+              type="radio"
+              name="level"
+              checked={value.level === level}
+              onChange={() => navigate({ ...value, level })}
+            >
+              {LEVEL_LABELS[level]}
+            </PanelOption>
+          ))}
+        </FilterPill>
+
+        <FilterPill
+          id="filter-time"
+          label="指定時段"
+          active={Boolean(value.timeFrom || value.timeTo)}
+          onClear={() =>
+            navigate({ ...value, timeFrom: undefined, timeTo: undefined })
           }
-        />
+        >
+          <div className="space-y-2 text-sm">
+            <label className="block font-medium">
+              開始時間
+              <select
+                id="filter-time-from"
+                value={value.timeFrom ?? ""}
+                onChange={(e) =>
+                  navigate({
+                    ...value,
+                    timeFrom: e.target.value || undefined,
+                    timeSlots: undefined,
+                  })
+                }
+                className="mt-1 w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 font-normal"
+              >
+                <option value="">不限</option>
+                {timeOptions(value.timeFrom).map((time) => (
+                  <option key={time} value={time}>
+                    {time}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block font-medium">
+              結束時間
+              <select
+                id="filter-time-to"
+                value={value.timeTo ?? ""}
+                onChange={(e) =>
+                  navigate({
+                    ...value,
+                    timeTo: e.target.value || undefined,
+                    timeSlots: undefined,
+                  })
+                }
+                className="mt-1 w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 font-normal"
+              >
+                <option value="">不限</option>
+                {timeOptions(value.timeTo).map((time) => (
+                  <option key={time} value={time}>
+                    {time}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {isTimeRangeInvalid(value) && (
+              <p className="text-xs text-orange-600">
+                結束時間要晚於開始時間，目前沒有套用指定時段。
+              </p>
+            )}
+          </div>
+        </FilterPill>
 
-        <label className="text-sm font-medium">
-          指定時間：開始
-          <select
-            id="filter-time-from"
-            className={`${SELECT_CLASS} mt-1 font-normal`}
-            value={value.timeFrom ?? ""}
-            onChange={(e) =>
-              navigate({
-                ...value,
-                timeFrom: e.target.value || undefined,
-                timeSlots: undefined,
-              })
-            }
-          >
-            <option value="">不限</option>
-            {timeOptions(value.timeFrom).map((time) => (
-              <option key={time} value={time}>
-                {time}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="text-sm font-medium">
-          指定時間：結束
-          <select
-            id="filter-time-to"
-            className={`${SELECT_CLASS} mt-1 font-normal`}
-            value={value.timeTo ?? ""}
-            onChange={(e) =>
-              navigate({
-                ...value,
-                timeTo: e.target.value || undefined,
-                timeSlots: undefined,
-              })
-            }
-          >
-            <option value="">不限</option>
-            {timeOptions(value.timeTo).map((time) => (
-              <option key={time} value={time}>
-                {time}
-              </option>
-            ))}
-          </select>
-          {isTimeRangeInvalid(value) && (
-            <span className="mt-1 block text-xs font-normal text-orange-600">
-              結束時間要晚於開始時間，目前沒有套用指定時間。
-            </span>
-          )}
-        </label>
-
-        <label className="text-sm font-medium">
-          每人費用
-          <select
-            id="filter-price"
-            className={`${SELECT_CLASS} mt-1 font-normal`}
-            value={value.priceRange ?? ""}
-            onChange={(e) =>
-              navigate({ ...value, priceRange: e.target.value || undefined })
-            }
-          >
-            <option value="">不限</option>
-            {PRICE_RANGES.map((range) => (
-              <option key={range.id} value={range.id}>
-                {range.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="text-sm font-medium">
-          運動程度
-          <select
-            id="filter-level"
-            className={`${SELECT_CLASS} mt-1 font-normal`}
-            value={value.level ?? ""}
-            onChange={(e) =>
-              navigate({
-                ...value,
-                level: (e.target.value || undefined) as Filters["level"],
-              })
-            }
-          >
-            {/* 程度只有四個選項，沒有「不限」；還沒選時顯示提示文字，清除請用下方「清除所有篩選」 */}
-            <option value="" disabled hidden>
-              請選擇程度
-            </option>
-            {FILTER_LEVELS.map((level) => (
-              <option key={level} value={level}>
-                {LEVEL_LABELS[level]}
-              </option>
-            ))}
-          </select>
-        </label>
+        <FilterPill
+          id="filter-price"
+          label="價格區間"
+          active={Boolean(value.priceRange)}
+          onClear={() => navigate({ ...value, priceRange: undefined })}
+        >
+          {PRICE_RANGES.map((range) => (
+            <PanelOption
+              key={range.id}
+              type="radio"
+              name="price"
+              checked={value.priceRange === range.id}
+              onChange={() => navigate({ ...value, priceRange: range.id })}
+            >
+              {range.label}
+            </PanelOption>
+          ))}
+        </FilterPill>
       </div>
 
       {appliedTags.length > 0 && (
@@ -601,6 +662,7 @@ export default function CourseFilters({
           </>
         ) : (
           <button
+            id="locate-button"
             type="button"
             onClick={() => requestLocation()}
             disabled={locationState === "loading"}
@@ -613,8 +675,8 @@ export default function CourseFilters({
         {locationState === "denied" && (
           <span className="text-orange-600">
             {showFallbackNote
-              ? `無法取得位置（已拒絕定位權限），先顯示「${DEFAULT_CITY}」的課程，可用上方「地點」改選。`
-              : "無法取得位置：你已拒絕定位權限，可改用上方「地點」篩選。"}
+              ? `無法取得位置（已拒絕定位權限），先顯示「${DEFAULT_CITY}」的課程，可用上方「地區」改選。`
+              : "無法取得位置：你已拒絕定位權限，可改用上方「地區」篩選。"}
             {/* 瀏覽器拒絕過一次就不會再跳出詢問，使用者得自己去設定開回來 */}
             <span className="mt-1 block text-xs text-orange-700">
               想使用定位：請到瀏覽器的網站設定（網址列左側的圖示）把「位置」改成允許，手機也要確認系統的「定位服務」是開著的，再按「使用我的位置」（必要時重新整理頁面）。
@@ -624,8 +686,8 @@ export default function CourseFilters({
         {locationState === "error" && (
           <span className="text-orange-600">
             {showFallbackNote
-              ? `暫時無法取得位置，先顯示「${DEFAULT_CITY}」的課程，可用上方「地點」改選。`
-              : "暫時無法取得位置，請稍後再試，或改用上方「地點」篩選。"}
+              ? `暫時無法取得位置，先顯示「${DEFAULT_CITY}」的課程，可用上方「地區」改選。`
+              : "暫時無法取得位置，請稍後再試，或改用上方「地區」篩選。"}
           </span>
         )}
 

@@ -17,6 +17,8 @@ export const DEFAULT_CITY = "台北市";
 export interface CourseFilters {
   city?: string;
   district?: string; // 行政區，需搭配縣市一起用（不同縣市可能有同名行政區，例如「中山區」）
+  date?: string; // 日期 YYYY-MM-DD；只填這個＝單一日期，和 dateTo 一起填＝日期區間（含頭尾）
+  dateTo?: string; // 日期區間的結束日
   weekdays?: number[]; // 星期，1 = 星期一 … 7 = 星期日，可複選（同類選項採 OR）
   timeSlots?: TimeSlot[]; // 快速時段，可複選（OR）；和指定時間擇一
   timeFrom?: string; // 指定時間的開始，"HH:MM"
@@ -47,6 +49,16 @@ function parseTime(value: string | string[] | undefined) {
   return raw && TIME_PATTERN.test(raw) ? raw : undefined;
 }
 
+function parseDate(value: string | string[] | undefined) {
+  const raw = first(value);
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return undefined;
+  // 擋掉 2026-02-31 這種不存在的日期
+  const parsed = new Date(`${raw}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === raw
+    ? raw
+    : undefined;
+}
+
 const toMinutes = (time: string) =>
   Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
 
@@ -54,6 +66,9 @@ const toMinutes = (time: string) =>
 const startFormatter = new Intl.DateTimeFormat("en-US", {
   timeZone: "Asia/Taipei",
   weekday: "short",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
   hour: "2-digit",
   minute: "2-digit",
   hourCycle: "h23",
@@ -73,9 +88,15 @@ function startParts(iso: string) {
   const parts = startFormatter.formatToParts(new Date(iso));
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
   return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
     weekday: WEEKDAY_BY_NAME[get("weekday")],
     minutes: Number(get("hour")) * 60 + Number(get("minute")),
   };
+}
+
+// 日期區間的開始晚於結束時不套用，畫面上會提示
+export function isDateRangeInvalid(filters: CourseFilters) {
+  return Boolean(filters.date && filters.dateTo && filters.date > filters.dateTo);
 }
 
 // 指定時間的開始晚於結束時（例如 22:00–19:00）不套用，畫面上會提示
@@ -96,6 +117,8 @@ export function parseFilters(params: RawSearchParams): CourseFilters {
     .split(",")
     .map(Number)
     .filter((day) => Number.isInteger(day) && day >= 1 && day <= 7);
+  const date = parseDate(params.date);
+  const dateTo = parseDate(params.dateTo);
   const timeFrom = parseTime(first(params.from));
   const timeTo = parseTime(first(params.to));
   const level = first(params.level);
@@ -107,6 +130,8 @@ export function parseFilters(params: RawSearchParams): CourseFilters {
   return {
     city: city || undefined,
     district: city && district ? district : undefined,
+    date,
+    dateTo,
     weekdays: days.length ? [...new Set(days)].sort() : undefined,
     // 快速時段和指定時間擇一：網址同時帶時，以指定時間為準
     timeSlots:
@@ -136,8 +161,9 @@ export function filterCourses(courses: Course[], filters: CourseFilters) {
 
   const useCustomTime =
     (filters.timeFrom || filters.timeTo) && !isTimeRangeInvalid(filters);
+  const useDate = (filters.date || filters.dateTo) && !isDateRangeInvalid(filters);
   const needsStart = Boolean(
-    filters.weekdays || filters.timeSlots || useCustomTime,
+    filters.weekdays || filters.timeSlots || useCustomTime || useDate,
   );
 
   return courses.filter((course) => {
@@ -145,6 +171,12 @@ export function filterCourses(courses: Course[], filters: CourseFilters) {
     return (
       (!filters.city || course.city === filters.city) &&
       (!filters.district || course.district === filters.district) &&
+      // 日期：只填一天＝單一日期；填兩天＝區間；只填結束日＝這一天以前
+      (!useDate ||
+        (filters.dateTo
+          ? (!filters.date || start!.date >= filters.date) &&
+            start!.date <= filters.dateTo
+          : start!.date === filters.date)) &&
       (!filters.weekdays || filters.weekdays.includes(start!.weekday)) &&
       (!filters.timeSlots ||
         filters.timeSlots.some((slot) => {
@@ -169,6 +201,8 @@ export function hasActiveFilters(filters: CourseFilters) {
   return Boolean(
     filters.city ||
       filters.district ||
+      filters.date ||
+      filters.dateTo ||
       filters.weekdays ||
       filters.timeSlots ||
       filters.timeFrom ||
