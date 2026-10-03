@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
 import { submitReview } from "@/app/actions/reviews";
+import { ReviewTagPicker } from "@/components/review/review-tag-picker";
 import { StarInput } from "@/components/review/star-input";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
@@ -18,6 +19,7 @@ type ReviewFormProps = {
 
 export function ReviewForm({ registrationId, coachId, coachName }: ReviewFormProps) {
   const [rating, setRating] = useState(0);
+  const [tags, setTags] = useState<string[]>([]);
   const [comment, setComment] = useState("");
   const [attempted, setAttempted] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
@@ -37,7 +39,7 @@ export function ReviewForm({ registrationId, coachId, coachName }: ReviewFormPro
     if (rating === 0 || commentInvalid) return;
 
     startSubmit(async () => {
-      const result = await submitReview({ registrationId, rating, comment });
+      const result = await submitReview({ registrationId, rating, tags, comment });
       if (result.ok) {
         setDone(true);
       } else {
@@ -82,6 +84,8 @@ export function ReviewForm({ registrationId, coachId, coachName }: ReviewFormPro
         onChange={setRating}
         error={attempted && rating === 0 ? "請選擇評分" : undefined}
       />
+
+      <ReviewTagPicker value={tags} onChange={setTags} />
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="comment" className="text-sm font-semibold text-neutral-800">

@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { contactInfoWarning } from "@/lib/coach-application/validation";
+import {
+  formatReviewComment,
+  REVIEW_TAG_MAX,
+  sanitizeReviewTags,
+} from "@/lib/reviews/review-tags";
 import { createClient } from "@/lib/supabase/server";
 
 // 文字心得的長度上限。PRD 沒有規定，先設一個合理的上限避免貼入過長內容
@@ -10,6 +15,8 @@ const COMMENT_MAX_LENGTH = 500;
 export type ReviewPayload = {
   registrationId: string;
   rating: number;
+  // 學員點選的評價 Tag，最多 3 個
+  tags: string[];
   comment: string;
 };
 
@@ -28,6 +35,11 @@ export async function submitReview(payload: ReviewPayload): Promise<ReviewResult
 
   if (!Number.isInteger(payload.rating) || payload.rating < 1 || payload.rating > 5) {
     return { ok: false, error: "請選擇 1 到 5 星的評分。" };
+  }
+  // 只接受清單內的 Tag；送來的數量超過上限或夾帶清單外的字串都視為錯誤
+  const tags = sanitizeReviewTags(payload.tags);
+  if (payload.tags.length > REVIEW_TAG_MAX || tags.length !== payload.tags.length) {
+    return { ok: false, error: `評價 Tag 最多選 ${REVIEW_TAG_MAX} 個。` };
   }
   const comment = payload.comment.trim();
   if (comment.length > COMMENT_MAX_LENGTH) {
@@ -61,7 +73,8 @@ export async function submitReview(payload: ReviewPayload): Promise<ReviewResult
     coach_id: course.coach_id,
     reviewer_id: user.id,
     rating: payload.rating,
-    comment: comment === "" ? null : comment,
+    // Tag 與文字心得一起存在 comment（格式見 lib/reviews/review-tags.ts）
+    comment: formatReviewComment(tags, comment),
   });
   if (error) {
     // 23505 = unique 違規，代表這筆訂單已經評價過
