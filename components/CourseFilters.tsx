@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import FilterPill from "@/components/FilterPill";
 import {
-  DEFAULT_CITY,
+  filtersToQuery,
   hasActiveFilters,
   isDateRangeInvalid,
   isTimeRangeInvalid,
   type CourseFilters as Filters,
 } from "@/lib/courses/filterCourses";
+import type { SortMode } from "@/lib/courses/sort";
 import {
   FILTER_LEVELS,
   LEVEL_LABELS,
@@ -25,9 +25,9 @@ interface Props {
   cities: string[];
   districtsByCity: Record<string, string[]>;
   value: Filters;
+  // 排序方式（切換條件時要保留在網址裡）
+  sort: SortMode;
 }
-
-type LocationState = "idle" | "loading" | "denied" | "error";
 
 // 星期與快速時段的顯示文字（下拉按鈕和「已套用條件」標籤共用）
 function weekdaysLabel(weekdays: number[] | undefined) {
@@ -158,82 +158,15 @@ export default function CourseFilters({
   cities,
   districtsByCity,
   value,
+  sort,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
-  // 網址沒有任何篩選條件才自動定位；分享連結帶的條件不會被覆蓋
-  const canAutoLocate = !hasActiveFilters(value);
-  const [locationState, setLocationState] = useState<LocationState>(
-    canAutoLocate ? "loading" : "idle",
-  );
-  const [usedFallback, setUsedFallback] = useState(false);
-  const autoStarted = useRef(false);
-
   // 篩選條件放在網址上，結果可以分享連結，重新整理也不會消失。
   function navigate(next: Filters) {
-    const params = new URLSearchParams();
-    if (next.city) params.set("city", next.city);
-    if (next.city && next.district) params.set("district", next.district);
-    if (next.date) params.set("date", next.date);
-    if (next.dateTo) params.set("dateTo", next.dateTo);
-    if (next.weekdays?.length) params.set("days", next.weekdays.join(","));
-    if (next.timeSlots?.length) params.set("slot", next.timeSlots.join(","));
-    if (next.timeFrom) params.set("from", next.timeFrom);
-    if (next.timeTo) params.set("to", next.timeTo);
-    if (next.level) params.set("level", next.level);
-    if (next.sport) params.set("sport", next.sport);
-    if (next.priceRange) params.set("price", next.priceRange);
-    if (next.near) {
-      // 只留到小數點後 2 位（約 1 公里），分享連結時不會洩漏精確位置
-      params.set("lat", next.near.lat.toFixed(2));
-      params.set("lng", next.near.lng.toFixed(2));
-    }
-    const query = params.toString();
+    const query = filtersToQuery(next, sort);
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }
-
-  function handleLocationFailure(state: LocationState, auto: boolean) {
-    setLocationState(state);
-    // 自動定位失敗時，退回預設城市，列表不會空掉
-    if (auto && cities.includes(DEFAULT_CITY)) {
-      setUsedFallback(true);
-      navigate({ ...value, city: DEFAULT_CITY });
-    }
-  }
-
-  function requestLocation(auto = false) {
-    if (!navigator.geolocation) {
-      handleLocationFailure("error", auto);
-      return;
-    }
-    if (!auto) setLocationState("loading");
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocationState("idle");
-        setUsedFallback(false);
-        navigate({
-          ...value,
-          near: { lat: position.coords.latitude, lng: position.coords.longitude },
-        });
-      },
-      (error) =>
-        handleLocationFailure(
-          error.code === error.PERMISSION_DENIED ? "denied" : "error",
-          auto,
-        ),
-      { timeout: 8000, maximumAge: 5 * 60 * 1000 },
-    );
-  }
-
-  useEffect(() => {
-    if (!canAutoLocate || autoStarted.current) return;
-    autoStarted.current = true; // 開發模式下 effect 會跑兩次，避免重複要求
-    requestLocation(true);
-    // 只在第一次載入時執行一次
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const showFallbackNote = usedFallback && value.city === DEFAULT_CITY;
 
   // 已套用條件：每個條件一個標籤，點標籤跳到對應的篩選器修改，點 ✕ 移除。
   // 地點標籤移除時先清行政區，再按一次才清縣市。
@@ -323,15 +256,6 @@ export default function CourseFilters({
       remove: () => navigate({ ...value, level: undefined }),
     });
   }
-  if (value.near) {
-    appliedTags.push({
-      key: "near",
-      label: "📍 依距離排序",
-      jumpTo: () => focusControl("#locate-button"),
-      remove: () => navigate({ ...value, near: undefined }),
-    });
-  }
-
   return (
     <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-4">
       {/* 運動種類是最高層級的搜尋條件：單選 Chips 放在其他篩選上面。
@@ -654,53 +578,9 @@ export default function CourseFilters({
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-neutral-100 pt-3 text-sm">
-        {value.near ? (
-          <>
-            <span className="font-medium text-teal-700">
-              📍 已依距離由近到遠排序
-            </span>
-            <button
-              type="button"
-              onClick={() => navigate({ ...value, near: undefined })}
-              className="text-neutral-500 underline hover:text-neutral-800"
-            >
-              取消定位
-            </button>
-          </>
-        ) : (
-          <button
-            id="locate-button"
-            type="button"
-            onClick={() => requestLocation()}
-            disabled={locationState === "loading"}
-            className="rounded-full border border-teal-600 px-4 py-1.5 font-medium text-teal-700 hover:bg-teal-50 disabled:cursor-wait disabled:opacity-60"
-          >
-            {locationState === "loading" ? "定位中…" : "📍 使用我的位置"}
-          </button>
-        )}
-
-        {locationState === "denied" && (
-          <span className="text-orange-600">
-            {showFallbackNote
-              ? `無法取得位置（已拒絕定位權限），先顯示「${DEFAULT_CITY}」的課程，可用上方「地區」改選。`
-              : "無法取得位置：你已拒絕定位權限，可改用上方「地區」篩選。"}
-            {/* 瀏覽器拒絕過一次就不會再跳出詢問，使用者得自己去設定開回來 */}
-            <span className="mt-1 block text-xs text-orange-700">
-              想使用定位：請到瀏覽器的網站設定（網址列左側的圖示）把「位置」改成允許，手機也要確認系統的「定位服務」是開著的，再按「使用我的位置」（必要時重新整理頁面）。
-            </span>
-          </span>
-        )}
-        {locationState === "error" && (
-          <span className="text-orange-600">
-            {showFallbackNote
-              ? `暫時無法取得位置，先顯示「${DEFAULT_CITY}」的課程，可用上方「地區」改選。`
-              : "暫時無法取得位置，請稍後再試，或改用上方「地區」篩選。"}
-          </span>
-        )}
-
-        {/* 程度下拉沒有「不限」，所以有任何條件時都要能一次清掉 */}
-        {hasActiveFilters(value) && (
+      {/* 程度的面板裡沒有一次清掉全部的按鈕，所以有任何條件時都要能一次清掉 */}
+      {hasActiveFilters(value) && (
+        <div className="flex border-t border-neutral-100 pt-3 text-sm">
           <button
             type="button"
             onClick={() => router.replace(pathname, { scroll: false })}
@@ -708,8 +588,8 @@ export default function CourseFilters({
           >
             清除所有篩選
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

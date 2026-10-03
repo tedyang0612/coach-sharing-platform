@@ -2,7 +2,6 @@ import type { Course } from "./types";
 
 // 假資料：Supabase 的 courses 資料表還沒合進 main 前先用這份。
 // 換真資料時不用改這個檔，改 lib/courses/getCourses.ts 即可。
-// 座標是各場地的大略位置，僅供距離排序示範。
 // 教練的頭像、認證、Tag、評價也是假資料；頭像先全部留空，卡片會顯示姓名首字。
 export const MOCK_COURSES: Course[] = [
   {
@@ -12,8 +11,6 @@ export const MOCK_COURSES: Course[] = [
     city: "台北市",
     district: "大安區",
     venue: "大安運動中心",
-    latitude: 25.0255,
-    longitude: 121.545,
     startsAt: "2026-10-10T19:00:00+08:00",
     level: "beginner",
     coachId: "coach-lin",
@@ -35,8 +32,6 @@ export const MOCK_COURSES: Course[] = [
     city: "台北市",
     district: "松山區",
     venue: "松山文創園區",
-    latitude: 25.0436,
-    longitude: 121.5606,
     startsAt: "2026-10-11T08:00:00+08:00",
     level: "beginner",
     coachId: "coach-chen",
@@ -58,8 +53,6 @@ export const MOCK_COURSES: Course[] = [
     city: "新北市",
     district: "板橋區",
     venue: "板橋岩館",
-    latitude: 25.0136,
-    longitude: 121.463,
     startsAt: "2026-10-12T14:00:00+08:00",
     level: "beginner",
     coachId: "coach-wang",
@@ -81,8 +74,6 @@ export const MOCK_COURSES: Course[] = [
     city: "台中市",
     district: "西屯區",
     venue: "西屯健身中心",
-    latitude: 24.1807,
-    longitude: 120.6247,
     startsAt: "2026-10-13T19:30:00+08:00",
     level: "intermediate",
     coachId: "coach-zhang",
@@ -104,8 +95,6 @@ export const MOCK_COURSES: Course[] = [
     city: "台北市",
     district: "內湖區",
     venue: "內湖匹克球場",
-    latitude: 25.083,
-    longitude: 121.587,
     startsAt: "2026-10-17T15:00:00+08:00",
     level: "advanced",
     coachId: "coach-li",
@@ -127,8 +116,6 @@ export const MOCK_COURSES: Course[] = [
     city: "新北市",
     district: "貢寮區",
     venue: "福隆海水浴場",
-    latitude: 25.0172,
-    longitude: 121.9453,
     startsAt: "2026-10-18T09:00:00+08:00",
     level: "beginner",
     coachId: "coach-huang",
@@ -150,8 +137,6 @@ export const MOCK_COURSES: Course[] = [
     city: "高雄市",
     district: "左營區",
     venue: "巨蛋體育館",
-    latitude: 22.6695,
-    longitude: 120.3025,
     startsAt: "2026-10-20T20:00:00+08:00",
     level: "intermediate",
     coachId: "coach-wu",
@@ -173,8 +158,6 @@ export const MOCK_COURSES: Course[] = [
     city: "台中市",
     district: "西區",
     venue: "勤美綠園道教室",
-    latitude: 24.1507,
-    longitude: 120.6636,
     startsAt: "2026-10-21T10:00:00+08:00",
     level: "intermediate",
     coachId: "coach-zhou",
@@ -196,8 +179,6 @@ export const MOCK_COURSES: Course[] = [
     city: "高雄市",
     district: "鼓山區",
     venue: "鼓山運動公園",
-    latitude: 22.6405,
-    longitude: 120.2704,
     startsAt: "2026-10-24T15:00:00+08:00",
     level: "beginner",
     coachId: "coach-zheng",

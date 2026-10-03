@@ -1,4 +1,3 @@
-import type { Coordinates } from "./distance";
 import {
   FILTER_LEVELS,
   PRICE_RANGES,
@@ -6,12 +5,10 @@ import {
   TIME_SLOT_LABELS,
   TIME_SLOT_RANGES,
   type Course,
-  type FilterLevel,
+  type Level,
   type TimeSlot,
 } from "./types";
-
-// 無法取得使用者位置時，預設顯示這個城市的課程
-export const DEFAULT_CITY = "台北市";
+import { DEFAULT_SORT, type SortMode } from "./sort";
 
 // undefined 代表「不限」
 export interface CourseFilters {
@@ -23,23 +20,15 @@ export interface CourseFilters {
   timeSlots?: TimeSlot[]; // 快速時段，可複選（OR）；和指定時間擇一
   timeFrom?: string; // 指定時間的開始，"HH:MM"
   timeTo?: string; // 指定時間的結束，"HH:MM"
-  level?: FilterLevel;
+  level?: Level;
   sport?: string;
   priceRange?: string; // PRICE_RANGES 的 id
-  near?: Coordinates; // 有值代表「依距離排序」
 }
 
 type RawSearchParams = { [key: string]: string | string[] | undefined };
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
-}
-
-function parseCoord(value: string | string[] | undefined, min: number, max: number) {
-  const raw = first(value);
-  if (!raw) return undefined;
-  const n = Number(raw);
-  return Number.isFinite(n) && n >= min && n <= max ? n : undefined;
 }
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -124,8 +113,6 @@ export function parseFilters(params: RawSearchParams): CourseFilters {
   const level = first(params.level);
   const sport = first(params.sport);
   const price = first(params.price);
-  const lat = parseCoord(params.lat, -90, 90);
-  const lng = parseCoord(params.lng, -180, 180);
 
   return {
     city: city || undefined,
@@ -144,7 +131,7 @@ export function parseFilters(params: RawSearchParams): CourseFilters {
     timeTo,
     level:
       level && (FILTER_LEVELS as readonly string[]).includes(level)
-        ? (level as FilterLevel)
+        ? (level as Level)
         : undefined,
     sport:
       sport && (SPORTS as readonly string[]).includes(sport) ? sport : undefined,
@@ -152,7 +139,6 @@ export function parseFilters(params: RawSearchParams): CourseFilters {
       price && PRICE_RANGES.some((range) => range.id === price)
         ? price
         : undefined,
-    near: lat !== undefined && lng !== undefined ? { lat, lng } : undefined,
   };
 }
 
@@ -186,15 +172,31 @@ export function filterCourses(courses: Course[], filters: CourseFilters) {
       (!useCustomTime ||
         ((!filters.timeFrom || start!.minutes >= toMinutes(filters.timeFrom)) &&
           (!filters.timeTo || start!.minutes <= toMinutes(filters.timeTo)))) &&
-      (!filters.level ||
-        course.level === filters.level ||
-        course.level === "unlimited") &&
+      (!filters.level || course.level === filters.level) &&
       (!filters.sport || course.sport === filters.sport) &&
       (!range ||
         ((range.min === undefined || course.price >= range.min) &&
           (range.max === undefined || course.price <= range.max)))
     );
   });
+}
+
+// 篩選條件與排序方式組成網址的查詢字串，分享出去能還原同樣的結果。
+export function filtersToQuery(filters: CourseFilters, sort: SortMode) {
+  const params = new URLSearchParams();
+  if (filters.city) params.set("city", filters.city);
+  if (filters.city && filters.district) params.set("district", filters.district);
+  if (filters.date) params.set("date", filters.date);
+  if (filters.dateTo) params.set("dateTo", filters.dateTo);
+  if (filters.weekdays?.length) params.set("days", filters.weekdays.join(","));
+  if (filters.timeSlots?.length) params.set("slot", filters.timeSlots.join(","));
+  if (filters.timeFrom) params.set("from", filters.timeFrom);
+  if (filters.timeTo) params.set("to", filters.timeTo);
+  if (filters.level) params.set("level", filters.level);
+  if (filters.sport) params.set("sport", filters.sport);
+  if (filters.priceRange) params.set("price", filters.priceRange);
+  if (sort !== DEFAULT_SORT) params.set("sort", sort);
+  return params.toString();
 }
 
 export function hasActiveFilters(filters: CourseFilters) {
@@ -209,7 +211,6 @@ export function hasActiveFilters(filters: CourseFilters) {
       filters.timeTo ||
       filters.level ||
       filters.sport ||
-      filters.priceRange ||
-      filters.near,
+      filters.priceRange,
   );
 }

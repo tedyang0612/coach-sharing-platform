@@ -62,10 +62,9 @@ const MAX_VISIBLE_TAGS = 3;
 
 interface Props {
   course: Course;
-  distanceKm?: number | null;
 }
 
-export default function CourseCard({ course, distanceKm }: Props) {
+export default function CourseCard({ course }: Props) {
   const isConfirmed = course.enrolled >= course.minToOpen;
   const isFull = course.enrolled >= course.capacity;
   const progressPercent = Math.min(
@@ -87,8 +86,8 @@ export default function CourseCard({ course, distanceKm }: Props) {
             }`}
           >
             {isConfirmed
-              ? "✅ 已成團"
-              : `🔥 差 ${course.minToOpen - course.enrolled} 人成團`}
+              ? "✅ 已達開課人數"
+              : `🔥 差 ${course.minToOpen - course.enrolled} 人開課`}
           </span>
         </div>
         <div className="absolute bottom-3 right-3 rounded-lg bg-slate-900/80 px-2.5 py-1 text-xs text-white backdrop-blur-md">
@@ -107,11 +106,6 @@ export default function CourseCard({ course, distanceKm }: Props) {
           </h3>
           <p className="mt-2 text-xs text-slate-500">
             📍 {course.city}・{course.venue}
-            {distanceKm != null && (
-              <span className="font-semibold text-teal-600">
-                ・約 {distanceKm.toFixed(1)} 公里
-              </span>
-            )}
           </p>
           <p className="mt-1 text-xs text-slate-500">
             📅 {formatDateTime(course.startsAt)}
