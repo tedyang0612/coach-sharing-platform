@@ -26,8 +26,8 @@ const STATUS_VIEW: Record<
     body: "現在可以前往教練工作台開始開課，你的教練個人檔案也已經公開。",
     symbol: "✓",
     tone: "bg-brand-ink text-brand",
-    // 教練工作台是 1.0 的範圍，路徑等 Ted 定案後再對齊
-    action: { label: "前往教練工作台", href: "/coach" },
+    // 教練工作台的入口是 1.0 的「我的課程」
+    action: { label: "前往教練工作台", href: "/coach/courses" },
   },
   needs_more_info: {
     badge: "需補件",
