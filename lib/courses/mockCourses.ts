@@ -41,7 +41,7 @@ export const MOCK_COURSES: Course[] = [
   {
     id: "c3",
     title: "抱石入門：手點與腳法",
-    sport: "攀岩",
+    sport: "抱石",
     city: "新北市",
     venue: "板橋岩館",
     latitude: 25.0136,

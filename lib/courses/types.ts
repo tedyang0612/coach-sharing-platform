@@ -2,7 +2,8 @@
 // 刻意不放進 types/（Ted 維護）；等 Ted 的 schema 合併後，再對齊 types/database.ts 的 courses 欄位。
 
 export type TimeSlot = "morning" | "afternoon" | "evening";
-export type Level = "beginner" | "intermediate" | "advanced";
+// 值對應資料庫 courses.level；unlimited 代表不限程度
+export type Level = "unlimited" | "beginner" | "intermediate" | "advanced";
 
 export interface Course {
   id: string;
@@ -29,7 +30,8 @@ export const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
 };
 
 export const LEVEL_LABELS: Record<Level, string> = {
-  beginner: "初級 / 新手友善",
+  unlimited: "不限",
+  beginner: "初級",
   intermediate: "中級",
   advanced: "進階",
 };
@@ -40,7 +42,7 @@ export const SPORTS = [
   "重訓",
   "瑜珈",
   "跑酷",
-  "攀岩",
+  "抱石",
   "衝浪",
   "羽球",
   "匹克球",
