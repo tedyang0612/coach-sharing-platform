@@ -1,10 +1,10 @@
 import Link from "next/link";
 import CourseCard from "@/components/CourseCard";
 import CourseFilters from "@/components/CourseFilters";
-import { sortByDistance } from "@/lib/courses/distance";
+import SortSelect from "@/components/SortSelect";
 import { filterCourses, parseFilters } from "@/lib/courses/filterCourses";
 import { getCourses } from "@/lib/courses/getCourses";
-import { sortByStartTime } from "@/lib/courses/sortCourses";
+import { parseSort, sortCourses } from "@/lib/courses/sort";
 
 export const metadata = {
   title: "找課程｜教練共課平台",
@@ -17,7 +17,9 @@ export default async function CoursesPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const allCourses = await getCourses();
-  const parsed = parseFilters(await searchParams);
+  const params = await searchParams;
+  const parsed = parseFilters(params);
+  const sort = parseSort(params.sort);
   // 城市選項從資料推導，之後換成真資料不用另外維護清單
   const cities = [...new Set(allCourses.map((course) => course.city))];
   // 行政區選項也從資料推導（每個縣市有哪些行政區）；Ted 的縣市／行政區常數檔出來後改用同一份
@@ -32,12 +34,8 @@ export default async function CoursesPage({
     !districtsByCity[parsed.city]?.includes(parsed.district)
       ? { ...parsed, district: undefined }
       : parsed;
-  // 基本排序固定依開課時間由近到遠；有定位時再依距離排序，
-  // 距離相同或沒有座標的課程維持開課時間的順序（排序是穩定的）。
-  const filtered = sortByStartTime(filterCourses(allCourses, filters));
-  const courses = filters.near
-    ? sortByDistance(filtered, filters.near)
-    : filtered.map((course) => ({ course, distanceKm: null }));
+  // 先篩選，再依排序方式排（預設值見 lib/courses/sort.ts 的 DEFAULT_SORT）
+  const courses = sortCourses(filterCourses(allCourses, filters), sort);
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
@@ -51,12 +49,14 @@ export default async function CoursesPage({
           cities={cities}
           districtsByCity={districtsByCity}
           value={filters}
+          sort={sort}
         />
       </div>
 
-      <p className="mt-8 text-sm text-neutral-500">
-        共找到 {courses.length} 個課程
-      </p>
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-neutral-500">共找到 {courses.length} 個課程</p>
+        <SortSelect filters={filters} sort={sort} />
+      </div>
       {courses.length === 0 ? (
         <div className="mt-3 flex flex-col items-center gap-4 rounded-2xl border border-dashed border-neutral-300 px-4 py-16 text-center">
           <p className="text-lg font-medium">
@@ -71,8 +71,8 @@ export default async function CoursesPage({
         </div>
       ) : (
         <div className="mt-3 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {courses.map(({ course, distanceKm }) => (
-            <CourseCard key={course.id} course={course} distanceKm={distanceKm} />
+          {courses.map((course) => (
+            <CourseCard key={course.id} course={course} />
           ))}
         </div>
       )}

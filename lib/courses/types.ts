@@ -12,8 +12,6 @@ export interface Course {
   city: string;
   district: string; // 行政區，依場次實際上課地址判斷（對應 courses.district）
   venue: string;
-  latitude: number | null; // 資料表允許為空，沒座標的課程排序時放最後
-  longitude: number | null;
   startsAt: string; // ISO 8601
   level: Level;
   // 公開顯示的教練名稱：暱稱優先，沒填暱稱就用真實姓名。
