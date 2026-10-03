@@ -36,6 +36,7 @@ export const COURSE_FIELDS = [
   "level",
   "location_name",
   "location_address",
+  "district_id",
   "session_date",
   "session_slots", // JSON 字串，見 serializeSlots()
   "price_per_person",
@@ -58,6 +59,7 @@ export const REQUIRED_FIELDS: CourseField[] = [
   "sport_type",
   "location_name",
   "location_address",
+  "district_id",
   "session_date",
   "session_slots",
   "price_per_person",
@@ -80,6 +82,7 @@ export type CourseInput = {
   level: CourseLevel;
   location_name: string;
   location_address: string;
+  district_id: number; // 縣市／行政區（districts.id，20261003000033）
   session_date: string; // YYYY-MM-DD
   session_slots: SessionSlotInput[];
   time_range_start: string; // 第一堂開始
@@ -294,6 +297,10 @@ export function validateCourseValues(
   const level = values.level || "unlimited";
   if (!COURSE_LEVELS.some((l) => l.value === level)) errors.level = "請選擇運動程度";
 
+  // 是否真的是 districts 裡的 id 由 DB 外鍵把關，這裡只擋格式
+  const districtId = toInt(values.district_id);
+  if (values.district_id && (districtId === null || districtId < 1)) errors.district_id = "請選擇縣市與行政區";
+
   if (values.session_date && !DATE_RE.test(values.session_date)) errors.session_date = "日期格式不正確";
 
   const slots = parseSlots(values.session_slots);
@@ -329,6 +336,7 @@ export function validateCourseValues(
     level: level as CourseLevel,
     location_name: values.location_name,
     location_address: values.location_address,
+    district_id: districtId!,
     session_date: values.session_date,
     session_slots: slots,
     time_range_start: first.start,

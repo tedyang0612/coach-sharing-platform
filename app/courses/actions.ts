@@ -230,8 +230,6 @@ export async function saveCourseAsTemplate(
     session_duration_minutes: course.session_duration_minutes,
     latitude: course.latitude,
     longitude: course.longitude,
-    city: course.city,
-    district: course.district,
     coach_id: ctx.userId,
     status: "draft",
     is_template: true,

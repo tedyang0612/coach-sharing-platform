@@ -3,7 +3,7 @@ import { updateCourse } from "@/app/courses/actions";
 import { CourseForm } from "@/app/courses/_components/course-form";
 import { NotCoachNotice, PageShell } from "@/app/courses/_components/page-shell";
 import { courseRowToFormValues } from "@/app/courses/_lib/course-input";
-import { getCoachContext, getMyCourse, isCourseEditLocked } from "@/app/courses/_lib/queries";
+import { getCoachContext, getMyCourse, isCourseEditLocked, listDistricts } from "@/app/courses/_lib/queries";
 
 /**
  * 編輯課程／範本（PRD 1.0 規格4、系統規則「教練課程上架管理」）。
@@ -37,6 +37,7 @@ export default async function EditCoursePage({ params }: PageProps<"/coach/cours
       <CourseForm
         action={updateCourse}
         initialValues={courseRowToFormValues(course)}
+        districts={await listDistricts(ctx.supabase)}
         mode="edit"
         courseId={course.id}
         isTemplate={course.is_template}

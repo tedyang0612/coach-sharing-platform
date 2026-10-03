@@ -3,7 +3,7 @@ import { createCourse } from "@/app/courses/actions";
 import { CourseForm } from "@/app/courses/_components/course-form";
 import { NotCoachNotice, PageShell } from "@/app/courses/_components/page-shell";
 import { courseRowToFormValues, emptyCourseFormValues } from "@/app/courses/_lib/course-input";
-import { getCoachContext, getMyCourse } from "@/app/courses/_lib/queries";
+import { getCoachContext, getMyCourse, listDistricts } from "@/app/courses/_lib/queries";
 
 /**
  * 開課（PRD 1.0）。帶 ?from=<課程或範本 id> 時，從範本／既有課程帶入除日期外的所有欄位（AC2），教練改完日期再發布。
@@ -22,6 +22,7 @@ export default async function NewCoursePage({ searchParams }: PageProps<"/coach/
   const initialValues = source
     ? { ...courseRowToFormValues(source), session_date: "" }
     : emptyCourseFormValues();
+  const districts = ctx.ok ? await listDistricts(ctx.supabase) : [];
 
   return (
     <PageShell
@@ -32,7 +33,7 @@ export default async function NewCoursePage({ searchParams }: PageProps<"/coach/
       back={{ href: "/coach/courses", label: "我的課程" }}
     >
       {ctx.ok ? (
-        <CourseForm action={createCourse} initialValues={initialValues} mode="create" sourceId={source?.id} />
+        <CourseForm action={createCourse} initialValues={initialValues} districts={districts} mode="create" sourceId={source?.id} />
       ) : (
         <NotCoachNotice />
       )}

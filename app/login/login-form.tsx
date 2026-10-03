@@ -8,21 +8,28 @@ import { FormError } from "@/components/ui/form-error";
 import { TextField } from "@/components/ui/text-field";
 
 const initialState: AuthFormState = {};
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function LoginForm({ redirectTo }: { redirectTo: string }) {
   const [state, formAction, pending] = useActionState(login, initialState);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // AC：格式錯誤或欄位空白時，按鈕維持 disabled
+  // 8.0 QA 修正：按鈕只看「兩個欄位有沒有填」，不先擋格式——
+  // Email 格式錯誤交給送出後的 server action 判斷並顯示在欄位下面，
+  // 避免使用者填錯格式時按鈕一直是 disabled、又看不到任何錯誤提示。
   const canSubmit = useMemo(
-    () => EMAIL_RE.test(email) && password.length > 0,
+    () => email.trim().length > 0 && password.length > 0,
     [email, password]
   );
 
   return (
-    <form action={formAction} className="mt-6 flex flex-col gap-4">
+    <form
+      action={formAction}
+      // 8.0 QA 修正：noValidate 關掉瀏覽器原生的驗證泡泡，統一走我們自己的
+      // FormError／欄位下方紅字顯示，避免兩種錯誤提示樣式同時出現。
+      noValidate
+      className="mt-6 flex flex-col gap-4"
+    >
       <input type="hidden" name="redirectTo" value={redirectTo} />
 
       <TextField
