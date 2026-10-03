@@ -18,10 +18,15 @@ export type CoachProfileData = {
   licenseNames: string[];
   avgRating: number | null;
   reviewCount: number;
+  // 被點選最多次的評價 Tag，顯示在平均星級旁；沒有人點選過則為 null
+  topReviewTag: string | null;
   reviews: {
     id: string;
     rating: number;
-    comment: string | null;
+    // 學員點選的評價 Tag
+    tags: string[];
+    // 文字心得（不含 Tag）
+    comment: string;
     reviewerName: string;
     createdAt: string;
   }[];
@@ -43,6 +48,18 @@ function formatTaipeiDate(iso: string): string {
     month: "numeric",
     day: "numeric",
   }).format(new Date(iso));
+}
+
+/** 平均星級旁的「最常被選的評價 Tag」（PRD 9.0，v4.5）。 */
+function TopReviewTag({ tag }: { tag: string }) {
+  return (
+    <span
+      title="學員最常選的評價"
+      className="rounded-full bg-brand-ink px-2.5 py-0.5 text-xs font-semibold text-brand"
+    >
+      {tag}
+    </span>
+  );
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
@@ -75,7 +92,10 @@ export function CoachProfileView({ coach }: { coach: CoachProfileData }) {
             {coach.isVerified && <VerifiedBadge size="md" />}
           </div>
           <p className="text-sm text-neutral-600">{coach.sportCategories.join("・")}</p>
-          <RatingSummary average={coach.avgRating} count={coach.reviewCount} />
+          <div className="flex flex-wrap items-center gap-2">
+            <RatingSummary average={coach.avgRating} count={coach.reviewCount} />
+            {coach.topReviewTag && <TopReviewTag tag={coach.topReviewTag} />}
+          </div>
           <CoachTags tags={coach.tags} />
         </div>
       </header>
@@ -156,7 +176,10 @@ export function CoachProfileView({ coach }: { coach: CoachProfileData }) {
           </Card>
 
           <Card title="評價與學員回饋">
-            <RatingSummary average={coach.avgRating} count={coach.reviewCount} />
+            <div className="flex flex-wrap items-center gap-2">
+              <RatingSummary average={coach.avgRating} count={coach.reviewCount} />
+              {coach.topReviewTag && <TopReviewTag tag={coach.topReviewTag} />}
+            </div>
             {coach.reviews.length > 0 && (
               <ul className="mt-4 flex flex-col gap-4">
                 {coach.reviews.map((review) => (
@@ -172,6 +195,18 @@ export function CoachProfileView({ coach }: { coach: CoachProfileData }) {
                     <div className="mt-1">
                       <StarRating rating={review.rating} />
                     </div>
+                    {review.tags.length > 0 && (
+                      <ul className="mt-2 flex flex-wrap gap-1.5">
+                        {review.tags.map((tag) => (
+                          <li
+                            key={tag}
+                            className="rounded-full border border-neutral-200 px-2.5 py-0.5 text-xs text-neutral-600"
+                          >
+                            {tag}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                     {review.comment && (
                       <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-neutral-700">
                         {review.comment}

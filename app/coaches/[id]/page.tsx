@@ -5,6 +5,7 @@ import {
   type CoachProfileData,
 } from "@/components/coach/coach-profile-view";
 import { parseEducation } from "@/lib/coach-application/education";
+import { parseReviewComment, topReviewTag } from "@/lib/reviews/review-tags";
 import { createClient } from "@/lib/supabase/server";
 
 // 評價先顯示最近 20 則；MVP 階段評價量不大，之後有需要再做分頁
@@ -39,7 +40,7 @@ async function loadCoachProfile(coachId: string): Promise<CoachProfileData | nul
     .maybeSingle();
   if (!profile || profile.application_status !== "approved") return null;
 
-  const [licenses, reviews, courses] = await Promise.all([
+  const [licenses, reviews, allComments, courses] = await Promise.all([
     supabase.rpc("get_coach_approved_license_names", { p_coach_id: coachId }),
     supabase
       .from("reviews")
@@ -47,6 +48,8 @@ async function loadCoachProfile(coachId: string): Promise<CoachProfileData | nul
       .eq("coach_id", coachId)
       .order("created_at", { ascending: false })
       .limit(REVIEW_LIMIT),
+    // 統計最常被選的評價 Tag 要看全部評價，不只畫面上顯示的那幾則
+    supabase.from("reviews").select("comment").eq("coach_id", coachId),
     supabase
       .from("courses")
       .select("id, title, session_date, time_range_start, time_range_end, location_name, price_per_person")
@@ -81,13 +84,19 @@ async function loadCoachProfile(coachId: string): Promise<CoachProfileData | nul
     licenseNames: (licenses.data ?? []) as string[],
     avgRating: profile.avg_rating === null ? null : Number(profile.avg_rating),
     reviewCount: profile.review_count ?? 0,
-    reviews: reviewRows.map((review) => ({
-      id: review.id,
-      rating: review.rating,
-      comment: review.comment,
-      reviewerName: reviewerNames.get(review.reviewer_id) ?? "學員",
-      createdAt: review.created_at,
-    })),
+    topReviewTag: topReviewTag((allComments.data ?? []).map((row) => row.comment)),
+    reviews: reviewRows.map((review) => {
+      // comment 裡同時存了評價 Tag 與文字心得，顯示前先拆開
+      const { tags, text } = parseReviewComment(review.comment);
+      return {
+        id: review.id,
+        rating: review.rating,
+        tags,
+        comment: text,
+        reviewerName: reviewerNames.get(review.reviewer_id) ?? "學員",
+        createdAt: review.created_at,
+      };
+    }),
     courses: (courses.data ?? []).map((course) => ({
       id: course.id,
       title: course.title,
