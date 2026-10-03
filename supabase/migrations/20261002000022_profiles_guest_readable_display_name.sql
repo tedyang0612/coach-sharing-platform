@@ -11,6 +11,7 @@
 -- 這題不在本次處理範圍內，先維持現狀）。
 
 drop policy if exists "profiles are readable by any authenticated user" on public.profiles;
+drop policy if exists "profiles are readable by guests and authenticated users" on public.profiles;
 create policy "profiles are readable by guests and authenticated users"
   on public.profiles for select
   using (true);
