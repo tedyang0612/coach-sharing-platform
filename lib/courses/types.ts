@@ -33,13 +33,13 @@ export const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
 
 export const LEVEL_LABELS: Record<Level, string> = {
   unlimited: "全程度",
-  beginner: "初級",
-  intermediate: "中級",
+  beginner: "初階",
+  intermediate: "中階",
   advanced: "進階",
 };
 
-// 篩選下拉的程度選項與順序（初級／中級／進階／全程度）。
-// 選初級／中級／進階時，全程度的課任何人都能上，會一併列出；選全程度只列全程度的課。
+// 篩選下拉的程度選項與順序（初階／中階／進階／全程度）。
+// 選初階／中階／進階時，全程度的課任何人都能上，會一併列出；選全程度只列全程度的課。
 export const FILTER_LEVELS = [
   "beginner",
   "intermediate",
