@@ -8,6 +8,7 @@ import {
   type CourseFilters as Filters,
 } from "@/lib/courses/filterCourses";
 import {
+  FILTER_LEVELS,
   LEVEL_LABELS,
   PRICE_RANGES,
   SPORTS,
@@ -186,9 +187,9 @@ export default function CourseFilters({ cities, value }: Props) {
             }
           >
             <option value="">不限</option>
-            {Object.entries(LEVEL_LABELS).map(([level, label]) => (
+            {FILTER_LEVELS.map((level) => (
               <option key={level} value={level}>
-                {label}
+                {LEVEL_LABELS[level]}
               </option>
             ))}
           </select>

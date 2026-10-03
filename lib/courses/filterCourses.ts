@@ -1,11 +1,11 @@
 import type { Coordinates } from "./distance";
 import {
-  LEVEL_LABELS,
+  FILTER_LEVELS,
   PRICE_RANGES,
   SPORTS,
   TIME_SLOT_LABELS,
   type Course,
-  type Level,
+  type FilterLevel,
   type TimeSlot,
 } from "./types";
 
@@ -16,7 +16,7 @@ export const DEFAULT_CITY = "台北市";
 export interface CourseFilters {
   city?: string;
   timeSlot?: TimeSlot;
-  level?: Level;
+  level?: FilterLevel;
   sport?: string;
   priceRange?: string; // PRICE_RANGES 的 id
   near?: Coordinates; // 有值代表「依距離排序」
@@ -48,7 +48,10 @@ export function parseFilters(params: RawSearchParams): CourseFilters {
   return {
     city: city || undefined,
     timeSlot: slot && slot in TIME_SLOT_LABELS ? (slot as TimeSlot) : undefined,
-    level: level && level in LEVEL_LABELS ? (level as Level) : undefined,
+    level:
+      level && (FILTER_LEVELS as readonly string[]).includes(level)
+        ? (level as FilterLevel)
+        : undefined,
     sport:
       sport && (SPORTS as readonly string[]).includes(sport) ? sport : undefined,
     priceRange:
@@ -66,7 +69,9 @@ export function filterCourses(courses: Course[], filters: CourseFilters) {
     (course) =>
       (!filters.city || course.city === filters.city) &&
       (!filters.timeSlot || course.timeSlot === filters.timeSlot) &&
-      (!filters.level || course.level === filters.level) &&
+      (!filters.level ||
+        course.level === filters.level ||
+        course.level === "unlimited") &&
       (!filters.sport || course.sport === filters.sport) &&
       (!range ||
         ((range.min === undefined || course.price >= range.min) &&

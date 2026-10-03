@@ -30,11 +30,16 @@ export const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
 };
 
 export const LEVEL_LABELS: Record<Level, string> = {
-  unlimited: "不限",
+  unlimited: "全程度",
   beginner: "初級",
   intermediate: "中級",
   advanced: "進階",
 };
+
+// 篩選用的程度：不含「全程度」。全程度的課任何人都能上，
+// 所以選初級／中級／進階時一律一併列出，不需要單獨篩選它。
+export const FILTER_LEVELS = ["beginner", "intermediate", "advanced"] as const;
+export type FilterLevel = (typeof FILTER_LEVELS)[number];
 
 // 運動項目：產品決定的固定清單。
 // types/database.ts 的 SPORT_TYPES 目前還是舊清單，之後要請 Ted 對齊這份。
