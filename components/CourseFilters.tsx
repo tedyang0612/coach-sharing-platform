@@ -11,7 +11,7 @@ import {
   FILTER_LEVELS,
   LEVEL_LABELS,
   PRICE_RANGES,
-  SPORTS,
+  SPORT_CHIP_ORDER,
   TIME_SLOT_LABELS,
 } from "@/lib/courses/types";
 
@@ -98,7 +98,35 @@ export default function CourseFilters({ cities, value }: Props) {
 
   return (
     <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-4">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      {/* 運動種類是最高層級的搜尋條件：單選 Chips 放在其他篩選上面。
+          桌面直接展開；手機單列橫向捲動，不縮小字級。用原生 radio，單選與方向鍵切換都不用自己寫 */}
+      {/* fieldset 預設的最小寬度是內容寬度，不加 min-w-0 的話手機上整頁會被晶片列撐寬 */}
+      <fieldset className="min-w-0">
+        <legend className="mb-2 text-sm font-medium">運動種類</legend>
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0">
+          {[{ value: "", label: "全部" }, ...SPORT_CHIP_ORDER.map((sport) => ({ value: sport, label: sport }))].map(
+            (chip) => (
+              <label key={chip.value || "all"} className="relative shrink-0 cursor-pointer">
+                <input
+                  type="radio"
+                  name="sport"
+                  value={chip.value}
+                  checked={(value.sport ?? "") === chip.value}
+                  onChange={() =>
+                    navigate({ ...value, sport: chip.value || undefined })
+                  }
+                  className="peer sr-only"
+                />
+                <span className="block whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-1.5 text-sm font-medium text-neutral-700 transition peer-checked:border-teal-600 peer-checked:bg-teal-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-teal-600 peer-focus-visible:ring-offset-2 hover:border-teal-400">
+                  {chip.label}
+                </span>
+              </label>
+            ),
+          )}
+        </div>
+      </fieldset>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-sm font-medium">
           地點
           <select
@@ -112,24 +140,6 @@ export default function CourseFilters({ cities, value }: Props) {
             {cities.map((city) => (
               <option key={city} value={city}>
                 {city}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="text-sm font-medium">
-          運動種類
-          <select
-            className={`${SELECT_CLASS} mt-1 font-normal`}
-            value={value.sport ?? ""}
-            onChange={(e) =>
-              navigate({ ...value, sport: e.target.value || undefined })
-            }
-          >
-            <option value="">不限</option>
-            {SPORTS.map((sport) => (
-              <option key={sport} value={sport}>
-                {sport}
               </option>
             ))}
           </select>

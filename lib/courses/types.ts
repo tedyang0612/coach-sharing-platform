@@ -63,6 +63,18 @@ export const SPORTS = [
 
 export type Sport = (typeof SPORTS)[number];
 
+// 篩選 Chips 的排列順序（P02 規格；「全部」另外放在最前面，不屬於運動項目）
+export const SPORT_CHIP_ORDER = [
+  "重訓",
+  "瑜珈",
+  "羽球",
+  "排球",
+  "匹克球",
+  "衝浪",
+  "抱石",
+  "跑酷",
+] as const satisfies readonly Sport[];
+
 // 每人費用區間（NT$）。min / max 都是含邊界；沒寫代表沒有下限／上限。
 export interface PriceRange {
   id: string;
