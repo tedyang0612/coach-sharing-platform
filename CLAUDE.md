@@ -47,6 +47,25 @@
   - **兩種情況都要處理**，不要只判斷其中一種（可參考 `app/actions/auth.ts` 的寫法）。
 - RLS 一定要開（10 張表目前全部已開啟），新增資料表時記得一起加 policy，不要等事後補。
 
+### Schema 變動一律走 migration 檔，不要叫 Ted 貼 SQL Editor
+
+這條是 2026-10-03 補上的規則，起因是線上共用專案曾經因為 schema 改動被手動貼到 SQL Editor 執行、沒走 migration 檔，導致 CLI 的追蹤表（`supabase_migrations.schema_migrations`）跟實際資料庫狀態對不上，`supabase db push` 直接報錯中斷（花了不少力氣才用 `supabase migration repair` 修復）。
+
+- **任何 `CREATE TABLE`／`ALTER TABLE`／`CREATE POLICY`／`CREATE OR REPLACE FUNCTION`／`CREATE TRIGGER` 等 schema 層級的改動，一律寫成新的 migration 檔**放進 `supabase/migrations/`（檔名延續現有的時間戳格式），**不要叫 Ted 直接貼到 Supabase SQL Editor 執行**。想驗證的話用 `npx supabase db push --dry-run`（線上）或 `npx supabase db reset`（本機 Docker），確認沒問題後用 `npx supabase db push` 正式套用。
+- 新增欄位時，順便檢查這張表有沒有既有的「鎖欄位」guard trigger（例如 `guard_coach_application_fields()`、`guard_registration_insert()`），需不需要同步調整白名單，避免新欄位被悄悄鎖死或忽略不更新。
+- **純測試資料（INSERT／UPDATE／SELECT，不含 schema 變動）不受這條限制**，可以直接請 Ted 貼到 SQL Editor 執行，這類操作不會被 CLI 追蹤，也不會造成 `db push` 衝突。
+
+## 時間與時區慣例（場次相關模組必讀）
+
+平台只在台灣營運，所有「教練填的日期／時間」都是台灣時間（UTC+8，無日光節約）。資料庫 `timestamptz` 實際存的是 UTC，Supabase 的 DB 與 Vercel 的 server 預設時區也都是 UTC，所以「沒指定時區」的地方都會差 8 小時。
+
+- **不要呼叫 `generate_sessions_for_course()`**（Task 00 的 `20261001000011_courses_sessions.sql`）：它用 `date + time` 組時間時沒帶時區，14:00 會被存成台灣時間 22:00；而且它是 `security definer` 又沒檢查呼叫者身分，會刪掉 open 場次並 cascade 刪除報名紀錄。場次一律在應用層切，用 `app/courses/_lib/course-input.ts` 的 `computeSessionSlots()`（Task 1.0 PR 合併後才會在 main 上）。之後會另開 migration 移除或修正這支 function，修好前請當它不存在。
+- **寫入時間**：自己組時間字串一律帶 `+08:00`（例：`2026-11-01T14:00:00+08:00`），或用同一支檔案的 `toTaipeiDate()`；不要用 `new Date("2026-11-01 14:00")` 這種沒時區的寫法（在 Vercel 上會被當成 UTC）。
+- **顯示時間**：一律指定台灣時區格式化，例如 `new Intl.DateTimeFormat("zh-TW", { timeZone: "Asia/Taipei", ... })` 或 `toLocaleString("zh-TW", { timeZone: "Asia/Taipei" })`，不要依賴執行環境的預設時區。
+- **比較時間**（截止了沒、開課前幾小時）：直接比 `timestamptz`／`Date.getTime()` 即可，這兩者本身跟時區無關，不需要轉換。
+- **依「台灣日期」篩選**（例如學員端「列出某天的課」）：SQL 用 `start_at at time zone 'Asia/Taipei'` 取日期，或在應用層把當天 00:00／24:00 用 `+08:00` 組好再用 `gte`／`lt` 查，不要直接拿 UTC 日期比。
+- **seed／測試資料**：手寫 SQL 插入場次時同樣要帶 `+08:00`，不然測出來的時間會和畫面對不起來。
+
 ## Git 分支與 PR 慣例
 
 - 分支命名：`feat/<姓名縮寫>-<任務編號>-<簡短說明>`，例如 `feat/ted-00-schema-auth`。
@@ -65,6 +84,11 @@
   - 因為依賴的功能還沒開發、現在完全無法測 → `- [ ]`，並在項目後面加註 **「（無法測：原因）」**，不要勾起來假裝測過，也不要跟「測過但還沒做好」混在一起用同一種標示。
   - 不要用「暫緩」這種模糊字眼，統一用「無法測」+ 具體原因，讓 QA 一看就懂差別。
 - 把自我驗收結果整理成留言貼到對應 PR（若因疏失併在別的 PR，要在留言裡說明原因，像 8.0 模組那樣），並同步更新 claude.ai Project 裡的 `驗收標準-AC總表.md`，讓之後回來查不會對不上。
+- **PR 說明的「## 摘要」第一行放測試網址**：寫出 Vercel Preview 網址後面要加的路徑（例：`/coach/courses`、`/coach/courses/new`），讓鯨魚（QA）點開 Preview 就知道要去哪一頁測；沒有畫面的 PR（例如純資料層）註明「請用哪個 PR 的 Preview 測試」。需要特定身分才能看的頁面（例如審核通過的教練），下一行註明測試帳號 Email，**密碼私下提供，不要寫在 PR**（repo 是 Public）。
+  ```
+  **🔗 測試網址（Preview 網址後面加上）**：`/coach/courses`（我的課程）、`/coach/courses/new`（建立課程）
+  **🔑 測試帳號**：`coach-test-xxx@gmail.com`（審核通過的教練，密碼私下提供）
+  ```
 - Markdown 的 `- [x]` / `- [ ]` 在 GitHub 上會顯示成真正的勾選框圖示，不是純文字，貼留言前不用擔心看起來像打 X。
 
 ## 協作模式慣例
