@@ -6,7 +6,7 @@
 export type CoachApplicationStatus = "pending" | "approved" | "needs_more_info" | "rejected";
 export type LicenseStatus = "pending" | "approved" | "rejected";
 
-export type CourseLevel = "unlimited" | "beginner" | "intermediate"; // 不限／初級／中級
+export type CourseLevel = "unlimited" | "beginner" | "intermediate" | "advanced"; // 不限／初級／中級／進階
 export type CourseStatus = "draft" | "published" | "cancelled";
 
 export type SessionStatus =
@@ -24,9 +24,9 @@ export type RegistrationStatus =
   | "partial_refunded" // 部分退款（扣30%手續費）
   | "completed"; // 課程完成
 
-// MVP 建議的運動項目清單（PRD 1.0：以重訓、瑜珈為主，另含抱石/衝浪/跑酷）
+// MVP 運動種類（PRD v4.2：共八種，開課運動項目與學員篩選皆以此為限）
 // sport_type 欄位本身是自由文字，不是資料庫層級 enum，之後要加新類型不用跑 migration
-export const SPORT_TYPES = ["重訓", "瑜珈", "抱石", "衝浪", "跑酷"] as const;
+export const SPORT_TYPES = ["重訓", "瑜珈", "跑酷", "抱石", "衝浪", "羽球", "匹克球", "排球"] as const;
 export type SportType = (typeof SPORT_TYPES)[number] | (string & {});
 
 export interface Profile {
@@ -39,20 +39,25 @@ export interface Profile {
 
 export interface CoachProfile {
   id: string; // = profiles.id
+  real_name: string; // 真實姓名，不公開，管理員核對良民證用（20261003000024）
+  display_name: string; // 公開顯示的教練名稱：有填暱稱用暱稱，沒填用真實姓名（20261003000024）
   photo_url: string;
   sport_categories: string[];
   tags: string[]; // 上限 5 個，每個建議 10 字內
-  years_experience: number | null;
-  bio_education: string;
-  bio_competition: string | null;
+  years_experience: number | null; // 前端已停用，固定傳 null，欄位保留
+  bio_education: string; // 學經歷：多筆「學位＋學校科系」用換行組字串，請用 parseEducation() 解析，不要自己拆
+  bio_competition: string | null; // 比賽經歷（畫面名稱，欄位名不變）
   bio_intro: string;
+  is_verified: boolean; // 是否有任一張證照通過，由 sync_coach_verified() 自動同步
+  avg_rating: number | null; // 平均評分，由 sync_coach_rating() 自動同步；null=尚無評價
+  review_count: number; // 評價數，由 sync_coach_rating() 自動同步
 
   // 審核用，不公開
   contact_phone: string | null;
   contact_line: string | null;
-  contact_email: string | null;
+  contact_email: string | null; // 前端已停用、固定傳 null；Email 聯絡一律用 auth.users.email
   contact_social: string | null;
-  criminal_record_url: string | null; // 審核完 7 天後會被排程清掉
+  criminal_record_url: string | null; // 審核完 7 天後會被排程清掉，可能為 null
   criminal_record_uploaded_at: string;
   criminal_record_deleted: boolean;
   consent_at: string;
@@ -69,6 +74,7 @@ export interface CoachProfile {
 export interface CoachLicense {
   id: string;
   coach_id: string;
+  name: string; // 證照名稱（必填，例：ACE-CPT）
   file_url: string;
   status: LicenseStatus;
   rejection_reason: string | null;
@@ -104,6 +110,10 @@ export interface Course {
   status: CourseStatus;
   is_template: boolean;
   template_source_id: string | null;
+  cover_image_url: string | null; // null＝依運動項目顯示預設圖（20261002000018）
+  // 縣市／行政區（20261002000021）：清單與 2.0 篩選共用，定案前先允許 null，之後再改必填
+  city: string | null;
+  district: string | null;
 
   created_at: string;
   updated_at: string;
@@ -185,12 +195,7 @@ export type ProfileInsert = Pick<Profile, "id" | "display_name">;
 
 export type CoachProfileInsert = Pick<
   CoachProfile,
-  | "id"
-  | "photo_url"
-  | "sport_categories"
-  | "bio_education"
-  | "bio_intro"
-  | "criminal_record_url"
+  "id" | "real_name" | "display_name" | "photo_url" | "sport_categories" | "bio_education" | "bio_intro"
 > &
   Partial<
     Pick<
@@ -200,8 +205,8 @@ export type CoachProfileInsert = Pick<
       | "bio_competition"
       | "contact_phone"
       | "contact_line"
-      | "contact_email"
       | "contact_social"
+      | "criminal_record_url" // 欄位改 nullable 後不再強制必填
     >
   >;
 
