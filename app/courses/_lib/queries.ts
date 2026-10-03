@@ -3,10 +3,16 @@
 // 這支 import 了 lib/supabase/server（next/headers），被 client component 引用時會直接編譯失敗。
 
 import { createClient } from "@/lib/supabase/server";
-import type { Course, RegistrationStatus, Session } from "@/types/database";
+import type { Course, District, RegistrationStatus, Session } from "@/types/database";
 import { isActiveRegistration } from "./session-rules";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+/** 縣市／行政區清單（開課表單下拉用）；依 id 排序＝內政部縣市代碼順序，id 之外的排序請在前端處理 */
+export async function listDistricts(supabase: SupabaseServerClient): Promise<District[]> {
+  const { data } = await supabase.from("districts").select("id, towncode, city, district").order("id");
+  return data ?? [];
+}
 
 export type CoachContext =
   | { ok: true; supabase: SupabaseServerClient; userId: string }
