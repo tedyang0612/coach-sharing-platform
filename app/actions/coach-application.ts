@@ -3,11 +3,17 @@
 import { redirect } from "next/navigation";
 import { COACH_PHOTO_BUCKET } from "@/lib/coach-application/constants";
 import { formatEducation, type EducationEntry } from "@/lib/coach-application/education";
-import { hasErrors, validateCoachApplication } from "@/lib/coach-application/validation";
+import {
+  hasErrors,
+  resolveCoachDisplayName,
+  validateCoachApplication,
+} from "@/lib/coach-application/validation";
 import { createClient } from "@/lib/supabase/server";
 
 // 檔案已經由瀏覽器直接傳到 Storage，這裡只收路徑
 export type CoachApplicationPayload = {
+  realName: string;
+  nickname: string;
   // 重新送審時留空字串代表沿用先前上傳的檔案
   photoPath: string;
   criminalRecordPath: string;
@@ -72,6 +78,8 @@ export async function submitCoachApplication(
 
   // 第二道防線：表單送出前已經檢查過，這裡用同一套規則再檢查一次
   const errors = validateCoachApplication({
+    realName: payload.realName,
+    nickname: payload.nickname,
     hasPhoto: payload.photoPath !== "" || Boolean(current?.photo_url),
     hasCriminalRecord: payload.criminalRecordPath !== "" || keepsCriminalRecord,
     sportCategories: payload.sportCategories,
@@ -103,6 +111,9 @@ export async function submitCoachApplication(
   }
 
   const fields = {
+    // 真實姓名不公開；display_name 是公開顯示的教練名稱（有暱稱用暱稱，沒有用真實姓名）
+    real_name: payload.realName.trim(),
+    display_name: resolveCoachDisplayName(payload.realName, payload.nickname),
     sport_categories: payload.sportCategories,
     tags: payload.tags.map((tag) => tag.trim()),
     // 年資欄位已從表單拿掉（改由「工作／教學經歷」說明），固定清空
