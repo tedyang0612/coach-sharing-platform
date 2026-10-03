@@ -17,15 +17,27 @@ export default async function CoursesPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const allCourses = await getCourses();
-  const filters = parseFilters(await searchParams);
+  const parsed = parseFilters(await searchParams);
+  // 城市選項從資料推導，之後換成真資料不用另外維護清單
+  const cities = [...new Set(allCourses.map((course) => course.city))];
+  // 行政區選項也從資料推導（每個縣市有哪些行政區）；Ted 的縣市／行政區常數檔出來後改用同一份
+  const districtsByCity: Record<string, string[]> = {};
+  for (const course of allCourses) {
+    const list = (districtsByCity[course.city] ??= []);
+    if (!list.includes(course.district)) list.push(course.district);
+  }
+  // 網址帶的行政區不屬於所選縣市時當成不限，和其他不合法的值一樣不讓頁面壞掉
+  const filters =
+    parsed.city && parsed.district &&
+    !districtsByCity[parsed.city]?.includes(parsed.district)
+      ? { ...parsed, district: undefined }
+      : parsed;
   // 基本排序固定依開課時間由近到遠；有定位時再依距離排序，
   // 距離相同或沒有座標的課程維持開課時間的順序（排序是穩定的）。
   const filtered = sortByStartTime(filterCourses(allCourses, filters));
   const courses = filters.near
     ? sortByDistance(filtered, filters.near)
     : filtered.map((course) => ({ course, distanceKm: null }));
-  // 城市選項從資料推導，之後換成真資料不用另外維護清單
-  const cities = [...new Set(allCourses.map((course) => course.city))];
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
@@ -35,7 +47,11 @@ export default async function CoursesPage({
       </p>
 
       <div className="mt-6">
-        <CourseFilters cities={cities} value={filters} />
+        <CourseFilters
+          cities={cities}
+          districtsByCity={districtsByCity}
+          value={filters}
+        />
       </div>
 
       <p className="mt-8 text-sm text-neutral-500">

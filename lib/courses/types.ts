@@ -10,6 +10,7 @@ export interface Course {
   title: string;
   sport: string;
   city: string;
+  district: string; // 行政區，依場次實際上課地址判斷（對應 courses.district）
   venue: string;
   latitude: number | null; // 資料表允許為空，沒座標的課程排序時放最後
   longitude: number | null;

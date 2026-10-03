@@ -15,6 +15,7 @@ export const DEFAULT_CITY = "台北市";
 // undefined 代表「不限」
 export interface CourseFilters {
   city?: string;
+  district?: string; // 行政區，需搭配縣市一起用（不同縣市可能有同名行政區，例如「中山區」）
   timeSlot?: TimeSlot;
   level?: FilterLevel;
   sport?: string;
@@ -38,6 +39,7 @@ function parseCoord(value: string | string[] | undefined, min: number, max: numb
 // 網址可能被手動亂改，不合法的值一律當成「不限」，不要讓頁面壞掉。
 export function parseFilters(params: RawSearchParams): CourseFilters {
   const city = first(params.city);
+  const district = first(params.district);
   const slot = first(params.slot);
   const level = first(params.level);
   const sport = first(params.sport);
@@ -47,6 +49,7 @@ export function parseFilters(params: RawSearchParams): CourseFilters {
 
   return {
     city: city || undefined,
+    district: city && district ? district : undefined,
     timeSlot: slot && slot in TIME_SLOT_LABELS ? (slot as TimeSlot) : undefined,
     level:
       level && (FILTER_LEVELS as readonly string[]).includes(level)
@@ -68,6 +71,7 @@ export function filterCourses(courses: Course[], filters: CourseFilters) {
   return courses.filter(
     (course) =>
       (!filters.city || course.city === filters.city) &&
+      (!filters.district || course.district === filters.district) &&
       (!filters.timeSlot || course.timeSlot === filters.timeSlot) &&
       (!filters.level ||
         course.level === filters.level ||
@@ -82,6 +86,7 @@ export function filterCourses(courses: Course[], filters: CourseFilters) {
 export function hasActiveFilters(filters: CourseFilters) {
   return Boolean(
     filters.city ||
+      filters.district ||
       filters.timeSlot ||
       filters.level ||
       filters.sport ||
