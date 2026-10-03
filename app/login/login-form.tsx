@@ -23,7 +23,13 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
   );
 
   return (
-    <form action={formAction} className="mt-6 flex flex-col gap-4">
+    <form
+      action={formAction}
+      // 8.0 QA 修正：noValidate 關掉瀏覽器原生的驗證泡泡，統一走我們自己的
+      // FormError／欄位下方紅字顯示，避免兩種錯誤提示樣式同時出現。
+      noValidate
+      className="mt-6 flex flex-col gap-4"
+    >
       <input type="hidden" name="redirectTo" value={redirectTo} />
 
       <TextField
