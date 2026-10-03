@@ -26,6 +26,20 @@ interface Props {
 
 type LocationState = "idle" | "loading" | "denied" | "error";
 
+interface AppliedTag {
+  key: string;
+  label: string;
+  jumpTo: () => void;
+  remove: () => void;
+}
+
+// 點「已套用條件」的標籤時，捲到對應的篩選器並把焦點放上去
+function focusControl(selector: string) {
+  const el = document.querySelector<HTMLElement>(selector);
+  el?.scrollIntoView({ block: "center", behavior: "smooth" });
+  el?.focus({ preventScroll: true });
+}
+
 // 篩選用的 Chip：原生 radio／checkbox 加樣式，單選、複選與鍵盤操作都不用另外寫。
 // label 要 relative：隱藏用的 sr-only 輸入框是絕對定位，不加的話手機上會撐寬整頁
 function Chip({
@@ -152,6 +166,93 @@ export default function CourseFilters({
 
   const showFallbackNote = usedFallback && value.city === DEFAULT_CITY;
 
+  // 已套用條件：每個條件一個標籤，點標籤跳到對應的篩選器修改，點 ✕ 移除。
+  // 地點標籤移除時先清行政區，再按一次才清縣市。
+  const appliedTags: AppliedTag[] = [];
+  if (value.sport) {
+    appliedTags.push({
+      key: "sport",
+      label: value.sport,
+      jumpTo: () => focusControl('input[name="sport"]:checked'),
+      remove: () => navigate({ ...value, sport: undefined }),
+    });
+  }
+  if (value.city) {
+    appliedTags.push({
+      key: "city",
+      label: value.district ? `${value.city}・${value.district}` : value.city,
+      jumpTo: () =>
+        focusControl(value.district ? "#filter-district" : "#filter-city"),
+      remove: () =>
+        navigate(
+          value.district
+            ? { ...value, district: undefined }
+            : { ...value, city: undefined },
+        ),
+    });
+  }
+  if (value.weekdays?.length) {
+    const [first, ...rest] = value.weekdays;
+    appliedTags.push({
+      key: "weekdays",
+      label: `星期${WEEKDAY_LABELS[first]}${rest.map((day) => `＋${WEEKDAY_LABELS[day]}`).join("")}`,
+      jumpTo: () => focusControl('input[name="days"]'),
+      remove: () => navigate({ ...value, weekdays: undefined }),
+    });
+  }
+  const customTimeApplied =
+    (value.timeFrom || value.timeTo) && !isTimeRangeInvalid(value);
+  if (value.timeSlots?.length) {
+    appliedTags.push({
+      key: "slots",
+      label: value.timeSlots
+        .map((slot) => TIME_SLOT_LABELS[slot].split("（")[0])
+        .join("＋"),
+      jumpTo: () => focusControl('input[name="slot"]'),
+      remove: () => navigate({ ...value, timeSlots: undefined }),
+    });
+  } else if (customTimeApplied) {
+    appliedTags.push({
+      key: "time",
+      label:
+        value.timeFrom && value.timeTo
+          ? `${value.timeFrom}–${value.timeTo}`
+          : value.timeFrom
+            ? `${value.timeFrom} 之後`
+            : `${value.timeTo} 之前`,
+      jumpTo: () => focusControl('input[type="time"]'),
+      remove: () =>
+        navigate({ ...value, timeFrom: undefined, timeTo: undefined }),
+    });
+  }
+  if (value.priceRange) {
+    const range = PRICE_RANGES.find((r) => r.id === value.priceRange);
+    if (range) {
+      appliedTags.push({
+        key: "price",
+        label: range.label,
+        jumpTo: () => focusControl("#filter-price"),
+        remove: () => navigate({ ...value, priceRange: undefined }),
+      });
+    }
+  }
+  if (value.level) {
+    appliedTags.push({
+      key: "level",
+      label: LEVEL_LABELS[value.level],
+      jumpTo: () => focusControl("#filter-level"),
+      remove: () => navigate({ ...value, level: undefined }),
+    });
+  }
+  if (value.near) {
+    appliedTags.push({
+      key: "near",
+      label: "📍 依距離排序",
+      jumpTo: () => focusControl("#filter-city"),
+      remove: () => navigate({ ...value, near: undefined }),
+    });
+  }
+
   return (
     <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-4">
       {/* 運動種類是最高層級的搜尋條件：單選 Chips 放在其他篩選上面。
@@ -272,6 +373,7 @@ export default function CourseFilters({
         <label className="text-sm font-medium">
           地點
           <select
+            id="filter-city"
             className={`${SELECT_CLASS} mt-1 font-normal`}
             value={value.city ?? ""}
             onChange={(e) =>
@@ -295,6 +397,7 @@ export default function CourseFilters({
         <label className="text-sm font-medium">
           行政區
           <select
+            id="filter-district"
             className={`${SELECT_CLASS} mt-1 font-normal disabled:bg-neutral-100 disabled:text-neutral-400`}
             value={value.district ?? ""}
             disabled={!value.city}
@@ -314,6 +417,7 @@ export default function CourseFilters({
         <label className="text-sm font-medium">
           每人費用
           <select
+            id="filter-price"
             className={`${SELECT_CLASS} mt-1 font-normal`}
             value={value.priceRange ?? ""}
             onChange={(e) =>
@@ -332,6 +436,7 @@ export default function CourseFilters({
         <label className="text-sm font-medium">
           運動程度
           <select
+            id="filter-level"
             className={`${SELECT_CLASS} mt-1 font-normal`}
             value={value.level ?? ""}
             onChange={(e) =>
@@ -353,6 +458,37 @@ export default function CourseFilters({
           </select>
         </label>
       </div>
+
+      {appliedTags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3 text-sm">
+          <span className="font-medium text-neutral-700">已套用條件</span>
+          <ul className="flex flex-wrap gap-2">
+            {appliedTags.map((tag) => (
+              <li
+                key={tag.key}
+                className="inline-flex items-center rounded-full border border-teal-200 bg-teal-50 text-teal-800"
+              >
+                <button
+                  type="button"
+                  onClick={tag.jumpTo}
+                  aria-label={`修改條件：${tag.label}`}
+                  className="rounded-l-full py-1 pl-3 pr-1.5 hover:underline"
+                >
+                  {tag.label}
+                </button>
+                <button
+                  type="button"
+                  onClick={tag.remove}
+                  aria-label={`移除條件：${tag.label}`}
+                  className="rounded-r-full py-1 pl-1 pr-2.5 text-teal-600 hover:text-teal-900"
+                >
+                  <span aria-hidden="true">✕</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-3 border-t border-neutral-100 pt-3 text-sm">
         {value.near ? (
