@@ -55,7 +55,8 @@ export default async function CourseReviewPage({ params }: PageProps<"/courses/[
   if (!course) notFound();
 
   const [{ data: coachAccount }, { data: registrations }] = await Promise.all([
-    supabase.from("profiles").select("display_name").eq("id", course.coach_id).maybeSingle(),
+    // 公開顯示的教練名稱（有暱稱用暱稱，沒有用真實姓名）
+    supabase.from("coach_profiles").select("display_name").eq("id", course.coach_id).maybeSingle(),
     // 這位學員在這堂課底下所有「課程完成」的訂單（不同場次各算一筆）
     supabase
       .from("registrations")
