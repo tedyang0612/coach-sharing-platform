@@ -71,7 +71,17 @@ type Props = {
 
 export function SlotsEditor({ slots, onChange, disabled = false, error }: Props) {
   const next = nextSlot(slots);
+  const last = slots.at(-1);
+  const lastFilled = !!last?.start && !!last?.end;
   const canAdd = !disabled && slots.length < MAX_SESSIONS && next !== null;
+  // 不能新增時告訴教練原因（上一堂還沒填完不用提示，填完自然就能按）
+  const addBlockedReason = disabled
+    ? null
+    : slots.length >= MAX_SESSIONS
+      ? `已達上限 ${MAX_SESSIONS} 堂`
+      : lastFilled && next === null
+        ? "下一堂會超過晚上 12:00，無法再新增"
+        : null;
 
   function update(index: number, patch: Partial<SessionSlotInput>) {
     onChange(
@@ -125,7 +135,7 @@ export function SlotsEditor({ slots, onChange, disabled = false, error }: Props)
                     onClick={() => next && onChange([...slots, next])}
                     disabled={!canAdd}
                     aria-label="新增一堂"
-                    title="新增一堂"
+                    title={addBlockedReason ?? "新增一堂"}
                     className="h-10 w-full rounded-xl border border-brand text-base font-bold text-brand sm:text-xs transition hover:bg-brand-ink disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-400 disabled:hover:bg-transparent"
                   >
                     <span aria-hidden>＋</span>
@@ -148,6 +158,8 @@ export function SlotsEditor({ slots, onChange, disabled = false, error }: Props)
           );
         })}
       </ol>
+
+      {addBlockedReason && <p className="text-xs text-amber-700">{addBlockedReason}</p>}
 
       {error ? (
         <p className="text-xs text-red-600">{error}</p>
