@@ -16,8 +16,8 @@ export type AuthFormState = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// 共用文案：register-form.tsx 用 .includes("已被註冊") 判斷要不要連去登入頁，改文案時兩邊要一起看過。
-const DUPLICATE_EMAIL_MESSAGE = "此 Email 已被註冊，請直接登入；\n或使用其他 Email 進行註冊。";
+// 8.0 QA 修正：文案改短，一行講完（此 Email 已註冊，請直接登入）。
+const DUPLICATE_EMAIL_MESSAGE = "此 Email 已註冊，請直接登入。";
 
 function safeRedirectTarget(value: FormDataEntryValue | null): string {
   const target = typeof value === "string" ? value : "/";
@@ -48,8 +48,9 @@ export async function login(
 
   if (error) {
     // Supabase 對「帳號不存在」跟「密碼錯誤」回傳同一種錯誤，
-    // 這裡統一顯示成一句話，不特別指出是帳號還是密碼錯（避免帳號列舉）。
-    return { errors: { form: "帳號或密碼錯誤，請確認後再試一次。" } };
+    // 這裡統一顯示成一句話，不特別指出是 Email 還是密碼錯（避免帳號列舉）。
+    // 8.0 QA 修正：前台不出現「帳號」字眼，改用「Email」。
+    return { errors: { form: "Email 或密碼不正確，請確認後再試一次。" } };
   }
 
   redirect(redirectTo);
@@ -65,9 +66,20 @@ export async function signup(
   const redirectTo = safeRedirectTarget(formData.get("redirectTo"));
 
   const errors: NonNullable<AuthFormState["errors"]> = {};
-  if (!displayName) errors.displayName = "請輸入暱稱";
+  // 8.0 QA 決議（2026-10-03）：暱稱統一長度限制 2-20 字，中文字／英數都算一個字元。
+  // DB 層（profiles_display_name_length constraint）也有同樣限制，這裡是第一道防線。
+  if (!displayName) {
+    errors.displayName = "請輸入暱稱";
+  } else if (displayName.length < 2 || displayName.length > 20) {
+    errors.displayName = "暱稱請輸入 2-20 個字元";
+  }
   if (!EMAIL_RE.test(email)) errors.email = "請輸入正確格式的 Email";
-  if (!password || password.length < 6) errors.password = "密碼至少需要 6 碼";
+  // 8.0 QA 修正：原本只檢查 password.length >= 6，純空白（例如 6 個空格）也會通過。
+  // 這裡改用去除前後空白後的長度判斷，擋掉「整串都是空白」的密碼；
+  // 密碼中間有空白（例如一般密碼短語）不受影響，不會被動過手。
+  if (!password || password.trim().length < 6) {
+    errors.password = "密碼至少需要 6 個字元（不能全部是空白）";
+  }
   if (Object.keys(errors).length > 0) return { errors };
 
   const supabase = await createClient();
