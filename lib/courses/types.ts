@@ -39,9 +39,6 @@ export interface Course {
   capacity: number;
 }
 
-// 課程層級的假資料（還沒拆成場次）：id 是課程 id，場次由 getCourseDetail 的 buildMockSessions 產生
-export type CourseBase = Omit<Course, "courseId">;
-
 export const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
   morning: "上午（06:00–11:59）",
   afternoon: "下午（12:00–17:59）",

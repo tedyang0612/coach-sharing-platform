@@ -81,7 +81,7 @@ export default async function CourseDetailPage({
             {course.coachName}
           </Link>
         </p>
-        <ShareButton path={`/courses/${course.id}`} title={course.title} />
+        <ShareButton path={`/courses/${course.courseId}`} title={course.title} />
       </header>
 
       <CourseStatusNotice
