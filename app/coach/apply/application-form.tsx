@@ -83,11 +83,13 @@ type ApplicationFormProps = {
   userId: string;
   // 有值代表是補件／未通過後重新送審
   existing?: ExistingApplication;
+  // 第一次申請時帶入註冊帳號的暱稱，教練可以再修改
+  defaultNickname?: string;
 };
 
-export function ApplicationForm({ userId, existing }: ApplicationFormProps) {
+export function ApplicationForm({ userId, existing, defaultNickname }: ApplicationFormProps) {
   const [realName, setRealName] = useState(existing?.realName ?? "");
-  const [nickname, setNickname] = useState(existing?.nickname ?? "");
+  const [nickname, setNickname] = useState(existing?.nickname ?? defaultNickname ?? "");
   const [photo, setPhoto] = useState<File | null>(null);
   const [sportCategories, setSportCategories] = useState<string[]>(
     existing?.sportCategories ?? []
@@ -212,7 +214,7 @@ export function ApplicationForm({ userId, existing }: ApplicationFormProps) {
 
       <Section
         title="姓名"
-        description="真實姓名只給管理員核對良民證，不會公開。學員看到的是暱稱；沒填暱稱的話，會以真實姓名作為公開顯示的教練名稱。"
+        description="真實姓名只給管理員核對良民證，不會公開。學員看到的是暱稱，已先帶入你註冊時填的暱稱，可以修改；暱稱留空的話，會以真實姓名作為公開顯示的教練名稱。"
       >
         <TextField
           label="真實姓名＊"
