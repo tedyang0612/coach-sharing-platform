@@ -103,7 +103,7 @@
 |---|---|---|
 | PRD | `docs/prd/` | 檔名帶版本號、保留舊版方便比對；PRD 負責人是牛牛。**不 commit**：repo 是 Public，PRD 含商業模式與收費規劃 |
 | UI 視覺（設計稿匯出、色票、字型、圖示） | `docs/ui/` | 同樣不 commit；設計稿連結 Claude 不一定打得開，請匯出成圖片或 PDF 放進來 |
-| 版面參考稿 | `docs/reference/` | 已在 repo，僅供版面參考 |
+| 版面參考稿 | `docs/reference/`（repo 內）、`docs/reference-new/`（新版精簡檔，不 commit） | 僅供版面與頁面流程參考（P01–P24），標題、配色、抽成等仍是舊的「拼咖 Pika」內容，與 PRD 或 CIS 衝突時以 PRD、UI 定稿為準 |
 | 交接文件 | 專案根目錄 `handoff-YYYY-MM-DD.md` | 不 commit、不貼公開群組；每次收工更新，新 session 先讀最新一份 |
 | 驗收標準 | `驗收標準-AC總表.md` | 正本在 claude.ai Project，本機是工作副本；PRD 更新後要重新比對 AC，並在檔尾「更新紀錄」寫下改了什麼 |
 
