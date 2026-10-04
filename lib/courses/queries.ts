@@ -59,10 +59,12 @@ const LISTED_STATUSES: SessionStatus[] = ["open", "matched"];
 async function fetchCoaches(supabase: SupabaseServerClient, ids: string[]) {
   if (ids.length === 0) return new Map<string, RawCoach>();
   // 教練名稱用 coach_profiles.display_name（暱稱優先），不要用 profiles.display_name
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("coach_profiles")
     .select("id, display_name, photo_url, is_verified, tags, avg_rating, review_count")
     .in("id", ids);
+  // 讀不到教練資料時課程仍要能顯示（名稱會是空白），但要留下紀錄才知道是權限還是欄位的問題
+  if (error) console.error("讀取教練資料失敗：", error.message);
   return new Map((data as RawCoach[] | null)?.map((c) => [c.id, c]));
 }
 
