@@ -330,7 +330,7 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
 
       <Section
         title="聯絡方式"
-        description="電話、LINE、社群帳號至少填寫一項。不會公開，僅供平台聯繫，以及場次成團後透過行前公告提供給該場次學員。Email 通知會寄到你註冊帳號的信箱，不用另外填寫。"
+        description="電話、LINE、社群帳號至少填寫一項。不會公開，僅供平台聯繫，以及場次確定開課後透過行前公告提供給該場次學員。Email 通知會寄到你註冊帳號的信箱，不用另外填寫。"
       >
         <TextField
           label="電話"
