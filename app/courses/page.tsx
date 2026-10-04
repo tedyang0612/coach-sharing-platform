@@ -4,6 +4,8 @@ import CourseFilters from "@/components/CourseFilters";
 import SortSelect from "@/components/SortSelect";
 import { filterCourses, parseFilters } from "@/lib/courses/filterCourses";
 import { getCourses } from "@/lib/courses/getCourses";
+import { getDistricts } from "@/lib/courses/getDistricts";
+import { buildRegionOptions, deriveRegionOptions } from "@/lib/courses/regions";
 import { parseSort, sortCourses } from "@/lib/courses/sort";
 
 export const metadata = {
@@ -20,14 +22,11 @@ export default async function CoursesPage({
   const params = await searchParams;
   const parsed = parseFilters(params);
   const sort = parseSort(params.sort);
-  // 城市選項從資料推導，之後換成真資料不用另外維護清單
-  const cities = [...new Set(allCourses.map((course) => course.city))];
-  // 行政區選項也從資料推導（每個縣市有哪些行政區）；Ted 的縣市／行政區常數檔出來後改用同一份
-  const districtsByCity: Record<string, string[]> = {};
-  for (const course of allCourses) {
-    const list = (districtsByCity[course.city] ??= []);
-    if (!list.includes(course.district)) list.push(course.district);
-  }
+  // 縣市與行政區選項讀資料庫的 districts 表（Ted 的 PR #18）；讀不到時退回從課程資料推導
+  const districts = await getDistricts();
+  const { cities, districtsByCity } = districts
+    ? buildRegionOptions(districts)
+    : deriveRegionOptions(allCourses);
   // 網址帶的行政區不屬於所選縣市時當成不限，和其他不合法的值一樣不讓頁面壞掉
   const filters =
     parsed.city && parsed.district &&

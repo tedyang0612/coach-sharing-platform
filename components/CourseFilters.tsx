@@ -295,8 +295,9 @@ export default function CourseFilters({
             navigate({ ...value, city: undefined, district: undefined })
           }
         >
+          {/* 縣市有 22 個、行政區最多將近 30 個，各欄自己捲動，面板不會變得很長 */}
           <div className="grid gap-3 sm:grid-cols-2">
-            <div>
+            <div className="max-h-64 overflow-y-auto">
               <p className="px-2 pb-1 text-xs font-semibold text-neutral-500">縣市</p>
               <PanelOption
                 type="radio"
@@ -323,7 +324,7 @@ export default function CourseFilters({
                 </PanelOption>
               ))}
             </div>
-            <div>
+            <div className="max-h-64 overflow-y-auto">
               <p className="px-2 pb-1 text-xs font-semibold text-neutral-500">行政區</p>
               {value.city ? (
                 <>

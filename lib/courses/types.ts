@@ -1,9 +1,12 @@
 // 學員端課程列表專用型別。
 // 刻意不放進 types/（Ted 維護）；等 Ted 的 schema 合併後，再對齊 types/database.ts 的 courses 欄位。
 
+import { SPORT_TYPES, type CourseLevel } from "@/types/database";
+
 export type TimeSlot = "morning" | "afternoon" | "evening";
-// 值對應資料庫 courses.level；unlimited 顯示為「不限」
-export type Level = "unlimited" | "beginner" | "intermediate" | "advanced";
+// 值對應資料庫 courses.level（Ted 的 types/database.ts）；unlimited 顯示為「不限」。
+// 顯示文案的常數 LEVEL_LABELS 先用自己的，等 Ted 的 PR #19（COURSE_LEVELS）進 main 再對齊。
+export type Level = CourseLevel;
 
 export interface Course {
   id: string;
@@ -64,20 +67,10 @@ export const FILTER_LEVELS = [
   "advanced",
 ] as const satisfies readonly Level[];
 
-// 運動項目：產品決定的固定清單。
-// types/database.ts 的 SPORT_TYPES 目前還是舊清單，之後要請 Ted 對齊這份。
-export const SPORTS = [
-  "重訓",
-  "瑜珈",
-  "跑酷",
-  "抱石",
-  "衝浪",
-  "羽球",
-  "匹克球",
-  "排球",
-] as const;
+// 運動項目：直接用 Ted 的 SPORT_TYPES（types/database.ts），不另外維護清單。
+export const SPORTS = SPORT_TYPES;
 
-export type Sport = (typeof SPORTS)[number];
+export type Sport = (typeof SPORT_TYPES)[number];
 
 // 篩選 Chips 的排列順序（P02 規格；「全部」另外放在最前面，不屬於運動項目）
 export const SPORT_CHIP_ORDER = [
