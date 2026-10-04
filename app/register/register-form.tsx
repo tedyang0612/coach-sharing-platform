@@ -36,7 +36,7 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
       <TextField
         label="暱稱"
         name="displayName"
-        placeholder="你的暱稱（2-20 個字元）"
+        placeholder="至少 2 個字元（最多 20 個字元）"
         autoComplete="nickname"
         value={displayName}
         onChange={(event) => setDisplayName(event.target.value)}
