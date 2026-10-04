@@ -102,7 +102,8 @@ function toCourseCard(
     endsAt: s.end_at,
     level: c.level,
     coachId: c.coach_id,
-    coachName: coach?.display_name ?? "",
+    // 教練名稱沒填（或讀不到）時顯示「教練」，避免畫面出現空白
+    coachName: coach?.display_name?.trim() || "教練",
     coachVerified: coach?.is_verified ?? false,
     coachTags: coach?.tags ?? [],
     coachRating: coach?.avg_rating ?? null,
