@@ -45,7 +45,17 @@
   - 關閉時：`supabase.auth.signUp()` 對重複 Email 會直接回傳 `error`（訊息含 `already registered` / `already exists` / `user already`）。
   - 開啟時：不會回傳 error（防帳號列舉），而是回傳 `identities` 為空陣列的假 user。
   - **兩種情況都要處理**，不要只判斷其中一種（可參考 `app/actions/auth.ts` 的寫法）。
+- **課程程度**：資料庫值是 `unlimited`／`beginner`／`intermediate`／`advanced`，畫面文案統一為「不限／初階／中階／進階」（PRD 文字若還寫「初級／中級／全程度」以團隊決定為準）。開課表單的文案來源是 `app/courses/_lib/course-input.ts` 的 `COURSE_LEVELS`，學員端篩選請和它保持一致。
+- **縣市／行政區**：改由資料庫維護，不要在前端另寫一份清單。`districts` 表（22 縣市、368 個鄉鎮市區，內政部資料）任何人可讀、只能靠 migration 修改；`courses.district_id` 指向它，縣市名從 `districts.city` 反查；課程發布時 `district_id` 必填，草稿與範本可為空。縣市與行政區名一律用「台」，不用「臺」。舊的 `courses.city`、`courses.district` 文字欄位已移除。
 - RLS 一定要開（10 張表目前全部已開啟），新增資料表時記得一起加 policy，不要等事後補。
+
+### Schema 變動一律走 migration 檔，不要叫 Ted 貼 SQL Editor
+
+這條是 2026-10-03 補上的規則，起因是線上共用專案曾經因為 schema 改動被手動貼到 SQL Editor 執行、沒走 migration 檔，導致 CLI 的追蹤表（`supabase_migrations.schema_migrations`）跟實際資料庫狀態對不上，`supabase db push` 直接報錯中斷（花了不少力氣才用 `supabase migration repair` 修復）。
+
+- **任何 `CREATE TABLE`／`ALTER TABLE`／`CREATE POLICY`／`CREATE OR REPLACE FUNCTION`／`CREATE TRIGGER` 等 schema 層級的改動，一律寫成新的 migration 檔**放進 `supabase/migrations/`（檔名延續現有的時間戳格式），**不要叫 Ted 直接貼到 Supabase SQL Editor 執行**。想驗證的話用 `npx supabase db push --dry-run`（線上）或 `npx supabase db reset`（本機 Docker），確認沒問題後用 `npx supabase db push` 正式套用。
+- 新增欄位時，順便檢查這張表有沒有既有的「鎖欄位」guard trigger（例如 `guard_coach_application_fields()`、`guard_registration_insert()`），需不需要同步調整白名單，避免新欄位被悄悄鎖死或忽略不更新。
+- **純測試資料（INSERT／UPDATE／SELECT，不含 schema 變動）不受這條限制**，可以直接請 Ted 貼到 SQL Editor 執行，這類操作不會被 CLI 追蹤，也不會造成 `db push` 衝突。
 
 ## 時間與時區慣例（場次相關模組必讀）
 
@@ -63,6 +73,7 @@
 - 分支命名：`feat/<姓名縮寫>-<任務編號>-<簡短說明>`，例如 `feat/ted-00-schema-auth`。
 - **每個模組請開獨立分支與獨立 PR**，不要像 8.0 模組一樣因為忘記切分支而併進別的任務分支（這是已知的一次性疏失，不要重複發生）。
 - `main` 只有 Ted 有寫入權限，其他人透過 PR + Vercel Preview Deployment 驗證。
+- **共用檔案要先在群組說一聲再動**：`types/`、`lib/supabase/`、`app/layout.tsx`、`app/globals.css`、`package.json`、`.env`、lock 檔。這些檔案每個人的分支都可能碰到，各自改很容易衝突。不在自己模組路徑（例如 Ted 的 `app/courses/`、`app/coach/courses/`）內的檔案，也請先問。
 - Repo 目前是 Public（Vercel Hobby 方案的多人協作在 Private repo 會被擋，所以設為 Public），寫 code 時留意不要把任何密鑰（`service_role` key 等）寫進程式碼或 commit 訊息。
 
 ## AC（驗收標準）自我驗收與 PR 文件慣例
@@ -76,7 +87,25 @@
   - 因為依賴的功能還沒開發、現在完全無法測 → `- [ ]`，並在項目後面加註 **「（無法測：原因）」**，不要勾起來假裝測過，也不要跟「測過但還沒做好」混在一起用同一種標示。
   - 不要用「暫緩」這種模糊字眼，統一用「無法測」+ 具體原因，讓 QA 一看就懂差別。
 - 把自我驗收結果整理成留言貼到對應 PR（若因疏失併在別的 PR，要在留言裡說明原因，像 8.0 模組那樣），並同步更新 claude.ai Project 裡的 `驗收標準-AC總表.md`，讓之後回來查不會對不上。
+- **PR 說明最後放「🧪 本次要測試」區塊**：列出這個 PR 要測的路徑與重點，讓鯨魚（QA）知道去哪一頁測什麼（例：`/coach/courses/new`：選縣市後行政區清單會跟著變）。Vercel Preview 不是每個 PR 都會產生（疊在其他分支上的 PR 常常沒有），所以不要求第一行放網址；有 Preview 就附上，沒有就寫「請用 PR #N 的 Preview 測試」。沒有畫面的 PR（例如純資料層）註明這點。需要特定身分才能看的頁面（例如審核通過的教練），在區塊內註明測試帳號 Email，**密碼私下提供，不要寫在 PR**（repo 是 Public）。
+  ```
+  ## 🧪 本次要測試
+  - `/coach/courses/new`：選縣市後，行政區清單會跟著變；換縣市會清掉行政區
+  - 測試帳號：`coach-test-xxx@gmail.com`（審核通過的教練，密碼私下提供）
+  ```
 - Markdown 的 `- [x]` / `- [ ]` 在 GitHub 上會顯示成真正的勾選框圖示，不是純文字，貼留言前不用擔心看起來像打 X。
+
+## 專案資料放哪裡（PRD、UI、handoff）
+
+每次新開 session，請先讓 Claude 讀這份文件，再讀下面的最新版本；資料有更新時，把檔案放進對應位置再用 `@` 指給 Claude，不要只用口頭描述。
+
+| 資料 | 位置 | 備註 |
+|---|---|---|
+| PRD | `docs/prd/` | 檔名帶版本號、保留舊版方便比對；PRD 負責人是牛牛。**不 commit**：repo 是 Public，PRD 含商業模式與收費規劃 |
+| UI 視覺（設計稿匯出、色票、字型、圖示） | `docs/ui/` | 同樣不 commit；設計稿連結 Claude 不一定打得開，請匯出成圖片或 PDF 放進來 |
+| 版面參考稿 | `docs/reference/`（repo 內）、`docs/reference-new/`（新版精簡檔，不 commit） | 僅供版面與頁面流程參考（P01–P24），標題、配色、抽成等仍是舊的「拼咖 Pika」內容，與 PRD 或 CIS 衝突時以 PRD、UI 定稿為準 |
+| 交接文件 | 專案根目錄 `handoff-YYYY-MM-DD.md` | 不 commit、不貼公開群組；每次收工更新，新 session 先讀最新一份 |
+| 驗收標準 | `驗收標準-AC總表.md` | 正本在 claude.ai Project，本機是工作副本；PRD 更新後要重新比對 AC，並在檔尾「更新紀錄」寫下改了什麼 |
 
 ## 協作模式慣例
 
