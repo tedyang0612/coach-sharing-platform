@@ -9,12 +9,12 @@
 export const SPORT_CATEGORIES = [
   "重訓",
   "瑜珈",
-  "跑酷",
-  "抱石",
-  "衝浪",
   "羽球",
-  "匹克球",
   "排球",
+  "匹克球",
+  "衝浪",
+  "抱石",
+  "跑酷",
 ] as const;
 
 export type SportCategory = (typeof SPORT_CATEGORIES)[number];

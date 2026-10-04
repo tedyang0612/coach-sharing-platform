@@ -7,7 +7,6 @@ import { FormError } from "@/components/ui/form-error";
 import { TextField } from "@/components/ui/text-field";
 
 const initialState: AuthFormState = {};
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function RegisterForm({ redirectTo }: { redirectTo: string }) {
   const [state, formAction, pending] = useActionState(signup, initialState);
@@ -15,23 +14,36 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // 8.0 QA 修正：按鈕只看「有沒有填」，不看格式對不對——
+  // 格式／長度等驗證錯誤交給送出後的 server action 判斷並顯示在對應欄位下面，
+  // 不然使用者會卡在「上面欄位格式錯但看不到錯誤提示、按鈕又按不下去」的情境。
   const canSubmit = useMemo(
-    () => displayName.trim().length > 0 && EMAIL_RE.test(email) && password.length >= 6,
+    () => displayName.trim().length > 0 && email.trim().length > 0 && password.length > 0,
     [displayName, email, password]
   );
 
   return (
-    <form action={formAction} className="mt-6 flex flex-col gap-4">
+    <form
+      action={formAction}
+      // 8.0 QA 修正：noValidate 關掉瀏覽器原生的驗證泡泡（例如 Chrome 的
+      // 「請在電子郵件地址中包含『@』」），避免跟我們自己的紅框錯誤提示
+      // 同時出現、樣式不一致；所有驗證訊息統一走 FormError／欄位下方的紅字。
+      noValidate
+      className="mt-6 flex flex-col gap-4"
+    >
       <input type="hidden" name="redirectTo" value={redirectTo} />
 
       <TextField
         label="暱稱"
         name="displayName"
-        placeholder="你的暱稱"
+        placeholder="你的暱稱（2-20 個字元）"
         autoComplete="nickname"
         value={displayName}
         onChange={(event) => setDisplayName(event.target.value)}
         error={state?.errors?.displayName}
+        // 8.0 QA 決議：暱稱 2-20 個字元。maxLength 只能擋「打太長」，
+        // 下限（至少 2 個字元）跟真正的字數判斷交給送出後的 server action（auth.ts）。
+        maxLength={20}
         required
       />
 
@@ -51,7 +63,7 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
         label="密碼"
         name="password"
         type="password"
-        placeholder="至少 6 碼"
+        placeholder="至少 6 個字元"
         autoComplete="new-password"
         value={password}
         onChange={(event) => setPassword(event.target.value)}
