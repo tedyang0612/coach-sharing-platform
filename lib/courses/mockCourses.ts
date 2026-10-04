@@ -1,9 +1,9 @@
-import type { Course } from "./types";
+import type { CourseBase } from "./types";
 
 // 假資料：Supabase 的 courses 資料表還沒合進 main 前先用這份。
 // 換真資料時不用改這個檔，改 lib/courses/getCourses.ts 即可。
 // 教練的頭像、認證、Tag、評價也是假資料；頭像先全部留空，卡片會顯示姓名首字。
-export const MOCK_COURSES: Course[] = [
+export const MOCK_COURSES: CourseBase[] = [
   {
     id: "c1",
     title: "羽球基礎步法與發球",

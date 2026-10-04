@@ -37,7 +37,10 @@ export default async function CourseDetailPage({
   if (!course) notFound();
 
   const now = new Date();
-  const sessions = course.sessions.map((s) => ({
+  const sessions = course.sessions
+    // 已開始的場次不顯示（和列表一致）
+    .filter((s) => new Date(s.startsAt) > now)
+    .map((s) => ({
     ...s,
     availability: getCourseAvailability(
       {

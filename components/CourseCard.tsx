@@ -98,9 +98,8 @@ export default function CourseCard({ course }: Props) {
       <div className="flex flex-1 flex-col justify-between gap-4 p-5">
         <div>
           <h3 className="line-clamp-2 text-base font-bold text-slate-900 transition-colors group-hover:text-teal-700">
-            {/* 課程詳情頁（學員端）還沒做，等 Ted 的資料層合併後再做；做好之前點下去是 404。
-                只有標題是連結，整張卡片不是，這樣教練名稱的連結才不會巢狀 */}
-            <Link href={`/courses/${course.id}`} className="hover:underline">
+            {/* 只有標題是連結，整張卡片不是，這樣教練名稱的連結才不會巢狀 */}
+            <Link href={`/courses/${course.courseId}`} className="hover:underline">
               {course.title}
             </Link>
           </h3>

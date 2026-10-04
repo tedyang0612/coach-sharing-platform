@@ -8,14 +8,17 @@ export type TimeSlot = "morning" | "afternoon" | "evening";
 // 顯示文案的常數 LEVEL_LABELS 先用自己的，等 Ted 的 PR #19（COURSE_LEVELS）進 main 再對齊。
 export type Level = CourseLevel;
 
+// 列表的一張卡 = 一個場次（PRD v4.6）：同一堂課有多個場次就會有多張卡。
+// 場次專屬的欄位是 id、startsAt、enrolled；其餘是課程本身的資料。
 export interface Course {
-  id: string;
+  id: string; // 場次 id（sessions.id）
+  courseId: string; // 課程 id（courses.id），詳情頁路徑用這個
   title: string;
   sport: string;
   city: string;
   district: string; // 行政區，依場次實際上課地址判斷（對應 courses.district）
   venue: string;
-  startsAt: string; // ISO 8601
+  startsAt: string; // 場次開始時間，ISO 8601
   level: Level;
   // 對應 courses.coach_id（= coach_profiles.id），教練名稱連到 /coaches/{coachId}
   coachId: string;
@@ -31,10 +34,13 @@ export interface Course {
   coachRating: number | null;
   coachReviewCount: number;
   price: number;
-  enrolled: number;
+  enrolled: number; // 該場次的報名人數
   minToOpen: number; // 達到這個人數才開課
   capacity: number;
 }
+
+// 課程層級的假資料（還沒拆成場次）：id 是課程 id，場次由 getCourseDetail 的 buildMockSessions 產生
+export type CourseBase = Omit<Course, "courseId">;
 
 export const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
   morning: "上午（06:00–11:59）",
