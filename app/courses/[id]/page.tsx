@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import CourseQa from "@/components/course/CourseQa";
 import ShareButton from "@/components/share/ShareButton";
 import CourseStatusNotice from "@/components/course/CourseStatusNotice";
 import {
@@ -108,6 +109,8 @@ export default async function CourseDetailPage({
           <p className="text-sm text-slate-500">注意事項：{course.notes}</p>
         )}
       </section>
+
+      <CourseQa items={course.qa} />
 
       <section className="space-y-3">
         <h2 className="font-bold">場次</h2>

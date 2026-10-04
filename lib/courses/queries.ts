@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { CourseLevel, SessionStatus } from "@/types/database";
-import type { Course } from "./types";
+import type { Course, CourseQaItem } from "./types";
 
 // 學員端讀課程與場次（未登入也讀得到：RLS 只開放已發布的課程）。
 // 欄位一律明確列出，不用 select("*")；教練的審核與聯絡欄位不會被帶出來。
@@ -148,6 +148,8 @@ export interface CourseSession {
 export interface CourseDetail extends Course {
   description: string;
   notes: string | null;
+  // TODO: 等 Ted 確認課程 Q&A 的資料來源後，在 getCourseWithSessions 裡帶出；沒有填寫就不顯示
+  qa?: CourseQaItem[];
   address: string;
   status: "published";
   sessions: CourseSession[];

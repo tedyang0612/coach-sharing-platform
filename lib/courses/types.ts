@@ -39,6 +39,12 @@ export interface Course {
   capacity: number;
 }
 
+// 教練填寫的課程 Q&A（一題一答）。資料庫欄位還沒確定（等 Ted 確認存在哪裡），先定好畫面用的形狀
+export interface CourseQaItem {
+  question: string;
+  answer: string;
+}
+
 export const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
   morning: "上午",
   afternoon: "下午",
