@@ -154,6 +154,15 @@ export function parseFilters(params: RawSearchParams): CourseFilters {
   };
 }
 
+// 選初階／中階／進階時，程度為「不限」的課一併列出（初學者也能參加）；
+// 選「不限」只列程度為「不限」的課；沒選＝不篩選。
+function matchesLevel(courseLevel: Level, selected: Level) {
+  return (
+    courseLevel === selected ||
+    (selected !== "unlimited" && courseLevel === "unlimited")
+  );
+}
+
 export function filterCourses(courses: Course[], filters: CourseFilters) {
   const usePrice =
     (filters.priceMin !== undefined || filters.priceMax !== undefined) &&
@@ -186,7 +195,7 @@ export function filterCourses(courses: Course[], filters: CourseFilters) {
       (!useCustomTime ||
         ((!filters.timeFrom || start!.minutes >= toMinutes(filters.timeFrom)) &&
           (!filters.timeTo || start!.minutes <= toMinutes(filters.timeTo)))) &&
-      (!filters.level || course.level === filters.level) &&
+      (!filters.level || matchesLevel(course.level, filters.level)) &&
       (!filters.sport || course.sport === filters.sport) &&
       (!usePrice ||
         ((filters.priceMin === undefined || course.price >= filters.priceMin) &&

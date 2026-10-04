@@ -2,7 +2,7 @@ import type { Course } from "./types";
 
 // ---- 排序方式（網址參數 ?sort=） ----
 
-export type SortMode = "time" | "recommended";
+export type SortMode = "time" | "recommended" | "price";
 
 // 預設排序：PRD 與 Wireframe 的規定不同、團隊尚未定案，暫時維持「依開課時間」。
 // 定案後只要改這一行就能切換。
@@ -11,11 +11,14 @@ export const DEFAULT_SORT: SortMode = "time";
 export const SORT_LABELS: Record<SortMode, string> = {
   time: "依開課時間",
   recommended: "推薦排序",
+  price: "價格低到高",
 };
 
 export function parseSort(value: string | string[] | undefined): SortMode {
   const raw = Array.isArray(value) ? value[0] : value;
-  return raw === "time" || raw === "recommended" ? raw : DEFAULT_SORT;
+  return raw === "time" || raw === "recommended" || raw === "price"
+    ? raw
+    : DEFAULT_SORT;
 }
 
 // ---- 排序用的純函式（不碰畫面、不碰網址，方便驗證） ----
@@ -41,6 +44,11 @@ export function sortByStartTime(courses: Course[]): Course[] {
   return [...courses].sort(byStartThenId);
 }
 
+// 價格由低到高；同價就開課時間近的在前，再用 id 固定順序
+export function sortByPrice(courses: Course[]): Course[] {
+  return [...courses].sort((a, b) => a.price - b.price || byStartThenId(a, b));
+}
+
 // 推薦排序（目標是提升開課成功率）。分三組，依序排列：
 //   1. 未達最低開課人數：全部排在已達開課人數之前。差距少的在前 → 開課時間近的在前
 //   2. 已達最低開課人數、仍可報名：開課時間近的在前
@@ -62,5 +70,7 @@ export function sortRecommended(courses: Course[]): Course[] {
 
 // 入口：依排序方式排好（不修改傳入的陣列）
 export function sortCourses(courses: Course[], mode: SortMode): Course[] {
-  return mode === "recommended" ? sortRecommended(courses) : sortByStartTime(courses);
+  if (mode === "recommended") return sortRecommended(courses);
+  if (mode === "price") return sortByPrice(courses);
+  return sortByStartTime(courses);
 }
