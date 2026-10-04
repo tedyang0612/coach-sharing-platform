@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { loginHref } from "@/lib/courses/loginHref";
 import { LEVEL_LABELS, type Course } from "@/lib/courses/types";
 
 // 例如「10/10（六） 19:00–20:00」；日期與時間分開組字串，避免 Node 與瀏覽器的 Intl 空白不同
@@ -45,10 +44,9 @@ const MAX_VISIBLE_TAGS = 3;
 
 interface Props {
   course: Course;
-  loggedIn: boolean;
 }
 
-export default function CourseCard({ course, loggedIn }: Props) {
+export default function CourseCard({ course }: Props) {
   const isConfirmed = course.enrolled >= course.minToOpen;
   const isFull = course.enrolled >= course.capacity;
   const progressPercent = Math.min(
@@ -166,27 +164,9 @@ export default function CourseCard({ course, loggedIn }: Props) {
                 NT$ {course.price.toLocaleString()}
               </span>
             </div>
-            {/* 報名要選場次，所以已登入時帶到詳情頁；未登入先導向登入頁，登入後回到詳情頁。
-                TODO: 報名動作與判斷等 Ted 的 PR #21 進 main 再接 */}
-            {isFull ? (
-              <button
-                type="button"
-                disabled
-                className="cursor-not-allowed rounded-xl bg-slate-200 px-4 py-2 text-xs font-bold text-slate-400"
-              >
-                已額滿
-              </button>
-            ) : (
-              <Link
-                href={
-                  loggedIn
-                    ? `/courses/${course.courseId}`
-                    : loginHref(`/courses/${course.courseId}`)
-                }
-                className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white hover:bg-teal-700"
-              >
-                報名
-              </Link>
+            {/* 列表卡片不放報名按鈕（QA／UI 決定），報名在課程詳情頁選場次；額滿只留文字提示 */}
+            {isFull && (
+              <span className="text-xs font-bold text-slate-400">已額滿</span>
             )}
           </div>
         </div>

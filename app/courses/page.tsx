@@ -4,7 +4,6 @@ import CourseFilters from "@/components/CourseFilters";
 import SortSelect from "@/components/SortSelect";
 import { filterCourses, parseFilters } from "@/lib/courses/filterCourses";
 import { getCourses } from "@/lib/courses/getCourses";
-import { isLoggedIn } from "@/lib/courses/queries";
 import { getDistricts } from "@/lib/courses/getDistricts";
 import { buildRegionOptions, deriveRegionOptions } from "@/lib/courses/regions";
 import { parseSort, sortCourses } from "@/lib/courses/sort";
@@ -19,7 +18,7 @@ export default async function CoursesPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const [allCourses, loggedIn] = await Promise.all([getCourses(), isLoggedIn()]);
+  const allCourses = await getCourses();
   const params = await searchParams;
   const parsed = parseFilters(params);
   const sort = parseSort(params.sort);
@@ -72,7 +71,7 @@ export default async function CoursesPage({
       ) : (
         <div className="mt-3 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {courses.map((course) => (
-            <CourseCard key={course.id} course={course} loggedIn={loggedIn} />
+            <CourseCard key={course.id} course={course} />
           ))}
         </div>
       )}
