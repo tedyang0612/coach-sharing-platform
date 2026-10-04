@@ -40,9 +40,9 @@ export interface Course {
 }
 
 export const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
-  morning: "上午（06:00–11:59）",
-  afternoon: "下午（12:00–17:59）",
-  evening: "晚上（18:00–23:59）",
+  morning: "上午",
+  afternoon: "下午",
+  evening: "晚上",
 };
 
 // 快速時段的範圍，單位是「當天的第幾分鐘」，頭尾都含（上午 0600–1159）

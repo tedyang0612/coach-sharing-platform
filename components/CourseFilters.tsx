@@ -133,6 +133,13 @@ function PriceInputs({
   );
 }
 
+// 日期欄位鎖住今天以前的日子（QA）；用台灣時區的今天，格式 YYYY-MM-DD
+function todayTaipei() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei" }).format(
+    new Date(),
+  );
+}
+
 // 篩選用的 Chip：原生 radio／checkbox 加樣式，單選、複選與鍵盤操作都不用另外寫。
 // label 要 relative：隱藏用的 sr-only 輸入框是絕對定位，不加的話手機上會撐寬整頁
 function Chip({
@@ -203,7 +210,8 @@ export default function CourseFilters({
           桌面直接展開；手機單列橫向捲動，不縮小字級。用原生 radio，單選與方向鍵切換都不用自己寫 */}
       {/* fieldset 預設的最小寬度是內容寬度，不加 min-w-0 的話手機上整頁會被晶片列撐寬 */}
       <fieldset className="min-w-0">
-        <legend className="mb-2 text-sm font-medium">運動種類</legend>
+        {/* 畫面上不顯示標題（QA），保留給螢幕報讀器 */}
+        <legend className="sr-only">運動種類</legend>
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0">
           {[
             { value: "", label: "全部" },
@@ -311,9 +319,10 @@ export default function CourseFilters({
         >
           <div className="space-y-2 text-sm">
             <label className="block font-medium">
-              日期
+              開始日期
               <input
                 type="date"
+                min={todayTaipei()}
                 value={value.date ?? ""}
                 onChange={(e) =>
                   navigate({ ...value, date: e.target.value || undefined })
@@ -322,9 +331,10 @@ export default function CourseFilters({
               />
             </label>
             <label className="block font-medium">
-              到（選填，填了就是日期區間）
+              結束日期（選填）
               <input
                 type="date"
+                min={value.date || todayTaipei()}
                 value={value.dateTo ?? ""}
                 onChange={(e) =>
                   navigate({ ...value, dateTo: e.target.value || undefined })

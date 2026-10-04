@@ -60,7 +60,7 @@ export default async function CoursesPage({
       {courses.length === 0 ? (
         <div className="mt-3 flex flex-col items-center gap-4 rounded-2xl border border-dashed border-neutral-300 px-4 py-16 text-center">
           <p className="text-lg font-medium">
-            附近目前暫無符合課程，試試擴大搜尋範圍或切換時段
+            目前沒有符合條件的課程，試試其他日期或地區
           </p>
           <Link
             href="/courses"
