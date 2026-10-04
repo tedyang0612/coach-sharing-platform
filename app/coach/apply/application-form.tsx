@@ -45,6 +45,8 @@ export type ExistingApplication = {
   nickname: string;
   rejectionReason: string | null;
   photoUrl: string;
+  // 生活／運動照片是後來才加的欄位，較早送出的申請可能沒有
+  lifestylePhotoUrl: string | null;
   // 良民證原檔審核完 7 天會被清掉，清掉後要重新上傳
   hasCriminalRecord: boolean;
   sportCategories: string[];
@@ -96,6 +98,7 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
   const [realName, setRealName] = useState(existing?.realName ?? "");
   const [nickname, setNickname] = useState(existing?.nickname ?? defaultNickname ?? "");
   const [photo, setPhoto] = useState<File | null>(null);
+  const [lifestylePhoto, setLifestylePhoto] = useState<File | null>(null);
   const [sportCategories, setSportCategories] = useState<string[]>(
     existing?.sportCategories ?? []
   );
@@ -131,6 +134,7 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
     realName,
     nickname,
     hasPhoto: photo !== null || Boolean(existing?.photoUrl),
+    hasLifestylePhoto: lifestylePhoto !== null || Boolean(existing?.lifestylePhotoUrl),
     hasCriminalRecord: criminalRecord !== null || Boolean(existing?.hasCriminalRecord),
     sportCategories,
     tags,
@@ -162,6 +166,9 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
         const photoPath = photo
           ? await uploadCoachFile(COACH_PHOTO_BUCKET, userId, "photo", photo)
           : "";
+        const lifestylePhotoPath = lifestylePhoto
+          ? await uploadCoachFile(COACH_PHOTO_BUCKET, userId, "lifestyle", lifestylePhoto)
+          : "";
         const criminalRecordPath = criminalRecord
           ? await uploadCoachFile(COACH_DOCUMENT_BUCKET, userId, "criminal-record", criminalRecord)
           : "";
@@ -180,6 +187,7 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
           realName,
           nickname,
           photoPath,
+          lifestylePhotoPath,
           criminalRecordPath,
           sportCategories,
           tags,
@@ -251,17 +259,33 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
         description="審核通過後會公開顯示在你的教練個人檔案，請勿填寫電話、Email、LINE ID 或網址。"
       >
         <FileField
-          label="個人照片＊"
+          label="大頭貼＊"
           name="photo"
           kind="photo"
+          hint="會以圓形顯示在課程卡片與個人檔案，請選臉部清楚的照片。"
+          previewShape="circle"
           file={photo}
           onChange={setPhoto}
           existing={
             existing?.photoUrl
-              ? { label: "沿用先前上傳的照片", imageUrl: existing.photoUrl }
+              ? { label: "沿用先前上傳的大頭貼", imageUrl: existing.photoUrl }
               : undefined
           }
           error={errors.photo}
+        />
+        <FileField
+          label="生活／運動照片＊"
+          name="lifestylePhoto"
+          kind="photo"
+          hint="一張能看出你教學或運動樣子的照片，會顯示在推薦教練與個人檔案。"
+          file={lifestylePhoto}
+          onChange={setLifestylePhoto}
+          existing={
+            existing?.lifestylePhotoUrl
+              ? { label: "沿用先前上傳的照片", imageUrl: existing.lifestylePhotoUrl }
+              : undefined
+          }
+          error={errors.lifestylePhoto}
         />
 
         <SportPicker

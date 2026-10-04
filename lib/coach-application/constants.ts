@@ -88,7 +88,7 @@ export const LICENSE_SUGGESTION_GROUPS = [
 export const LICENSE_SUGGESTIONS: readonly string[] =
   LICENSE_SUGGESTION_GROUPS.flatMap((group) => [...group.names]);
 
-// 上傳檔案限制：單檔 5MB；個人照片只收圖片，良民證與證照另外可收 PDF。
+// 上傳檔案限制：單檔 5MB；大頭貼與生活／運動照片只收圖片，良民證與證照另外可收 PDF。
 export const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 export const PHOTO_MIME_TYPES = ["image/jpeg", "image/png"] as const;
 export const DOCUMENT_MIME_TYPES = [

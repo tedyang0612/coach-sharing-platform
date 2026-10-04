@@ -22,6 +22,7 @@ export type CoachApplicationInput = {
 
   // 檔案本身另外用 validateUploadFile() 檢查，這裡只看「有沒有」
   hasPhoto: boolean;
+  hasLifestylePhoto: boolean;
   hasCriminalRecord: boolean;
 
   sportCategories: string[];
@@ -44,6 +45,7 @@ export type CoachApplicationErrors = {
   realName?: string;
   nickname?: string;
   photo?: string;
+  lifestylePhoto?: string;
   sportCategories?: string;
   tags?: string;
   // education 是整體錯誤（例如一筆都沒填）；educationItems 的 key 是學歷在清單裡的位置
@@ -130,7 +132,8 @@ export function validateCoachApplication(
   if (nameErrors.realName) errors.realName = nameErrors.realName;
   if (nameErrors.nickname) errors.nickname = nameErrors.nickname;
 
-  if (!input.hasPhoto) errors.photo = "請上傳個人照片";
+  if (!input.hasPhoto) errors.photo = "請上傳大頭貼";
+  if (!input.hasLifestylePhoto) errors.lifestylePhoto = "請上傳生活／運動照片";
 
   if (input.sportCategories.length === 0) {
     errors.sportCategories = "請至少選擇一項運動類別";
@@ -215,7 +218,7 @@ export function validateUploadFile(
     kind === "photo" ? PHOTO_MIME_TYPES : DOCUMENT_MIME_TYPES;
   if (!allowed.includes(file.type)) {
     return kind === "photo"
-      ? "個人照片只接受 JPG 或 PNG 檔"
+      ? "照片只接受 JPG 或 PNG 檔"
       : "只接受 JPG、PNG 或 PDF 檔";
   }
   if (file.size > MAX_FILE_SIZE_BYTES) return "檔案大小不能超過 5MB";

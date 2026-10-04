@@ -65,6 +65,7 @@ export default async function CoachApplyPage() {
             ? application.display_name
             : "",
         photoUrl: application.photo_url,
+        lifestylePhotoUrl: application.lifestyle_photo_url ?? null,
         hasCriminalRecord:
           Boolean(application.criminal_record_url) && !application.criminal_record_deleted,
         sportCategories: application.sport_categories ?? [],
