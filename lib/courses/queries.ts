@@ -44,7 +44,6 @@ interface RawSession {
 interface RawCoach {
   id: string;
   display_name: string;
-  photo_url: string | null;
   is_verified: boolean;
   tags: string[] | null;
   avg_rating: number | null;
@@ -61,7 +60,7 @@ async function fetchCoaches(supabase: SupabaseServerClient, ids: string[]) {
   // 教練名稱用 coach_profiles.display_name（暱稱優先），不要用 profiles.display_name
   const { data, error } = await supabase
     .from("coach_profiles")
-    .select("id, display_name, photo_url, is_verified, tags, avg_rating, review_count")
+    .select("id, display_name, is_verified, tags, avg_rating, review_count")
     .in("id", ids);
   // 讀不到教練資料時課程仍要能顯示（名稱會是空白），但要留下紀錄才知道是權限還是欄位的問題
   if (error) console.error("讀取教練資料失敗：", error.message);
@@ -100,10 +99,10 @@ function toCourseCard(
     district: c.districts?.district ?? "",
     venue: c.location_name,
     startsAt: s.start_at,
+    endsAt: s.end_at,
     level: c.level,
     coachId: c.coach_id,
     coachName: coach?.display_name ?? "",
-    coachPhotoUrl: coach?.photo_url || null,
     coachVerified: coach?.is_verified ?? false,
     coachTags: coach?.tags ?? [],
     coachRating: coach?.avg_rating ?? null,

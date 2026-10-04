@@ -2,40 +2,22 @@ import Link from "next/link";
 import { loginHref } from "@/lib/courses/loginHref";
 import { LEVEL_LABELS, type Course } from "@/lib/courses/types";
 
-function formatDateTime(iso: string) {
-  return new Intl.DateTimeFormat("zh-TW", {
+// 例如「10/10（六） 19:00–20:00」；日期與時間分開組字串，避免 Node 與瀏覽器的 Intl 空白不同
+function formatSchedule(startIso: string, endIso: string) {
+  const date = new Intl.DateTimeFormat("zh-TW", {
     month: "numeric",
     day: "numeric",
     weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
     timeZone: "Asia/Taipei",
-  }).format(new Date(iso));
-}
-
-// 頭像網址來自 Supabase Storage（外部網域），next.config.ts 還沒設定圖片網域，
-// 所以先用一般 <img>；沒有頭像時顯示姓名首字。
-function CoachAvatar({ name, photoUrl }: { name: string; photoUrl: string | null }) {
-  if (photoUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={photoUrl}
-        alt={name}
-        loading="lazy"
-        className="h-7 w-7 rounded-full object-cover"
-      />
-    );
-  }
-  return (
-    <span
-      aria-hidden="true"
-      className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-100 text-xs font-bold text-teal-700"
-    >
-      {Array.from(name)[0]}
-    </span>
-  );
+  }).format(new Date(startIso));
+  const time = (iso: string) =>
+    new Intl.DateTimeFormat("zh-TW", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Taipei",
+    }).format(new Date(iso));
+  return `${date} ${time(startIso)}–${time(endIso)}`;
 }
 
 // 「已認證」只留圖示（UI 討論結論）。這是暫時的圖示；
@@ -82,6 +64,9 @@ export default function CourseCard({ course, loggedIn }: Props) {
           <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-800 shadow-sm backdrop-blur-md">
             {course.sport}
           </span>
+          <span className="rounded-full bg-slate-900/80 px-3 py-1 text-xs font-bold text-white shadow-sm backdrop-blur-md">
+            {LEVEL_LABELS[course.level]}
+          </span>
           <span
             className={`rounded-full px-3 py-1 text-xs font-bold text-white shadow-sm ${
               isConfirmed ? "bg-emerald-500" : "bg-orange-500"
@@ -91,9 +76,6 @@ export default function CourseCard({ course, loggedIn }: Props) {
               ? "✅ 已達開課人數"
               : `🔥 差 ${course.minToOpen - course.enrolled} 人開課`}
           </span>
-        </div>
-        <div className="absolute bottom-3 right-3 rounded-lg bg-slate-900/80 px-2.5 py-1 text-xs text-white backdrop-blur-md">
-          {LEVEL_LABELS[course.level]}
         </div>
       </div>
 
@@ -106,20 +88,16 @@ export default function CourseCard({ course, loggedIn }: Props) {
             </Link>
           </h3>
           <p className="mt-2 text-xs text-slate-500">
-            📍 {course.city}・{course.venue}
+            📍 {course.city}{course.district} {course.venue}
           </p>
           <p className="mt-1 text-xs text-slate-500">
-            📅 {formatDateTime(course.startsAt)}
+            📅 {formatSchedule(course.startsAt, course.endsAt)}
           </p>
         </div>
 
         <div className="space-y-3 border-t border-slate-100 pt-3">
           <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
             <div className="flex min-w-0 items-center gap-2">
-              <CoachAvatar
-                name={course.coachName}
-                photoUrl={course.coachPhotoUrl}
-              />
               {/* 卡片本身不是連結，所以教練名稱可以直接放連結（連結不能巢狀） */}
               <Link
                 href={`/coaches/${course.coachId}`}
@@ -184,7 +162,6 @@ export default function CourseCard({ course, loggedIn }: Props) {
 
           <div className="flex items-center justify-between pt-1">
             <div>
-              <span className="text-xs text-slate-400">固定每人 </span>
               <span className="text-lg font-black text-teal-600">
                 NT$ {course.price.toLocaleString()}
               </span>
