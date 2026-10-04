@@ -16,6 +16,7 @@ export type CoachApplicationPayload = {
   nickname: string;
   // 重新送審時留空字串代表沿用先前上傳的檔案
   photoPath: string;
+  lifestylePhotoPath: string;
   criminalRecordPath: string;
   sportCategories: string[];
   tags: string[];
@@ -81,6 +82,8 @@ export async function submitCoachApplication(
     realName: payload.realName,
     nickname: payload.nickname,
     hasPhoto: payload.photoPath !== "" || Boolean(current?.photo_url),
+    hasLifestylePhoto:
+      payload.lifestylePhotoPath !== "" || Boolean(current?.lifestyle_photo_url),
     hasCriminalRecord: payload.criminalRecordPath !== "" || keepsCriminalRecord,
     sportCategories: payload.sportCategories,
     tags: payload.tags,
@@ -103,6 +106,7 @@ export async function submitCoachApplication(
 
   const newPaths = [
     payload.photoPath,
+    payload.lifestylePhotoPath,
     payload.criminalRecordPath,
     ...payload.licenses.map((license) => license.filePath),
   ].filter((path) => path !== "");
@@ -127,10 +131,15 @@ export async function submitCoachApplication(
     // contact_email 不再由表單填寫（Email 一律用註冊帳號的信箱），固定清空
     contact_email: null,
     contact_social: emptyToNull(payload.contactSocial),
-    // 個人照片是公開 bucket，存可以直接顯示的網址；良民證與證照是私有 bucket，只存路徑
+    // 大頭貼與生活／運動照片是公開 bucket，存可以直接顯示的網址；良民證與證照是私有 bucket，只存路徑
     ...(payload.photoPath && {
       photo_url: supabase.storage.from(COACH_PHOTO_BUCKET).getPublicUrl(payload.photoPath).data
         .publicUrl,
+    }),
+    ...(payload.lifestylePhotoPath && {
+      lifestyle_photo_url: supabase.storage
+        .from(COACH_PHOTO_BUCKET)
+        .getPublicUrl(payload.lifestylePhotoPath).data.publicUrl,
     }),
     ...(payload.criminalRecordPath && {
       criminal_record_url: payload.criminalRecordPath,
