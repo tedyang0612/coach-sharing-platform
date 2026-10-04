@@ -29,18 +29,6 @@ interface Props {
   sort: SortMode;
 }
 
-// 星期與快速時段的顯示文字（下拉按鈕和「已套用條件」標籤共用）
-function weekdaysLabel(weekdays: number[] | undefined) {
-  if (!weekdays?.length) return undefined;
-  const [first, ...rest] = weekdays;
-  return `星期${WEEKDAY_LABELS[first]}${rest.map((day) => `＋${WEEKDAY_LABELS[day]}`).join("")}`;
-}
-
-function slotsLabel(slots: TimeSlot[] | undefined) {
-  if (!slots?.length) return undefined;
-  return slots.map((slot) => TIME_SLOT_LABELS[slot].split("（")[0]).join("＋");
-}
-
 // 指定時間的下拉選項：每 30 分鐘一個；網址帶了不在清單內的時間時，補進去才不會顯示成空白
 function timeOptions(current: string | undefined) {
   const options = Array.from({ length: 48 }, (_, i) => {
@@ -82,34 +70,6 @@ function PanelOption({
   );
 }
 
-// 「2026-10-20」→「10/20」
-function shortDate(date: string) {
-  return `${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}`;
-}
-
-// 點「已套用條件」的標籤時，打開對應的膠囊面板並把焦點放上去
-function openPill(id: string) {
-  const summary = document.getElementById(id);
-  const details = summary?.closest("details");
-  if (details) details.open = true;
-  summary?.scrollIntoView({ block: "center", behavior: "smooth" });
-  summary?.focus({ preventScroll: true });
-}
-
-interface AppliedTag {
-  key: string;
-  label: string;
-  jumpTo: () => void;
-  remove: () => void;
-}
-
-// 點「已套用條件」的標籤時，捲到對應的篩選器並把焦點放上去
-function focusControl(selector: string) {
-  const el = document.querySelector<HTMLElement>(selector);
-  el?.scrollIntoView({ block: "center", behavior: "smooth" });
-  el?.focus({ preventScroll: true });
-}
-
 // 篩選用的 Chip：原生 radio／checkbox 加樣式，單選、複選與鍵盤操作都不用另外寫。
 // label 要 relative：隱藏用的 sr-only 輸入框是絕對定位，不加的話手機上會撐寬整頁
 function Chip({
@@ -119,6 +79,7 @@ function Chip({
   checked,
   onChange,
   title,
+  large,
   children,
 }: {
   type: "radio" | "checkbox";
@@ -127,10 +88,15 @@ function Chip({
   checked: boolean;
   onChange: () => void;
   title?: string;
+  // 桌面版字放大並平均撐滿整排（運動種類晶片用）；手機維持原尺寸
+  large?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <label className="relative shrink-0 cursor-pointer" title={title}>
+    <label
+      className={`relative shrink-0 cursor-pointer${large ? " md:flex-1" : ""}`}
+      title={title}
+    >
       <input
         type={type}
         name={name}
@@ -139,7 +105,7 @@ function Chip({
         onChange={onChange}
         className="peer sr-only"
       />
-      <span className="block whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-1.5 text-sm font-medium text-neutral-700 transition peer-checked:border-teal-600 peer-checked:bg-teal-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-teal-600 peer-focus-visible:ring-offset-2 hover:border-teal-400">
+      <span className={`block whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-1.5 text-sm font-medium${large ? " md:px-4 md:py-1.5 md:text-center md:text-base" : ""} text-neutral-700 transition peer-checked:border-teal-600 peer-checked:bg-teal-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-teal-600 peer-focus-visible:ring-offset-2 hover:border-teal-400`}>
         {children}
       </span>
     </label>
@@ -168,94 +134,6 @@ export default function CourseFilters({
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }
 
-  // 已套用條件：每個條件一個標籤，點標籤跳到對應的篩選器修改，點 ✕ 移除。
-  // 地點標籤移除時先清行政區，再按一次才清縣市。
-  const appliedTags: AppliedTag[] = [];
-  if (value.sport) {
-    appliedTags.push({
-      key: "sport",
-      label: value.sport,
-      jumpTo: () => focusControl('input[name="sport"]:checked'),
-      remove: () => navigate({ ...value, sport: undefined }),
-    });
-  }
-  if (value.city) {
-    appliedTags.push({
-      key: "city",
-      label: value.district ? `${value.city}・${value.district}` : value.city,
-      jumpTo: () => openPill("filter-region"),
-      remove: () =>
-        navigate(
-          value.district
-            ? { ...value, district: undefined }
-            : { ...value, city: undefined },
-        ),
-    });
-  }
-  const dateApplied = (value.date || value.dateTo) && !isDateRangeInvalid(value);
-  if (dateApplied) {
-    appliedTags.push({
-      key: "date",
-      label:
-        value.date && value.dateTo
-          ? `${shortDate(value.date)}–${shortDate(value.dateTo)}`
-          : value.date
-            ? shortDate(value.date)
-            : `${shortDate(value.dateTo!)} 之前`,
-      jumpTo: () => openPill("filter-date"),
-      remove: () => navigate({ ...value, date: undefined, dateTo: undefined }),
-    });
-  }
-  if (value.weekdays?.length) {
-    appliedTags.push({
-      key: "weekdays",
-      label: weekdaysLabel(value.weekdays) ?? "",
-      jumpTo: () => openPill("filter-weekdays"),
-      remove: () => navigate({ ...value, weekdays: undefined }),
-    });
-  }
-  const customTimeApplied =
-    (value.timeFrom || value.timeTo) && !isTimeRangeInvalid(value);
-  if (value.timeSlots?.length) {
-    appliedTags.push({
-      key: "slots",
-      label: slotsLabel(value.timeSlots) ?? "",
-      jumpTo: () => openPill("filter-slots"),
-      remove: () => navigate({ ...value, timeSlots: undefined }),
-    });
-  } else if (customTimeApplied) {
-    appliedTags.push({
-      key: "time",
-      label:
-        value.timeFrom && value.timeTo
-          ? `${value.timeFrom}–${value.timeTo}`
-          : value.timeFrom
-            ? `${value.timeFrom} 之後`
-            : `${value.timeTo} 之前`,
-      jumpTo: () => openPill("filter-time"),
-      remove: () =>
-        navigate({ ...value, timeFrom: undefined, timeTo: undefined }),
-    });
-  }
-  if (value.priceRange) {
-    const range = PRICE_RANGES.find((r) => r.id === value.priceRange);
-    if (range) {
-      appliedTags.push({
-        key: "price",
-        label: range.label,
-        jumpTo: () => openPill("filter-price"),
-        remove: () => navigate({ ...value, priceRange: undefined }),
-      });
-    }
-  }
-  if (value.level) {
-    appliedTags.push({
-      key: "level",
-      label: LEVEL_LABELS[value.level],
-      jumpTo: () => openPill("filter-level"),
-      remove: () => navigate({ ...value, level: undefined }),
-    });
-  }
   return (
     <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-4">
       {/* 運動種類是最高層級的搜尋條件：單選 Chips 放在其他篩選上面。
@@ -272,6 +150,7 @@ export default function CourseFilters({
               key={chip.value || "all"}
               type="radio"
               name="sport"
+              large
               value={chip.value}
               checked={(value.sport ?? "") === chip.value}
               onChange={() =>
@@ -285,7 +164,13 @@ export default function CourseFilters({
       </fieldset>
 
       {/* 第二排：膠囊下拉（地區、日期、星期、時段、程度、指定時段、價格區間），點開是面板 */}
-      <div className="flex flex-wrap gap-2" role="group" aria-label="篩選條件">
+      {/* 手機單列橫向捲動（和運動晶片一致）。面板在手機是 fixed 定位，不會被捲動容器裁掉；
+          sm 以上面板是 absolute，所以桌面維持換行 */}
+      <div
+        className="flex gap-2 max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4 max-sm:pb-1 sm:flex-wrap"
+        role="group"
+        aria-label="篩選條件"
+      >
         <FilterPill
           id="filter-region"
           label="地區"
@@ -539,37 +424,6 @@ export default function CourseFilters({
           ))}
         </FilterPill>
       </div>
-
-      {appliedTags.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3 text-sm">
-          <span className="font-medium text-neutral-700">已套用條件</span>
-          <ul className="flex flex-wrap gap-2">
-            {appliedTags.map((tag) => (
-              <li
-                key={tag.key}
-                className="inline-flex items-center rounded-full border border-teal-200 bg-teal-50 text-teal-800"
-              >
-                <button
-                  type="button"
-                  onClick={tag.jumpTo}
-                  aria-label={`修改條件：${tag.label}`}
-                  className="rounded-l-full py-1 pl-3 pr-1.5 hover:underline"
-                >
-                  {tag.label}
-                </button>
-                <button
-                  type="button"
-                  onClick={tag.remove}
-                  aria-label={`移除條件：${tag.label}`}
-                  className="rounded-r-full py-1 pl-1 pr-2.5 text-teal-600 hover:text-teal-900"
-                >
-                  <span aria-hidden="true">✕</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
       {/* 程度的面板裡沒有一次清掉全部的按鈕，所以有任何條件時都要能一次清掉 */}
       {hasActiveFilters(value) && (

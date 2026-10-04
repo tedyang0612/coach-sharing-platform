@@ -48,7 +48,7 @@ export default function FilterPill({
   }, []);
 
   return (
-    <details ref={ref} className="relative">
+    <details ref={ref} className="relative shrink-0">
       <summary
         id={id}
         className={`flex cursor-pointer list-none items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition [&::-webkit-details-marker]:hidden ${
