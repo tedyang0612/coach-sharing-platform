@@ -19,6 +19,8 @@ type FileFieldProps = {
   onChange: (file: File | null) => void;
   // 補件重送時：先前已上傳、這次沒有重選就沿用的檔案
   existing?: { label: string; imageUrl?: string };
+  // 縮圖形狀：大頭貼用圓形，讓教練看到實際顯示時的裁切範圍
+  previewShape?: "circle" | "rounded";
   error?: string;
 };
 
@@ -39,8 +41,12 @@ export function FileField({
   file,
   onChange,
   existing,
+  previewShape = "rounded",
   error,
 }: FileFieldProps) {
+  const previewClass = `h-14 w-14 shrink-0 object-cover ${
+    previewShape === "circle" ? "rounded-full" : "rounded-lg"
+  }`;
   const [rejectMessage, setRejectMessage] = useState<string>();
   const [preview, setPreview] = useState<{ file: File; url: string }>();
 
@@ -86,7 +92,7 @@ export function FileField({
             <img
               src={previewUrl}
               alt=""
-              className="h-14 w-14 shrink-0 rounded-lg object-cover"
+              className={previewClass}
             />
           )}
           <div className="min-w-0 flex-1">
@@ -109,7 +115,7 @@ export function FileField({
             <img
               src={existing.imageUrl}
               alt=""
-              className="h-14 w-14 shrink-0 rounded-lg object-cover"
+              className={previewClass}
             />
           )}
           <p className="min-w-0 flex-1 text-sm text-neutral-700">{existing.label}</p>
