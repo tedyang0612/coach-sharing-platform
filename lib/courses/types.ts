@@ -96,17 +96,3 @@ export const SPORT_CHIP_ORDER = [
   "抱石",
   "跑酷",
 ] as const satisfies readonly Sport[];
-
-// 每人費用區間（NT$）。min / max 都是含邊界；沒寫代表沒有下限／上限。
-export interface PriceRange {
-  id: string;
-  label: string;
-  min?: number;
-  max?: number;
-}
-
-export const PRICE_RANGES: PriceRange[] = [
-  { id: "under-500", label: "NT$ 500 以下", max: 500 },
-  { id: "501-800", label: "NT$ 501–800", min: 501, max: 800 },
-  { id: "over-800", label: "NT$ 801 以上", min: 801 },
-];

@@ -1,11 +1,13 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import FilterPill from "@/components/FilterPill";
 import {
   filtersToQuery,
   hasActiveFilters,
   isDateRangeInvalid,
+  isPriceRangeInvalid,
   isTimeRangeInvalid,
   type CourseFilters as Filters,
 } from "@/lib/courses/filterCourses";
@@ -13,7 +15,6 @@ import type { SortMode } from "@/lib/courses/sort";
 import {
   FILTER_LEVELS,
   LEVEL_LABELS,
-  PRICE_RANGES,
   SPORT_CHIP_ORDER,
   TIME_SLOT_LABELS,
   type TimeSlot,
@@ -67,6 +68,68 @@ function PanelOption({
       />
       {children}
     </label>
+  );
+}
+
+// 最低、最高價輸入框。打字時只改本地的草稿，離開輸入框或按 Enter 才更新網址，
+// 否則每打一個字就會重新查詢、輸入框也會失去焦點。
+function PriceInputs({
+  min,
+  max,
+  onCommit,
+}: {
+  min: number | undefined;
+  max: number | undefined;
+  onCommit: (min: number | undefined, max: number | undefined) => void;
+}) {
+  const [draftMin, setDraftMin] = useState(min?.toString() ?? "");
+  const [draftMax, setDraftMax] = useState(max?.toString() ?? "");
+
+  // 只收數字；空白代表不設限
+  function toPrice(text: string) {
+    return /^\d+$/.test(text) ? Number(text) : undefined;
+  }
+  function commit() {
+    const nextMin = toPrice(draftMin);
+    const nextMax = toPrice(draftMax);
+    if (nextMin !== min || nextMax !== max) onCommit(nextMin, nextMax);
+  }
+  function commitOnEnter(e: React.KeyboardEvent) {
+    if (e.key === "Enter") commit();
+  }
+  const inputClass =
+    "w-24 rounded-xl border border-neutral-300 bg-white px-3 py-2 font-normal";
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <label className="flex items-center gap-1">
+        最低 NT$
+        <input
+          id="filter-price-min"
+          type="text"
+          inputMode="numeric"
+          value={draftMin}
+          onChange={(e) => setDraftMin(e.target.value.replace(/\D/g, ""))}
+          onBlur={commit}
+          onKeyDown={commitOnEnter}
+          className={inputClass}
+        />
+      </label>
+      <span aria-hidden="true">～</span>
+      <label className="flex items-center gap-1">
+        最高 NT$
+        <input
+          id="filter-price-max"
+          type="text"
+          inputMode="numeric"
+          value={draftMax}
+          onChange={(e) => setDraftMax(e.target.value.replace(/\D/g, ""))}
+          onBlur={commit}
+          onKeyDown={commitOnEnter}
+          className={inputClass}
+        />
+      </label>
+    </div>
   );
 }
 
@@ -408,20 +471,28 @@ export default function CourseFilters({
         <FilterPill
           id="filter-price"
           label="價格區間"
-          active={Boolean(value.priceRange)}
-          onClear={() => navigate({ ...value, priceRange: undefined })}
+          active={value.priceMin !== undefined || value.priceMax !== undefined}
+          onClear={() =>
+            navigate({ ...value, priceMin: undefined, priceMax: undefined })
+          }
         >
-          {PRICE_RANGES.map((range) => (
-            <PanelOption
-              key={range.id}
-              type="radio"
-              name="price"
-              checked={value.priceRange === range.id}
-              onChange={() => navigate({ ...value, priceRange: range.id })}
-            >
-              {range.label}
-            </PanelOption>
-          ))}
+          <div className="space-y-2 text-sm">
+            <p className="font-medium">每人費用（自己輸入）</p>
+            {/* 換條件或清除後網址的值會變，用 key 讓輸入框跟著重設 */}
+            <PriceInputs
+              key={`${value.priceMin ?? ""}-${value.priceMax ?? ""}`}
+              min={value.priceMin}
+              max={value.priceMax}
+              onCommit={(priceMin, priceMax) =>
+                navigate({ ...value, priceMin, priceMax })
+              }
+            />
+            {isPriceRangeInvalid(value) && (
+              <p className="text-xs text-orange-600">
+                最高價要大於或等於最低價，目前沒有套用價格區間。
+              </p>
+            )}
+          </div>
         </FilterPill>
       </div>
 

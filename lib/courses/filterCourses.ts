@@ -1,6 +1,5 @@
 import {
   FILTER_LEVELS,
-  PRICE_RANGES,
   SPORTS,
   TIME_SLOT_LABELS,
   TIME_SLOT_RANGES,
@@ -22,7 +21,8 @@ export interface CourseFilters {
   timeTo?: string; // 指定時間的結束，"HH:MM"
   level?: Level;
   sport?: string;
-  priceRange?: string; // PRICE_RANGES 的 id
+  priceMin?: number; // 每人費用下限（NT$，含），自己輸入
+  priceMax?: number; // 每人費用上限（NT$，含）
 }
 
 type RawSearchParams = { [key: string]: string | string[] | undefined };
@@ -88,6 +88,21 @@ export function isDateRangeInvalid(filters: CourseFilters) {
   return Boolean(filters.date && filters.dateTo && filters.date > filters.dateTo);
 }
 
+// 最低價高於最高價時不套用，畫面上會提示
+export function isPriceRangeInvalid(filters: CourseFilters) {
+  return (
+    filters.priceMin !== undefined &&
+    filters.priceMax !== undefined &&
+    filters.priceMin > filters.priceMax
+  );
+}
+
+// 價格只收 0 以上的整數；其他（空白、負數、小數、文字）當成沒填
+function parsePrice(value: string | string[] | undefined) {
+  const raw = first(value);
+  return raw && /^\d{1,7}$/.test(raw) ? Number(raw) : undefined;
+}
+
 // 指定時間的開始晚於結束時（例如 22:00–19:00）不套用，畫面上會提示
 export function isTimeRangeInvalid(filters: CourseFilters) {
   return Boolean(
@@ -112,7 +127,6 @@ export function parseFilters(params: RawSearchParams): CourseFilters {
   const timeTo = parseTime(first(params.to));
   const level = first(params.level);
   const sport = first(params.sport);
-  const price = first(params.price);
 
   return {
     city: city || undefined,
@@ -135,15 +149,15 @@ export function parseFilters(params: RawSearchParams): CourseFilters {
         : undefined,
     sport:
       sport && (SPORTS as readonly string[]).includes(sport) ? sport : undefined,
-    priceRange:
-      price && PRICE_RANGES.some((range) => range.id === price)
-        ? price
-        : undefined,
+    priceMin: parsePrice(params.priceMin),
+    priceMax: parsePrice(params.priceMax),
   };
 }
 
 export function filterCourses(courses: Course[], filters: CourseFilters) {
-  const range = PRICE_RANGES.find((r) => r.id === filters.priceRange);
+  const usePrice =
+    (filters.priceMin !== undefined || filters.priceMax !== undefined) &&
+    !isPriceRangeInvalid(filters);
 
   const useCustomTime =
     (filters.timeFrom || filters.timeTo) && !isTimeRangeInvalid(filters);
@@ -174,9 +188,9 @@ export function filterCourses(courses: Course[], filters: CourseFilters) {
           (!filters.timeTo || start!.minutes <= toMinutes(filters.timeTo)))) &&
       (!filters.level || course.level === filters.level) &&
       (!filters.sport || course.sport === filters.sport) &&
-      (!range ||
-        ((range.min === undefined || course.price >= range.min) &&
-          (range.max === undefined || course.price <= range.max)))
+      (!usePrice ||
+        ((filters.priceMin === undefined || course.price >= filters.priceMin) &&
+          (filters.priceMax === undefined || course.price <= filters.priceMax)))
     );
   });
 }
@@ -194,7 +208,8 @@ export function filtersToQuery(filters: CourseFilters, sort: SortMode) {
   if (filters.timeTo) params.set("to", filters.timeTo);
   if (filters.level) params.set("level", filters.level);
   if (filters.sport) params.set("sport", filters.sport);
-  if (filters.priceRange) params.set("price", filters.priceRange);
+  if (filters.priceMin !== undefined) params.set("priceMin", String(filters.priceMin));
+  if (filters.priceMax !== undefined) params.set("priceMax", String(filters.priceMax));
   if (sort !== DEFAULT_SORT) params.set("sort", sort);
   return params.toString();
 }
@@ -211,6 +226,7 @@ export function hasActiveFilters(filters: CourseFilters) {
       filters.timeTo ||
       filters.level ||
       filters.sport ||
-      filters.priceRange,
+      filters.priceMin !== undefined ||
+      filters.priceMax !== undefined,
   );
 }
