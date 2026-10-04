@@ -314,7 +314,7 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
 
       <Section
         title="聯絡方式"
-        description="電話、LINE、社群帳號至少填寫一項。不會公開，僅供平台聯繫，以及場次成團後透過行前公告提供給該場次學員。"
+        description="電話、LINE、社群帳號至少填寫一項。不會公開，僅供平台聯繫，以及場次確定開課後透過行前公告提供給該場次學員。"
       >
         <TextField
           label="電話"
