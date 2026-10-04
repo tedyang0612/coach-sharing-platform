@@ -33,6 +33,17 @@ export default async function CoachApplyPage() {
     redirect("/coach/application");
   }
 
+  // 第一次申請：暱稱先帶入註冊時填的帳號暱稱（教練可以再改，不會回寫帳號暱稱）
+  let defaultNickname: string | undefined;
+  if (!summary) {
+    const { data: account } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+    defaultNickname = account?.display_name ?? undefined;
+  }
+
   // 重新送審：帶入先前填寫的內容。聯絡方式等審核欄位要透過 function 讀自己的完整申請
   let existing: ExistingApplication | undefined;
   if (summary) {
@@ -85,7 +96,7 @@ export default async function CoachApplyPage() {
           </p>
         </header>
 
-        <ApplicationForm userId={user.id} existing={existing} />
+        <ApplicationForm userId={user.id} existing={existing} defaultNickname={defaultNickname} />
       </div>
     </main>
   );
