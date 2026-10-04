@@ -58,7 +58,7 @@ export function AnnouncementForm({ sessionId, recipientCount }: AnnouncementForm
           公告內容
         </label>
         <p className="text-xs text-neutral-500">
-          可填寫集合地點、裝備、穿著等提醒。請勿填寫聯絡方式，系統會在成團時提供給學員。
+          可填寫集合地點、裝備、穿著等提醒。請勿填寫聯絡方式，系統會在確定開課時提供給學員。
         </p>
         <textarea
           id="content"
