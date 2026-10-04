@@ -7,6 +7,8 @@ import {
   getCourseAvailability,
 } from "@/lib/course-status/getCourseAvailability";
 import { getCourseDetail } from "@/lib/courses/getCourseDetail";
+import { loginHref } from "@/lib/courses/loginHref";
+import { isLoggedIn } from "@/lib/courses/queries";
 import { LEVEL_LABELS } from "@/lib/courses/types";
 
 // 台灣時區；日期與時間分開組字串，避免 Node 與瀏覽器的 Intl 空白不同
@@ -36,6 +38,7 @@ export default async function CourseDetailPage({
   const course = await getCourseDetail(id);
   if (!course) notFound();
 
+  const loggedIn = await isLoggedIn();
   const now = new Date();
   const sessions = course.sessions
     // 已開始的場次不顯示（和列表一致）
@@ -131,15 +134,25 @@ export default async function CourseDetailPage({
                     {s.enrolled}/{course.capacity} 人・{left}
                   </p>
                 </div>
-                {/* TODO: 接 Ted 的 PR #21 getRegistrationState（登入、已報名、截止）；
-                    目前只依場次狀態決定能不能按，按了沒有動作 */}
-                <button
-                  type="button"
-                  disabled={!actionable}
-                  className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-                >
-                  {label}
-                </button>
+                {/* 未登入：導向登入頁，登入後回到這一頁。
+                    TODO: 已登入的報名動作與已報名、截止等判斷，等 Ted 的 PR #21 進 main 再接
+                    （getRegistrationState）；目前已登入時按了沒有動作 */}
+                {actionable && !loggedIn ? (
+                  <Link
+                    href={loginHref(`/courses/${course.courseId}`)}
+                    className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white hover:bg-teal-700"
+                  >
+                    登入後報名
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={!actionable}
+                    className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                  >
+                    {label}
+                  </button>
+                )}
               </li>
             );
           })}

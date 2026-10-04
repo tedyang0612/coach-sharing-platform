@@ -194,3 +194,13 @@ export async function getCourseWithSessions(courseId: string): Promise<CourseDet
     })),
   };
 }
+
+// 有沒有登入：報名按鈕要決定是導向登入頁還是繼續報名。
+// 用 getUser()（會向 Supabase Auth 驗證）而不是 getSession()（只讀 cookie）。
+export async function isLoggedIn(): Promise<boolean> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return Boolean(user);
+}

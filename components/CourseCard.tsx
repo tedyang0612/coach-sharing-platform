@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { loginHref } from "@/lib/courses/loginHref";
 import { LEVEL_LABELS, type Course } from "@/lib/courses/types";
 
 function formatDateTime(iso: string) {
@@ -62,9 +63,10 @@ const MAX_VISIBLE_TAGS = 3;
 
 interface Props {
   course: Course;
+  loggedIn: boolean;
 }
 
-export default function CourseCard({ course }: Props) {
+export default function CourseCard({ course, loggedIn }: Props) {
   const isConfirmed = course.enrolled >= course.minToOpen;
   const isFull = course.enrolled >= course.capacity;
   const progressPercent = Math.min(
@@ -187,14 +189,28 @@ export default function CourseCard({ course }: Props) {
                 NT$ {course.price.toLocaleString()}
               </span>
             </div>
-            {/* TODO: 等 Ted 的登入頁合併進 main 後，再接「未登入導向登入頁」 */}
-            <button
-              type="button"
-              disabled={isFull}
-              className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-            >
-              {isFull ? "已額滿" : "報名"}
-            </button>
+            {/* 報名要選場次，所以已登入時帶到詳情頁；未登入先導向登入頁，登入後回到詳情頁。
+                TODO: 報名動作與判斷等 Ted 的 PR #21 進 main 再接 */}
+            {isFull ? (
+              <button
+                type="button"
+                disabled
+                className="cursor-not-allowed rounded-xl bg-slate-200 px-4 py-2 text-xs font-bold text-slate-400"
+              >
+                已額滿
+              </button>
+            ) : (
+              <Link
+                href={
+                  loggedIn
+                    ? `/courses/${course.courseId}`
+                    : loginHref(`/courses/${course.courseId}`)
+                }
+                className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white hover:bg-teal-700"
+              >
+                報名
+              </Link>
+            )}
           </div>
         </div>
       </div>
