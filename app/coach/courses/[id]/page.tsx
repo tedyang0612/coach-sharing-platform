@@ -21,7 +21,7 @@ const SECONDARY_BUTTON =
 
 /**
  * 課程管理頁（PRD 1.0 規格4）：課程資訊、各場次即時報名人數與學員名單（只有暱稱與報名時間）、
- * 取消場次（規格7，符合條件才顯示按鈕）、編輯／另存範本／複製，以及群發公告掛勾（7.0 尚未開發）。
+ * 取消場次（規格7，符合條件才顯示按鈕）、編輯／另存範本／複製，以及群發公告入口（連到 7.0 的公告頁）。
  */
 export default async function CoachCoursePage({ params }: PageProps<"/coach/courses/[id]">) {
   const { id } = await params;
@@ -182,15 +182,14 @@ function SessionCard({
             status === "recruiting" && <p className="text-xs text-neutral-400">{cancel.reason}</p>
           )}
           {(status === "recruiting" || status === "matched") && (
-            // 7.0 群發公告尚未開發，先保留入口（PRD 1.0 規格4）
-            <button
-              type="button"
-              disabled
-              title="群發公告功能開發中（7.0）"
-              className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-bold text-neutral-400"
+            // 7.0 群發公告頁（牛牛，PR #12）：每個場次一個網址；頁面自己檢查是不是這堂課的教練、有沒有報名學員。
+            // PR #12 合併前這個連結會是 404。
+            <Link
+              href={`/coach/sessions/${session.id}/announcements`}
+              className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-bold text-neutral-700 transition hover:bg-neutral-50"
             >
-              群發公告（即將推出）
-            </button>
+              群發公告
+            </Link>
           )}
         </div>
       </div>
