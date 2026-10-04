@@ -7,10 +7,10 @@ export const metadata: Metadata = {
   description: "申請成為夠練 GoLand 教練，上架小班課、由平台處理報名與收款。",
 };
 
-// 版面參考 docs/reference 的 P14；文案以 PRD v4.2 為準（成團才扣款、媒合費 5%、每週三撥款）。
+// 版面參考 docs/reference 的 P14；文案以 PRD v4.6 為準（確定開課才扣款、媒合費 5%、每週三撥款）。
 const BENEFITS = [
   {
-    title: "自訂價格與成團人數",
+    title: "自訂價格與開課人數",
     body: "自由設定每人費用與人數上限下限，報名截止預設為開課前 24 小時。",
   },
   {
@@ -48,7 +48,7 @@ export default function BecomeCoachPage() {
             成為夠練
           </h1>
           <p className="max-w-lg text-sm text-neutral-500">
-            上架你的小班課，報名、收款與成團判斷交給平台，你專心教學就好。
+            上架你的小班課，報名、收款與開課確認交給平台，你專心教學就好。
           </p>
         </header>
 
@@ -91,7 +91,7 @@ export default function BecomeCoachPage() {
             ))}
           </ul>
           <p className="mt-4 text-xs leading-relaxed text-neutral-500">
-            聯絡方式不會公開，只在場次成團後透過行前公告提供給該場次學員。
+            聯絡方式不會公開，只在場次確定開課後透過行前公告提供給該場次學員。
           </p>
         </section>
 
