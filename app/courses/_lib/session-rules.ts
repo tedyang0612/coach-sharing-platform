@@ -68,3 +68,13 @@ export function canCoachCancelSession(
   }
   return { ok: true };
 }
+
+// 學員名單上的報名狀態文案（PRD 第六章 5.3）
+export const REGISTRATION_STATUS_LABELS: Record<RegistrationStatus, string> = {
+  pending_match: "已報名（待成團）",
+  confirmed: "訂單成立",
+  cancelled: "已取消（未扣款）",
+  refunded: "已退款",
+  partial_refunded: "部分退款",
+  completed: "課程完成",
+};
