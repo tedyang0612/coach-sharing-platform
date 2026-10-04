@@ -62,6 +62,7 @@ export default async function CoachProfileEditPage() {
                 ? profile.display_name
                 : "",
             photoUrl: profile.photo_url ?? "",
+            lifestylePhotoUrl: profile.lifestyle_photo_url ?? "",
             sportCategories: profile.sport_categories ?? [],
             tags: profile.tags ?? [],
             bioEducation: profile.bio_education ?? "",

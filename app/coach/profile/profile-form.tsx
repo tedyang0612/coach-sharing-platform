@@ -40,6 +40,8 @@ export type CoachProfileFormValues = {
   realName: string;
   nickname: string;
   photoUrl: string;
+  // 生活／運動照片是後來才加的欄位，較早通過審核的教練可能還沒有
+  lifestylePhotoUrl: string;
   sportCategories: string[];
   tags: string[];
   // 資料庫裡的學經歷原文，包含學歷與工作／教學經歷
@@ -85,6 +87,7 @@ function Section({
 export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
   const [nickname, setNickname] = useState(initial.nickname);
   const [photo, setPhoto] = useState<File | null>(null);
+  const [lifestylePhoto, setLifestylePhoto] = useState<File | null>(null);
   const [sportCategories, setSportCategories] = useState(initial.sportCategories);
   const [tags, setTags] = useState(initial.tags);
   const [previous] = useState(() => parseEducation(initial.bioEducation));
@@ -115,6 +118,7 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
     realName: initial.realName,
     nickname,
     hasPhoto: photo !== null || initial.photoUrl !== "",
+    hasLifestylePhoto: lifestylePhoto !== null || initial.lifestylePhotoUrl !== "",
     sportCategories,
     tags,
     education,
@@ -144,6 +148,9 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
         const photoPath = photo
           ? await uploadCoachFile(COACH_PHOTO_BUCKET, userId, "photo", photo)
           : "";
+        const lifestylePhotoPath = lifestylePhoto
+          ? await uploadCoachFile(COACH_PHOTO_BUCKET, userId, "lifestyle", lifestylePhoto)
+          : "";
         const uploadedLicenses = [];
         for (const license of newLicenses) {
           // 檢查規則已確保每張證照都有檔案
@@ -157,6 +164,7 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
         const result = await updateCoachProfile({
           nickname,
           photoPath,
+          lifestylePhotoPath,
           sportCategories,
           tags,
           education: education.map(({ degree, school }) => ({ degree, school })),
@@ -183,6 +191,7 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
         setNewLicenses([]);
         setRemovedLicenseIds([]);
         setPhoto(null);
+        setLifestylePhoto(null);
         setAttempted(false);
       } catch (error) {
         setSaveError(error instanceof Error ? error.message : "儲存失敗，請稍後再試。");
@@ -232,15 +241,31 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
         description="會公開顯示在你的教練個人檔案，請勿填寫電話、Email、LINE ID 或網址。"
       >
         <FileField
-          label="個人照片＊"
+          label="大頭貼＊"
           name="photo"
           kind="photo"
+          hint="會以圓形顯示在課程卡片與個人檔案，請選臉部清楚的照片。"
+          previewShape="circle"
           file={photo}
           onChange={setPhoto}
           existing={
-            initial.photoUrl ? { label: "目前的照片", imageUrl: initial.photoUrl } : undefined
+            initial.photoUrl ? { label: "目前的大頭貼", imageUrl: initial.photoUrl } : undefined
           }
           error={errors.photo}
+        />
+        <FileField
+          label="生活／運動照片＊"
+          name="lifestylePhoto"
+          kind="photo"
+          hint="一張能看出你教學或運動樣子的照片，會顯示在推薦教練與個人檔案。"
+          file={lifestylePhoto}
+          onChange={setLifestylePhoto}
+          existing={
+            initial.lifestylePhotoUrl
+              ? { label: "目前的照片", imageUrl: initial.lifestylePhotoUrl }
+              : undefined
+          }
+          error={errors.lifestylePhoto}
         />
 
         <SportPicker

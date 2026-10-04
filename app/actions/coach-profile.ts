@@ -15,6 +15,7 @@ export type CoachProfilePayload = {
   nickname: string;
   // 留空字串代表沿用目前的照片；有值是剛上傳到 Storage 的路徑
   photoPath: string;
+  lifestylePhotoPath: string;
   sportCategories: string[];
   tags: string[];
   education: EducationEntry[];
@@ -66,6 +67,8 @@ export async function updateCoachProfile(
     realName: current.real_name ?? "",
     nickname: payload.nickname,
     hasPhoto: payload.photoPath !== "" || Boolean(current.photo_url),
+    hasLifestylePhoto:
+      payload.lifestylePhotoPath !== "" || Boolean(current.lifestyle_photo_url),
     sportCategories: payload.sportCategories,
     tags: payload.tags,
     education: payload.education,
@@ -87,6 +90,7 @@ export async function updateCoachProfile(
   // 只接受放在自己資料夾底下的檔案
   const newPaths = [
     payload.photoPath,
+    payload.lifestylePhotoPath,
     ...payload.newLicenses.map((license) => license.filePath),
   ].filter((path) => path !== "");
   if (!newPaths.every((path) => isOwnPath(path, user.id))) {
@@ -108,6 +112,11 @@ export async function updateCoachProfile(
       ...(payload.photoPath && {
         photo_url: supabase.storage.from(COACH_PHOTO_BUCKET).getPublicUrl(payload.photoPath).data
           .publicUrl,
+      }),
+      ...(payload.lifestylePhotoPath && {
+        lifestyle_photo_url: supabase.storage
+          .from(COACH_PHOTO_BUCKET)
+          .getPublicUrl(payload.lifestylePhotoPath).data.publicUrl,
       }),
     })
     .eq("id", user.id);

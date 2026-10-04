@@ -127,6 +127,7 @@ export function resolveCoachDisplayName(realName: string, nickname: string): str
 export type CoachPublicProfileInput = Pick<
   CoachApplicationInput,
   | "hasPhoto"
+  | "hasLifestylePhoto"
   | "sportCategories"
   | "tags"
   | "education"
@@ -138,6 +139,7 @@ export type CoachPublicProfileInput = Pick<
 export type CoachPublicProfileErrors = Pick<
   CoachApplicationErrors,
   | "photo"
+  | "lifestylePhoto"
   | "sportCategories"
   | "tags"
   | "education"
