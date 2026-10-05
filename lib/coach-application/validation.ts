@@ -254,8 +254,15 @@ export function validateCoachApplication(
 }
 
 // 審核通過後的「編輯個人檔案」（9.0）：公開欄位＋聯絡方式＋證照；良民證與同意聲明不在這裡處理
-export type CoachProfileEditInput = Omit<CoachApplicationInput, "hasCriminalRecord" | "consent">;
-export type CoachProfileEditErrors = Omit<CoachApplicationErrors, "criminalRecord" | "consent">;
+// 編輯個人檔案不用再上傳良民證，也不用再勾選同意聲明與教練合作條款（申請時已同意）
+export type CoachProfileEditInput = Omit<
+  CoachApplicationInput,
+  "hasCriminalRecord" | "consent" | "termsConsent"
+>;
+export type CoachProfileEditErrors = Omit<
+  CoachApplicationErrors,
+  "criminalRecord" | "consent" | "termsConsent"
+>;
 
 export function validateCoachProfileEdit(input: CoachProfileEditInput): CoachProfileEditErrors {
   const errors: CoachProfileEditErrors = validateCoachPublicProfile(input);
