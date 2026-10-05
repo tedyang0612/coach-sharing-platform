@@ -41,7 +41,7 @@ export const MAX_PARTICIPANTS_CAP = 999; // PRD v4.7：人數上限最多 999
 // 課程 QA（PRD v4.7 1.0 規格 9）。數量與字數上限不在 PRD 內，是為了避免畫面被塞爆而加的保守值
 export const MAX_QA_ITEMS = 10;
 export const QA_QUESTION_MAX = 100;
-export const QA_ANSWER_MAX = 500;
+export const QA_ANSWER_MAX = 200;
 export const QA_TEMPLATE_QUESTIONS = [
   "我是完全的初學者，沒有基礎也可以報名嗎？",
   "上課需要準備什麼裝備或穿著？",
