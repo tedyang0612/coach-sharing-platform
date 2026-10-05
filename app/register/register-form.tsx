@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import { signup, type AuthFormState } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
+import { CheckboxField } from "@/components/ui/checkbox";
 import { FormError } from "@/components/ui/form-error";
 import { TextField } from "@/components/ui/text-field";
 
@@ -13,13 +15,14 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // 8.0 QA 修正：按鈕只看「有沒有填」，不看格式對不對——
   // 格式／長度等驗證錯誤交給送出後的 server action 判斷，
   // 不然使用者會卡在「上面欄位格式錯但看不到錯誤提示、按鈕又按不下去」的情境。
   const canSubmit = useMemo(
-    () => displayName.trim().length > 0 && email.trim().length > 0 && password.length > 0,
-    [displayName, email, password]
+    () => displayName.trim().length > 0 && email.trim().length > 0 && password.length > 0 && agreedToTerms,
+    [displayName, email, password, agreedToTerms]
   );
 
   // 8.0 QA 修正：和登入頁一致，所有錯誤（暱稱長度、Email 格式、密碼長度、Email 已註冊）
@@ -28,6 +31,7 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
     state?.errors?.displayName,
     state?.errors?.email,
     state?.errors?.password,
+    state?.errors?.terms,
     state?.errors?.form,
   ]
     .filter(Boolean)
@@ -77,6 +81,27 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
         value={password}
         onChange={(event) => setPassword(event.target.value)}
         required
+      />
+
+      {/* PRD v4.8 8.0：同意服務條款與隱私權政策（Figma S03：密碼欄下方、錯誤框上方）。
+          連結開新分頁，免得填到一半的表單被帶走；未勾選時下方按鈕維持 disabled。 */}
+      <CheckboxField
+        name="agreeTerms"
+        checked={agreedToTerms}
+        onChange={(event) => setAgreedToTerms(event.target.checked)}
+        invalid={!!state?.errors?.terms}
+        label={
+          <>
+            我已閱讀並同意
+            <Link href="/terms" target="_blank" rel="noopener noreferrer" className="underline">
+              服務條款
+            </Link>
+            與
+            <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">
+              隱私權政策
+            </Link>
+          </>
+        }
       />
 
       {/* 「直接登入」連結已經在表單下方常駐出現（「已經有帳號了？直接登入」），
