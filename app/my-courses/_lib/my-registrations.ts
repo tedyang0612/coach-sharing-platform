@@ -6,14 +6,14 @@ import { getLearnerCancelEligibility, type LearnerCancelEligibility } from "@/ap
 import { formatOrderNumber } from "@/app/registrations/_lib/registration-rules";
 import type { RegistrationStatus, SessionStatus } from "@/types/database";
 
-/** 畫面分成四類（13.0 AC）：待成團／已成團／已取消／已完成，順序就是頁籤順序 */
+/** 畫面分成四類（13.0 AC）：待確認開課／確定開課／已取消／已完成，順序就是頁籤順序 */
 export type MyRegistrationCategory = "pending" | "confirmed" | "cancelled" | "completed";
 
 export const MY_REGISTRATION_CATEGORIES: MyRegistrationCategory[] = ["pending", "confirmed", "cancelled", "completed"];
 
 export const MY_REGISTRATION_CATEGORY_LABELS: Record<MyRegistrationCategory, string> = {
-  pending: "待成團",
-  confirmed: "已成團",
+  pending: "待確認開課",
+  confirmed: "確定開課",
   cancelled: "已取消",
   completed: "已完成",
 };
@@ -35,23 +35,23 @@ export function categoryOfRegistration(status: RegistrationStatus): MyRegistrati
 }
 
 /**
- * 每筆報名的狀態說明（PRD 5.3）。「已取消」可能是學員自己取消、場次未成團，或教練取消場次，
+ * 每筆報名的狀態說明（PRD 5.3）。「已取消」可能是學員自己取消、場次未達人數取消，或教練取消場次，
  * 學員看到的原因不同，所以要帶場次狀態一起判斷。
  */
 export function registrationDetailLabel(status: RegistrationStatus, sessionStatus: SessionStatus | null): string {
   switch (status) {
     case "pending_match":
-      return "已報名（待成團），尚未扣款";
+      return "已報名（待確認開課），尚未扣款";
     case "confirmed":
-      return "訂單成立（已成團），已扣款";
+      return "訂單成立（確定開課），已扣款";
     case "completed":
       return "課程完成";
     case "refunded":
       return sessionStatus === "cancelled_by_coach" ? "教練取消場次，已全額退款" : "已退款（全額）";
     case "partial_refunded":
-      return "已退款（扣 30% 平台手續費）";
+      return "已退款（扣 50% 取消手續費）";
     case "cancelled":
-      if (sessionStatus === "cancelled_unmatched") return "未成團取消，不扣款";
+      if (sessionStatus === "cancelled_unmatched") return "未達人數取消，不扣款";
       if (sessionStatus === "cancelled_by_coach") return "教練取消場次，不扣款";
       return "已取消（未扣款）";
   }
@@ -176,7 +176,7 @@ export function buildMyRegistrationItem(
 }
 
 /**
- * 依分類分組。待成團、已成團：開課時間近的在前（快要上課的先看到）；
+ * 依分類分組。待確認開課、確定開課：開課時間近的在前（快要上課的先看到）；
  * 已完成、已取消：新的在前。
  */
 export function groupMyRegistrations(items: MyRegistrationItem[]): Record<MyRegistrationCategory, MyRegistrationItem[]> {
