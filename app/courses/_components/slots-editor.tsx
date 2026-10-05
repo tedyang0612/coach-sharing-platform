@@ -4,6 +4,7 @@
 //   第 1 堂  [14]:[00] – [15]:[00]  [＋ 新增一堂]
 //   第 2 堂  [15]:[00] – [16]:[30]  ✕
 // - 時間拆成「小時（00–23）」與「分鐘（00、10…50）」兩個下拉選單；選了小時就自動帶分鐘（沿用原本的分鐘或 00）
+//   結束時間多一個 24:00（午夜），開始時間最晚 23:50
 // - 選了開始時間，結束時間自動帶 +60 分鐘；之後再調開始時間，結束時間跟著平移、保持時長
 // - 「＋ 新增一堂」接續上一堂的結束時間、沿用上一堂的時長
 // - 第 2 堂以後的開始時間只列出「上一堂結束之後」的選項；結束時間只列出晚於開始的選項
@@ -40,22 +41,30 @@ function TimeSelect({
   onChange,
   disabled,
   label,
+  allowMidnight = false,
 }: {
   value: string;
   min?: string;
   onChange: (value: string) => void;
   disabled: boolean;
   label: string;
+  /** 結束時間可以選 24:00（午夜）；開始時間不行 */
+  allowMidnight?: boolean;
 }) {
   const [hour, minute] = value ? value.split(":") : ["", ""];
   const minMinutes = min ? minutesOf(min) : 0;
 
-  // 小時：這個小時裡至少有一個分鐘 ≥ min 才列出
-  const hours = HOURS.filter((h) => h === hour || Number(h) * 60 + 50 >= minMinutes);
-  // 分鐘：同一個小時時只列 ≥ min 的分鐘
-  const minutes = MINUTES.filter((m) => m === minute || !hour || Number(hour) * 60 + Number(m) >= minMinutes);
+  // 小時：這個小時裡至少有一個分鐘 ≥ min 才列出；結束時間多一個 24（只有 24:00 一個選項）
+  const allHours = allowMidnight ? [...HOURS, "24"] : HOURS;
+  const hours = allHours.filter((h) => h === hour || Number(h) * 60 + 50 >= minMinutes);
+  // 分鐘：同一個小時時只列 ≥ min 的分鐘；24 時只能是 00
+  const minutes =
+    hour === "24"
+      ? ["00"]
+      : MINUTES.filter((m) => m === minute || !hour || Number(hour) * 60 + Number(m) >= minMinutes);
 
   function pickHour(h: string) {
+    if (h === "24") return onChange("24:00");
     // 沿用原本的分鐘；沒選過或會早於 min 時，改成這個小時裡最早可選的分鐘
     const keep = minute && Number(h) * 60 + Number(minute) >= minMinutes ? minute : undefined;
     const first = MINUTES.find((m) => Number(h) * 60 + Number(m) >= minMinutes) ?? "00";
@@ -119,7 +128,7 @@ export function SlotsEditor({ slots, onChange, disabled = false, error }: Props)
     : slots.length >= MAX_SESSIONS
       ? `已達上限 ${MAX_SESSIONS} 堂`
       : lastFilled && next === null
-        ? "下一堂會超過晚上 12:00，無法再新增"
+        ? "下一堂會超過 24:00，無法再新增"
         : null;
 
   function update(index: number, patch: Partial<SessionSlotInput>) {
@@ -166,6 +175,7 @@ export function SlotsEditor({ slots, onChange, disabled = false, error }: Props)
                   min={slot.start ? addMinutes(slot.start, TIME_STEP_MINUTES) ?? toHHMM(LATEST_TIME) : undefined}
                   onChange={(end) => update(i, { end })}
                   disabled={disabled}
+                  allowMidnight
                 />
               </div>
 
@@ -205,7 +215,7 @@ export function SlotsEditor({ slots, onChange, disabled = false, error }: Props)
         <p className="text-xs text-red-600">{error}</p>
       ) : (
         <p className="text-xs text-neutral-500">
-          每一堂都是獨立場次，各自計算名額與成團。「＋ 新增一堂」會接續上一堂、沿用上一堂的時長，最多 {MAX_SESSIONS} 堂。
+          「＋ 新增一堂」會接續上一堂、沿用上一堂的時長，最多 {MAX_SESSIONS} 堂；結束時間最晚可選 24:00。
         </p>
       )}
 

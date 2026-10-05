@@ -41,6 +41,7 @@ export default async function EditCoursePage({ params }: PageProps<"/coach/cours
         mode="edit"
         courseId={course.id}
         isTemplate={course.is_template}
+        initialTemplateName={course.template_name ?? ""}
         locked={isCourseEditLocked(course)}
       />
     </PageShell>
