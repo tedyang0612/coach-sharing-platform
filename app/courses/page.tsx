@@ -38,7 +38,7 @@ export default async function CoursesPage({
   const courses = sortCourses(filterCourses(allCourses, filters), sort);
 
   return (
-    <GolandTheme>
+    <GolandTheme active="explore">
     <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
       <h1 className="text-h1">課程搜尋結果</h1>
 

@@ -94,7 +94,7 @@ export default async function CourseDetailPage({
   const dateText = formatSession(chosen.startsAt, chosen.endsAt);
 
   return (
-    <GolandTheme>
+    <GolandTheme active="explore">
       <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-6 px-(--spacing-screen-padding) pb-32 pt-4 lg:pb-12 lg:pt-8">
         <Link
           href="/courses"
