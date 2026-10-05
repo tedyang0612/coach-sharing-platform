@@ -12,6 +12,7 @@ type RegistrationRow = {
   amount: number;
   status: RegistrationStatus;
   payout_id: string | null;
+  coach_compensation_amount: number | null;
   session: {
     start_at: string;
     end_at: string;
@@ -25,13 +26,15 @@ export async function getEarningsData(
 ): Promise<{ inputs: EarningsInput[]; payouts: PayoutInput[] }> {
   const { data: regs } = await supabase
     .from("registrations")
-    .select("id, amount, status, payout_id, session:sessions!inner(start_at, end_at, course:courses!inner(id, title, coach_id))")
+    .select(
+      "id, amount, status, payout_id, coach_compensation_amount, session:sessions!inner(start_at, end_at, course:courses!inner(id, title, coach_id))"
+    )
     .eq("session.course.coach_id", coachId)
-    .in("status", ["confirmed", "completed"]);
+    .in("status", ["confirmed", "completed", "partial_refunded"]);
 
   const { data: payoutRows } = await supabase
     .from("payouts")
-    .select("id, period_start, period_end, gross_amount, platform_fee_amount, net_amount, payout_date")
+    .select("id, period_start, period_end, gross_amount, platform_fee_amount, compensation_amount, net_amount, payout_date")
     .eq("coach_id", coachId)
     .order("payout_date", { ascending: false });
 
@@ -44,6 +47,7 @@ export async function getEarningsData(
     amount: Number(r.amount),
     status: r.status,
     payoutId: r.payout_id,
+    coachCompensation: r.coach_compensation_amount === null ? null : Number(r.coach_compensation_amount),
   }));
 
   const payouts = (payoutRows ?? []).map((p) => ({
@@ -52,6 +56,7 @@ export async function getEarningsData(
     periodEnd: p.period_end as string,
     grossAmount: Number(p.gross_amount),
     platformFeeAmount: Number(p.platform_fee_amount),
+    compensationAmount: Number(p.compensation_amount ?? 0),
     netAmount: Number(p.net_amount),
     payoutDate: p.payout_date as string,
   }));

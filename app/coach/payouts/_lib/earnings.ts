@@ -1,10 +1,12 @@
 // 教練「預估收益與撥款週期看板」（PRD 11.0、6.0）的計算。純函式、不碰資料庫，頁面與測試共用。
 //
-// 錢怎麼分（PRD 6.0、第六章 5.4／5.5）：
-// - 已成團並扣款、課程還沒上完（registrations.status = confirmed）→ 預估收益，扣 5% 媒合費；待成團的報名不計入
+// 錢怎麼分（PRD v4.7 6.0、第六章 5.4／5.5）：
+// - 確定開課並扣款、課程還沒上完（registrations.status = confirmed）→ 預估收益，扣 5% 媒合費；待確認開課的報名不計入
 // - 課程完成（completed）且還沒撥款（payout_id 為空）→ 待撥款；每週三撥付「上週一到週日」完成的課程
 // - 課程完成且已有 payout_id → 已撥款
-// - 已取消、已退款、部分退款（手續費歸平台、該筆不撥款給教練）→ 不計入任何一項
+// - 開課前 24 小時內由教練協助退款（partial_refunded）：學員退 50%，另外 50% 手續費中教練分得 25%（取消補償）。
+//   這 25% 不扣 5% 媒合費，以場次結束日為準算進該週結算、下個週三撥款，所以和課程完成的款項一樣是「待撥款」→「已撥款」
+// - 已取消、已退款（全額）→ 不計入任何一項
 // 金額一律用「分」（整數）計算，避免浮點誤差；媒合費四捨五入到分，與資料庫的 round(gross * 0.05, 2) 一致。
 
 export const PLATFORM_FEE_RATE = 0.05;
@@ -29,6 +31,8 @@ export type EarningsInput = {
   amount: number; // 報名當下的每人費用快照
   status: RegistrationStatus;
   payoutId: string | null;
+  /** 24 小時內取消時教練分得的取消補償（registrations.coach_compensation_amount）；其他狀態為 null */
+  coachCompensation?: number | null;
 };
 
 export type PayoutInput = {
@@ -37,14 +41,19 @@ export type PayoutInput = {
   periodEnd: string;
   grossAmount: number;
   platformFeeAmount: number;
+  /** 這期撥款裡的取消補償合計；net = gross − fee + compensation */
+  compensationAmount: number;
   netAmount: number;
   payoutDate: string;
 };
 
-/** 全部以「分」表示 */
-export type Money = { gross: number; fee: number; net: number };
+/** 全部以「分」表示；net = gross − fee + compensation（取消補償不扣媒合費） */
+export type Money = { gross: number; fee: number; compensation: number; net: number };
 
 export type EarningsRowStatus = "estimated" | "pending_payout" | "paid_out";
+
+/** course：一般課程款項；cancel_compensation：24 小時內取消，教練分得的 25% */
+export type EarningsRowKind = "course" | "cancel_compensation";
 
 export type EarningsRow = {
   registrationId: string;
@@ -52,8 +61,10 @@ export type EarningsRow = {
   courseTitle: string;
   sessionStart: string;
   sessionEnd: string;
-  gross: number; // 課程金額（分）
-  fee: number; // 平台抽成（分）
+  kind: EarningsRowKind;
+  gross: number; // 課程金額（分）；取消補償那筆是原課程費用，僅供對照，不計入課程款項合計
+  fee: number; // 平台抽成（分）；取消補償不扣
+  compensation: number; // 取消補償（分）；一般課程為 0
   net: number; // 實收（分）
   status: EarningsRowStatus;
   payoutId: string | null;
@@ -86,14 +97,21 @@ export function feeOfCents(grossCents: number): number {
 
 function moneyOfGross(grossCents: number): Money {
   const fee = feeOfCents(grossCents);
-  return { gross: grossCents, fee, net: grossCents - fee };
+  return { gross: grossCents, fee, compensation: 0, net: grossCents - fee };
 }
 
-const ZERO: Money = { gross: 0, fee: 0, net: 0 };
+const ZERO: Money = { gross: 0, fee: 0, compensation: 0, net: 0 };
 
-/** 一批報名的合計：先加總課程金額再算 5%，和資料庫撥款時「整批算一次」的方式一致 */
+/**
+ * 一批報名的合計：只有一般課程款項（kind = course）先加總再算 5%，和資料庫撥款時「整批算一次」的方式一致；
+ * 取消補償另外加總、不扣媒合費，實收 = 課程款項 − 5% ＋ 取消補償。
+ */
 function sumMoney(rows: EarningsRow[]): Money {
-  return rows.length === 0 ? ZERO : moneyOfGross(rows.reduce((total, r) => total + r.gross, 0));
+  if (rows.length === 0) return ZERO;
+  const gross = rows.filter((r) => r.kind === "course").reduce((total, r) => total + r.gross, 0);
+  const compensation = rows.reduce((total, r) => total + r.compensation, 0);
+  const fee = feeOfCents(gross);
+  return { gross, fee, compensation, net: gross - fee + compensation };
 }
 
 /** 台灣日期（YYYY-MM-DD）與星期（週一=1…週日=7） */
@@ -132,22 +150,37 @@ export function buildEarnings(
   const rows: EarningsRow[] = [];
 
   for (const input of inputs) {
-    let status: EarningsRowStatus;
-    if (input.status === "confirmed") status = "estimated";
-    else if (input.status === "completed") status = input.payoutId ? "paid_out" : "pending_payout";
-    else continue; // 待成團、已取消、已退款、部分退款都不計入
-
-    const money = moneyOfGross(toCents(input.amount));
-    rows.push({
+    const base = {
       registrationId: input.registrationId,
       courseId: input.courseId,
       courseTitle: input.courseTitle,
       sessionStart: input.sessionStart,
       sessionEnd: input.sessionEnd,
-      ...money,
-      status,
       payoutId: input.payoutId,
-    });
+    };
+
+    // 取消補償：沒有補償金額的部分退款（舊規則留下的、或補償為 0）不計入
+    if (input.status === "partial_refunded") {
+      const compensation = toCents(input.coachCompensation ?? 0);
+      if (compensation <= 0) continue;
+      rows.push({
+        ...base,
+        kind: "cancel_compensation",
+        gross: toCents(input.amount),
+        fee: 0,
+        compensation,
+        net: compensation,
+        status: input.payoutId ? "paid_out" : "pending_payout",
+      });
+      continue;
+    }
+
+    let status: EarningsRowStatus;
+    if (input.status === "confirmed") status = "estimated";
+    else if (input.status === "completed") status = input.payoutId ? "paid_out" : "pending_payout";
+    else continue; // 待確認開課、已取消、已退款都不計入
+
+    rows.push({ ...base, kind: "course", ...moneyOfGross(toCents(input.amount)), status });
   }
 
   rows.sort((a, b) => b.sessionEnd.localeCompare(a.sessionEnd));
@@ -157,12 +190,13 @@ export function buildEarnings(
 
   const paidGross = payouts.reduce((total, p) => total + toCents(p.grossAmount), 0);
   const paidFee = payouts.reduce((total, p) => total + toCents(p.platformFeeAmount), 0);
+  const paidCompensation = payouts.reduce((total, p) => total + toCents(p.compensationAmount ?? 0), 0);
   const paidNet = payouts.reduce((total, p) => total + toCents(p.netAmount), 0);
 
   return {
     estimated: sumMoney(rows.filter((r) => r.status === "estimated")),
     pendingPayout: sumMoney(pendingRows),
-    paidOut: { gross: paidGross, fee: paidFee, net: paidNet },
+    paidOut: { gross: paidGross, fee: paidFee, compensation: paidCompensation, net: paidNet },
     nextPayoutDate: payoutDate,
     nextPeriod: period,
     thisPeriod: sumMoney(pendingRows.filter((r) => taipeiDate(new Date(r.sessionEnd)).ymd <= period.end)),
