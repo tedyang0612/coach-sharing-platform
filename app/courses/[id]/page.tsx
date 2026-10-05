@@ -146,7 +146,7 @@ export default async function CourseDetailPage({
               {course.district} {course.venue}
             </p>
             <p className="flex items-baseline gap-1.5">
-              <span className="text-display font-(family-name:--font-latin) font-medium">
+              <span className="text-display font-(family-name:--font-latin)! font-medium!">
                 NT${course.price.toLocaleString()}
               </span>
               <span className="text-body text-(--color-text-secondary)">/ 人</span>

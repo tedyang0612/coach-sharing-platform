@@ -14,7 +14,7 @@ export default function CourseQa({ items }: { items?: CourseQaItem[] }) {
         {items.map((item, index) => (
           <li key={index}>
             <details className="group">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-body px-4 py-3 font-bold text-(--color-text-primary) [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-body px-4 py-3 font-bold! text-(--color-text-primary) [&::-webkit-details-marker]:hidden">
                 <span>{item.question}</span>
                 <span className="shrink-0 text-(--color-text-secondary) transition-transform group-open:rotate-180">
                   <ChevronDownIcon size={18} />
