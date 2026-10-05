@@ -10,6 +10,8 @@ interface Props {
   // 系統分享選單用的標題與說明
   title?: string;
   text?: string;
+  // 設計稿 S05 的分享鈕是 44px 圓形、只有圖示；成功時旁邊才出現「連結已複製」
+  iconOnly?: boolean;
 }
 
 type Status = "idle" | "copied" | "failed";
@@ -41,7 +43,7 @@ function legacyCopy(text: string) {
 }
 
 // 樣式用設計 token（--color-*），要放在 <GolandTheme> 裡才有值。
-export default function ShareButton({ path, title, text }: Props) {
+export default function ShareButton({ path, title, text, iconOnly = false }: Props) {
   const [status, setStatus] = useState<Status>("idle");
   const [url, setUrl] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -97,14 +99,32 @@ export default function ShareButton({ path, title, text }: Props) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={copyLink}
-          className="text-button inline-flex items-center gap-2 rounded-full border border-(--color-brand-blue) bg-(--color-surface-default) px-4 py-2 text-(--color-text-primary) hover:bg-(--color-tint-blue-100)"
-        >
-          {status === "copied" ? <CheckIcon size={16} /> : <ShareIcon size={16} />}
-          {status === "copied" ? "連結已複製" : "分享"}
-        </button>
+        {iconOnly ? (
+          <>
+            <button
+              type="button"
+              onClick={copyLink}
+              aria-label="分享連結"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-(--color-border-default) bg-(--color-surface-default) text-(--color-text-primary) hover:bg-(--color-tint-blue-100)"
+            >
+              {status === "copied" ? <CheckIcon size={20} /> : <ShareIcon size={20} />}
+            </button>
+            {status === "copied" && (
+              <span role="status" className="text-body-small text-(--color-text-secondary)">
+                連結已複製
+              </span>
+            )}
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={copyLink}
+            className="text-button inline-flex items-center gap-2 rounded-full border border-(--color-brand-blue) bg-(--color-surface-default) px-4 py-2 text-(--color-text-primary) hover:bg-(--color-tint-blue-100)"
+          >
+            {status === "copied" ? <CheckIcon size={16} /> : <ShareIcon size={16} />}
+            {status === "copied" ? "連結已複製" : "分享"}
+          </button>
+        )}
         {canNativeShare && (
           <button
             type="button"

@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getRegistrationState } from "@/app/registrations/_lib/registration-rules";
 import CourseQa from "@/components/course/CourseQa";
+import GroupProgress from "@/components/course/GroupProgress";
+import KeyInfoStrip from "@/components/course/KeyInfoStrip";
 import GolandTheme from "@/components/goland/GolandTheme";
-import { MapPinIcon, TagIcon, UsersIcon } from "@/components/goland/icons";
+import { ArrowLeftIcon } from "@/components/goland/icons";
 import ShareButton from "@/components/share/ShareButton";
 import CourseStatusNotice from "@/components/course/CourseStatusNotice";
 import SessionRegisterButton from "@/components/course/SessionRegisterButton";
@@ -62,15 +64,6 @@ export default async function CourseDetailPage({
     now,
   );
   const viewer = await getCourseViewer([chosen.id]);
-  const reachedMin = chosen.enrolled >= course.minToOpen;
-  const gap = course.minToOpen - chosen.enrolled;
-  const left = reachedMin ? "已達開課人數" : `差 ${gap} 人開課`;
-  // 狀態小圓點：已達標深色、差 1 人黃綠、其他藍（和列表卡片一致）
-  const dotClass = reachedMin
-    ? "bg-(--color-brand-deep)"
-    : gap === 1
-      ? "bg-(--color-brand-lime)"
-      : "bg-(--color-brand-blue)";
   // 按鈕狀態用 Ted 的 getRegistrationState（#36）：自己的課、已報名、截止、額滿、未登入
   const state = getRegistrationState({
     session: {
@@ -95,92 +88,120 @@ export default async function CourseDetailPage({
     now,
   });
 
+  const dateText = formatSession(chosen.startsAt, chosen.endsAt);
+
   return (
     <GolandTheme>
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-6 px-4 py-8">
+      <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-6 px-(--spacing-screen-padding) pb-12 pt-4 lg:pt-8">
         <Link
           href="/courses"
-          className="text-body-small text-(--color-text-secondary) hover:underline"
+          className="text-body-small flex items-center gap-1.5 text-(--color-text-secondary) hover:underline"
         >
-          ← 回課程列表
+          <ArrowLeftIcon size={18} />
+          返回搜尋結果
         </Link>
-
-        <header className="space-y-3">
-          <div className="text-caption flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-(--color-border-default) bg-(--color-surface-default) px-3 py-1">
-              {course.sport}
-            </span>
-            <span className="rounded-full bg-(--color-tint-blue-100) px-3 py-1">
-              {LEVEL_LABELS[course.level]}
-            </span>
-          </div>
-          <h1 className="text-h1">{course.title}</h1>
-          <p className="text-body-small text-(--color-text-secondary)">
-            教練：
-            <Link
-              href={`/coaches/${course.coachId}`}
-              className="font-bold text-(--color-text-primary) hover:underline"
-            >
-              {course.coachName}
-            </Link>
-          </p>
-          <ShareButton
-            path={`/courses/${course.courseId}?session=${chosen.id}`}
-            title={course.title}
-          />
-        </header>
 
         <CourseStatusNotice
           availability={availability}
           coachProfileHref={`/coaches/${course.coachId}`}
         />
 
-        <section className="space-y-2 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-5">
-          <h2 className="text-h3">課程資訊</h2>
-          <p className="text-body flex items-center gap-2">
-            <MapPinIcon size={16} />
-            {course.address}
-          </p>
-          <p className="text-body flex items-center gap-2">
-            <TagIcon size={16} />
-            NT$ {course.price.toLocaleString()} / 人
-          </p>
-          <p className="text-body flex items-center gap-2">
-            <UsersIcon size={16} />
-            滿 {course.minToOpen} 人開課，最多 {course.capacity} 人
-          </p>
-          <p className="text-body whitespace-pre-line pt-2 text-(--color-text-secondary)">
-            {course.description}
-          </p>
-          {course.notes && (
-            <p className="text-body-small text-(--color-text-secondary)">
-              注意事項：{course.notes}
+        {/* 英雄區：桌機左邊封面（約 63%）右邊資訊卡；手機封面滿版、資訊在下面 */}
+        <section className="lg:flex lg:overflow-hidden lg:rounded-(--radius-lg) lg:border lg:border-(--color-border-default) lg:bg-(--color-surface-default)">
+          {/* 封面可能是站內圖庫（svg）或 Supabase bucket 的網址，用一般 img，不需要設定 next/image 的來源網域 */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={course.coverUrl}
+            alt=""
+            className="-mx-(--spacing-screen-padding) h-[220px] w-[calc(100%+2*var(--spacing-screen-padding))] max-w-none bg-(--color-tint-blue-100) object-cover lg:mx-0 lg:h-[420px] lg:w-[63%] lg:max-w-full"
+          />
+          <div className="space-y-4 pt-4 lg:flex-1 lg:p-6">
+            <div className="text-caption flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-(--color-border-default) bg-(--color-surface-default) px-3 py-1">
+                {course.sport}
+              </span>
+              <span className="rounded-full bg-(--color-tint-blue-100) px-3 py-1">
+                {LEVEL_LABELS[course.level]}
+              </span>
+              {course.coachVerified && (
+                <span className="rounded-full bg-(--color-tint-blue-100) px-3 py-1">
+                  已認證
+                </span>
+              )}
+            </div>
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="text-h1">{course.title}</h1>
+              <ShareButton
+                iconOnly
+                path={`/courses/${course.courseId}?session=${chosen.id}`}
+                title={course.title}
+              />
+            </div>
+            {/* 桌機資訊卡才顯示日期、地點、價格與主按鈕；手機這些在下方資訊卡與固定底欄 */}
+            <div className="space-y-4 max-lg:hidden">
+              <p className="text-body-large">{dateText}</p>
+              <p className="text-body-large">
+                {course.city}
+                {course.district} {course.venue}
+              </p>
+              <p className="flex items-baseline gap-1.5">
+                <span className="text-display font-(family-name:--font-latin) font-medium">
+                  NT${course.price.toLocaleString()}
+                </span>
+                <span className="text-body text-(--color-text-secondary)">/ 人</span>
+              </p>
+              <SessionRegisterButton
+                fullWidth
+                state={state}
+                courseId={course.courseId}
+                sessionId={chosen.id}
+              />
+            </div>
+            <GroupProgress
+              enrolled={chosen.enrolled}
+              minToOpen={course.minToOpen}
+              capacity={course.capacity}
+            />
+          </div>
+        </section>
+
+        <KeyInfoStrip
+          dateText={dateText}
+          venue={course.venue}
+          address={course.address}
+          price={course.price}
+          minToOpen={course.minToOpen}
+          capacity={course.capacity}
+        />
+
+        <section className="space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-h3">課程介紹</h2>
+            <p className="text-body whitespace-pre-line text-(--color-text-secondary)">
+              {course.description}
             </p>
+          </div>
+          {course.notes && (
+            <div className="space-y-2">
+              <h2 className="text-h3">課程須知</h2>
+              <p className="text-body whitespace-pre-line text-(--color-text-secondary)">
+                {course.notes}
+              </p>
+            </div>
           )}
         </section>
 
         <CourseQa items={course.qa} />
 
-        <section className="space-y-3">
-          <h2 className="text-h3">場次</h2>
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-4">
-            <div className="space-y-1">
-              <p className="text-body font-bold">
-                {formatSession(chosen.startsAt, chosen.endsAt)}
-              </p>
-              <p className="text-body-small flex items-center gap-1.5 text-(--color-text-secondary)">
-                {chosen.enrolled}/{course.capacity} 人・
-                <span className={`h-2 w-2 rounded-full ${dotClass}`} />
-                {left}
-              </p>
-            </div>
-            <SessionRegisterButton
-              state={state}
-              courseId={course.courseId}
-              sessionId={chosen.id}
-            />
-          </div>
-        </section>
+        {/* 手機：主按鈕暫時放在內容下方，第二輪改成底部固定列 */}
+        <div className="lg:hidden">
+          <SessionRegisterButton
+            fullWidth
+            state={state}
+            courseId={course.courseId}
+            sessionId={chosen.id}
+          />
+        </div>
       </main>
     </GolandTheme>
   );

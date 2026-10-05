@@ -25,15 +25,20 @@ export default function SessionRegisterButton({
   state,
   courseId,
   sessionId,
+  fullWidth = false,
 }: {
   state: RegistrationState;
   courseId: string;
   sessionId: string;
+  // 英雄區的主按鈕要撐滿資訊卡寬度
+  fullWidth?: boolean;
 }) {
+  // 連結（<a>）預設是行內元素，撐滿寬度要加 block
+  const buttonClass = fullWidth ? `${BUTTON_CLASS} block w-full text-center` : BUTTON_CLASS;
   if (state.kind === "login_required") {
     // 登入後回到這一頁（#32）
     return (
-      <Link href={loginHref(`/courses/${courseId}`)} className={BUTTON_CLASS}>
+      <Link href={loginHref(`/courses/${courseId}`)} className={buttonClass}>
         {REGISTRATION_BUTTON_LABELS.login_required}
       </Link>
     );
@@ -43,14 +48,14 @@ export default function SessionRegisterButton({
     const href = registerHref(courseId, sessionId);
     if (href) {
       return (
-        <Link href={href} className={BUTTON_CLASS}>
+        <Link href={href} className={buttonClass}>
           {REGISTRATION_BUTTON_LABELS.can_register}
         </Link>
       );
     }
     // 報名流程畫面還沒有，先保持可按的樣子、沒有動作
     return (
-      <button type="button" className={BUTTON_CLASS}>
+      <button type="button" className={buttonClass}>
         {REGISTRATION_BUTTON_LABELS.can_register}
       </button>
     );
@@ -60,7 +65,7 @@ export default function SessionRegisterButton({
     <button
       type="button"
       disabled={!isRegistrationActionable(state)}
-      className={BUTTON_CLASS}
+      className={buttonClass}
     >
       {disabledLabel(state)}
     </button>

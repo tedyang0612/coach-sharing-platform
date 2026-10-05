@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { resolveCoverUrl } from "@/app/courses/_lib/cover-image";
 import type { CourseLevel, SessionStatus } from "@/types/database";
 import type { Course, CourseQaItem } from "./types";
 
@@ -12,7 +13,7 @@ const SESSION_SELECT = `
   id, course_id, start_at, end_at, registration_deadline_at, status,
   courses!inner (
     id, coach_id, title, description, notes, sport_type, level,
-    location_name, location_address, price_per_person,
+    location_name, location_address, price_per_person, cover_image_url,
     min_participants, max_participants, status, is_template,
     districts ( city, district )
   )
@@ -36,6 +37,7 @@ interface RawSession {
     location_name: string;
     location_address: string;
     price_per_person: number;
+    cover_image_url: string | null;
     min_participants: number;
     max_participants: number;
     districts: { city: string; district: string } | null;
@@ -156,6 +158,8 @@ export interface CourseDetail extends Course {
   // TODO: 等 Ted 確認課程 Q&A 的資料來源後，在 getCourseWithSessions 裡帶出；沒有填寫就不顯示
   qa?: CourseQaItem[];
   address: string;
+  // 封面圖：沒設定時依運動項目帶預設圖（Ted 的 resolveCoverUrl）
+  coverUrl: string;
   status: "published";
   sessions: CourseSession[];
 }
@@ -192,6 +196,7 @@ export async function getCourseWithSessions(courseId: string): Promise<CourseDet
     description: c.description ?? "",
     notes: c.notes,
     address: c.location_address,
+    coverUrl: resolveCoverUrl({ cover_image_url: c.cover_image_url, sport_type: c.sport_type }),
     status: "published",
     sessions: sessions.map((s) => ({
       id: s.id,
