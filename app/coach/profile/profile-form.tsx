@@ -20,7 +20,7 @@ import {
 import { SportPicker } from "@/components/coach-application/sport-picker";
 import { TagInput } from "@/components/coach-application/tag-input";
 import { TextAreaField } from "@/components/coach-application/text-area-field";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClassName } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
 import { TextField } from "@/components/ui/text-field";
 import {
@@ -64,17 +64,23 @@ type ProfileFormProps = {
 function Section({
   title,
   description,
+  action,
   children,
 }: {
   title: string;
-  description: string;
+  description?: string;
+  // 標題列右邊的動作
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-5 rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
-      <div>
-        <h2 className="text-base font-bold text-neutral-900">{title}</h2>
-        <p className="mt-1 text-xs text-neutral-500">{description}</p>
+    <section className="flex flex-col gap-4 rounded-lg border border-border-default bg-brand-white p-6">
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-h3 text-text-primary">{title}</h2>
+          {action}
+        </div>
+        {description && <p className="text-body-small text-text-secondary">{description}</p>}
       </div>
       {children}
     </section>
@@ -203,45 +209,35 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
 
   return (
     <form
-      className="flex flex-col gap-6"
+      className="flex flex-col gap-4"
       noValidate
       onSubmit={handleSubmit}
       // 儲存成功後只要再動到任何欄位，就把「已儲存」的提示收起來
       onChange={() => setSavedMessage(undefined)}
     >
-      <Section
-        title="姓名"
-        description="學員看到的是暱稱；沒填暱稱的話，會以真實姓名作為公開顯示的教練名稱。"
-      >
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold text-neutral-800">真實姓名</span>
-          <p className="rounded-xl border border-neutral-200 bg-neutral-100 px-4 py-2.5 text-sm text-neutral-600">
-            {initial.realName || "（未填寫）"}
-          </p>
-          <p className="text-xs text-neutral-500">
-            真實姓名用於核對良民證，通過審核後無法自行修改。如需更正，請聯繫平台。
-          </p>
+      <Section title="身分與暱稱">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField
+            label="真實姓名"
+            name="realName"
+            value={initial.realName || "（未填寫）"}
+            disabled
+            readOnly
+            hint="用於核對良民證，通過審核後無法自行修改；如需更正請聯繫平台。"
+          />
+          <TextField
+            label="暱稱（選填）"
+            name="nickname"
+            placeholder="請輸入暱稱"
+            hint={`公開顯示以暱稱為準，未填沿用真實姓名。學員會看到：${resolveCoachDisplayName(initial.realName, nickname)}`}
+            value={nickname}
+            onChange={(event) => setNickname(event.target.value)}
+            error={contactInfoWarning(nickname) ?? errors.nickname}
+          />
         </div>
-        <TextField
-          label="暱稱（選填）"
-          name="nickname"
-          placeholder="例：Amy 教練"
-          value={nickname}
-          onChange={(event) => setNickname(event.target.value)}
-          error={contactInfoWarning(nickname) ?? errors.nickname}
-        />
-        <p className="-mt-2 text-xs text-neutral-500">
-          學員會看到的名稱：
-          <span className="font-semibold text-neutral-800">
-            {resolveCoachDisplayName(initial.realName, nickname)}
-          </span>
-        </p>
       </Section>
 
-      <Section
-        title="公開資料"
-        description="會公開顯示在你的教練個人檔案，請勿填寫電話、Email、LINE ID 或網址。"
-      >
+      <Section title="個人照片與運動類別">
         <FileField
           label="大頭貼（必填）"
           name="photo"
@@ -270,15 +266,18 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
           }
           error={errors.lifestylePhoto}
         />
-
         <SportPicker
           value={sportCategories}
           onChange={setSportCategories}
           error={errors.sportCategories}
         />
+      </Section>
 
+      <Section title="特色 Tag" description="最多 5 個、每個 10 字以內；不可填寫聯絡資訊。">
         <TagInput value={tags} onChange={setTags} />
+      </Section>
 
+      <Section title="個人學歷（必填，可多筆）">
         <EducationList
           value={education}
           onChange={setEducation}
@@ -288,30 +287,29 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
         <Button type="button" variant="ghost" onClick={addEducation} className="self-start">
           ＋ 新增學歷
         </Button>
+      </Section>
 
+      <Section title="經歷與簡介">
         <TextAreaField
           label="工作／教學經歷（選填）"
           name="workExperience"
-          rows={3}
           placeholder="例：知名健身房 5 年教練經驗"
           value={workExperience}
           onChange={(event) => setWorkExperience(event.target.value)}
           error={contactInfoWarning(workExperience)}
         />
-
         <TextAreaField
           label="比賽經歷（選填）"
           name="bioCompetition"
-          placeholder="例：2023 全國健美錦標賽 75kg 級第 3 名"
+          placeholder="例：全國社會組羽球賽 男雙第 4 名"
           value={bioCompetition}
           onChange={(event) => setBioCompetition(event.target.value)}
           error={contactInfoWarning(bioCompetition)}
         />
-
         <TextAreaField
-          label="簡述＊"
+          label="簡述（必填）"
           name="bioIntro"
-          hint="用幾句話介紹你的教學專長與風格，讓學員認識你。"
+          placeholder="請簡述你的教學風格"
           value={bioIntro}
           onChange={(event) => setBioIntro(event.target.value)}
           error={contactInfoWarning(bioIntro) ?? errors.bioIntro}
@@ -319,37 +317,8 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
       </Section>
 
       <Section
-        title="聯絡方式"
-        description="電話、LINE、社群帳號至少填寫一項。不會公開，僅供平台聯繫，以及場次確定開課後透過行前公告提供給該場次學員。"
-      >
-        <TextField
-          label="電話"
-          name="contactPhone"
-          type="tel"
-          autoComplete="tel"
-          placeholder="0912-345-678"
-          value={contactPhone}
-          onChange={(event) => setContactPhone(event.target.value)}
-        />
-        <TextField
-          label="LINE ID"
-          name="contactLine"
-          value={contactLine}
-          onChange={(event) => setContactLine(event.target.value)}
-        />
-        <TextField
-          label="社群帳號"
-          name="contactSocial"
-          placeholder="例：Instagram @your_account"
-          value={contactSocial}
-          onChange={(event) => setContactSocial(event.target.value)}
-        />
-        {errors.contact && <p className="text-xs text-red-600">{errors.contact}</p>}
-      </Section>
-
-      <Section
         title="專業證照"
-        description="可以隨時追加證照送審。任一張審核通過後，個人檔案與課程卡片會顯示「已認證」徽章。"
+        description="選填，可多張；每張需填名稱並上傳檔案，管理員逐張審核。新追加的證照會顯示「審核中」。"
       >
         <ExistingLicenseList
           licenses={licenses}
@@ -359,8 +328,40 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
         <LicenseList value={newLicenses} onChange={setNewLicenses} errors={errors.licenses} />
       </Section>
 
-      <p className="text-xs text-neutral-500">
-        良民證無法在這裡修改。如需更新，請聯繫平台。
+      <Section
+        title="聯絡方式（不公開）"
+        description="僅供平台聯繫，以及確定開課後透過行前公告提供給確定開課的學員；至少填一項。"
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <TextField
+            label="電話"
+            name="contactPhone"
+            type="tel"
+            autoComplete="tel"
+            placeholder="0912-345-678"
+            value={contactPhone}
+            onChange={(event) => setContactPhone(event.target.value)}
+          />
+          <TextField
+            label="LINE"
+            name="contactLine"
+            placeholder="請輸入 LINE ID"
+            value={contactLine}
+            onChange={(event) => setContactLine(event.target.value)}
+          />
+        </div>
+        <TextField
+          label="社群帳號"
+          name="contactSocial"
+          placeholder="請輸入社群帳號"
+          value={contactSocial}
+          onChange={(event) => setContactSocial(event.target.value)}
+        />
+        {errors.contact && <p className="text-caption text-state-error-text">{errors.contact}</p>}
+      </Section>
+
+      <p className="text-body-small rounded-md border border-brand-blue bg-tint-blue-100 px-4 py-2.5 text-text-primary">
+        公開欄位（簡述、經歷、特色 Tag、證照名稱）禁填電話、Email、LINE ID 或網址。良民證無法在這裡修改，如需更新請聯繫平台。
       </p>
 
       {attempted && hasErrors(validation) && (
@@ -370,18 +371,23 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
       {savedMessage && (
         <p
           role="status"
-          className="rounded-xl border border-brand bg-brand-ink px-4 py-3.5 text-sm font-bold text-brand"
+          className="text-body-small rounded-md border border-brand-blue bg-tint-blue-100 px-4 py-2.5 text-text-primary"
         >
           {savedMessage}{" "}
-          <Link href={`/coaches/${userId}`} className="underline">
+          <Link href={`/coaches/${userId}`} className="text-brand-deep underline underline-offset-4">
             查看公開頁
           </Link>
         </p>
       )}
 
-      <Button type="submit" disabled={isSaving}>
-        {isSaving ? "儲存中…" : "儲存"}
-      </Button>
+      <div className="flex justify-end gap-3">
+        <Link href={`/coaches/${userId}`} className={buttonClassName("secondary")}>
+          取消
+        </Link>
+        <Button type="submit" loading={isSaving} loadingText="儲存中">
+          儲存變更
+        </Button>
+      </div>
     </form>
   );
 }

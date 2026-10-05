@@ -37,16 +37,18 @@ export function ExistingLicenseList({
         return (
           <li
             key={license.id}
-            className="rounded-xl border border-neutral-200 bg-neutral-50 p-3"
+            className={`rounded-md border px-4 py-3 ${
+              !removed && license.status === "rejected" ? "border-state-error" : "border-border-default"
+            }`}
           >
             <div className="flex items-center justify-between gap-3">
               <span
-                className={`min-w-0 text-sm ${
-                  removed ? "text-neutral-400 line-through" : "text-neutral-900"
+                className={`text-body min-w-0 ${
+                  removed ? "text-state-disabled-text line-through" : "text-text-primary"
                 }`}
               >
                 {license.name || "未命名證照"}
-                <span className="ml-2 text-xs text-neutral-500">
+                <span className="text-caption ml-2 text-text-secondary">
                   {removed ? "送出後移除" : STATUS_LABELS[license.status]}
                 </span>
               </span>
@@ -60,15 +62,15 @@ export function ExistingLicenseList({
                         : [...removedIds, license.id]
                     )
                   }
-                  className="shrink-0 text-sm font-semibold text-brand hover:underline"
+                  className="text-label shrink-0 text-brand-deep underline underline-offset-4"
                 >
                   {removed ? "復原" : "移除"}
                 </button>
               )}
             </div>
             {!removed && license.status === "rejected" && license.rejectionReason && (
-              <p className="mt-2 whitespace-pre-line text-xs text-neutral-600">
-                {license.rejectionReason}
+              <p className="text-body-small mt-2 whitespace-pre-line text-state-error-text">
+                原因：{license.rejectionReason}
               </p>
             )}
           </li>
