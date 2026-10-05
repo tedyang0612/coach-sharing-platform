@@ -1,6 +1,5 @@
-// 「我的課程」畫面用的文字。資料層（my-registrations.ts，Ted 維護）還用舊的「成團」用語，
-// PRD v4.6 已改成「開課」說法，所以畫面在這裡轉換，不改他的檔案。
-// 等 Ted 把資料層的用語改掉之後，這個檔案可以刪掉。
+// 「我的課程」畫面用的文字。資料層（my-registrations.ts，Ted 維護）的用語已改成
+// 「待確認開課／確定開課／未達人數取消」（Ted 的 13.0 更新），不用再轉換。
 import type { MyRegistrationCategory } from "./my-registrations";
 
 export const TAB_LABELS: Record<MyRegistrationCategory, string> = {
@@ -31,14 +30,6 @@ export const COPY = {
   cancelledNoCharge: "場次未達開課人數或已取消，不會扣款。",
   refundedFull: "已全額退回你的付款方式（畫面模擬）。",
 } as const;
-
-// 待成團 → 待確認開課、已成團 → 確定開課、未成團取消 → 未達人數取消
-export function toV46Wording(text: string) {
-  return text
-    .replaceAll("未成團取消", "未達人數取消")
-    .replaceAll("待成團", "待確認開課")
-    .replaceAll("已成團", "確定開課");
-}
 
 // 取消確認視窗要說明結果（Ted 的 cancel.outcome）
 export const CANCEL_OUTCOME_TEXT = {

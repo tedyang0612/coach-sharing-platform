@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { cancelRegistration } from "@/app/registrations/actions";
 import { CloseIcon } from "./Icons";
@@ -67,6 +68,10 @@ export default function CancelRegistrationButton({ registrationId, className }: 
         <div className="text-body-small mt-4 space-y-2 rounded-(--radius-md) bg-(--color-brand-light) p-3">
           <p>開課前 24 小時以上：可線上取消，已扣款者全額退款</p>
           <p>開課前 24 小時內：請聯絡教練協助，將收取 50% 取消手續費</p>
+          {/* 條款頁是牛牛的 #53（/terms#refund）；合併前點不開 */}
+          <Link href="/terms#refund" className="block font-bold underline">
+            查看完整取消與退款規定
+          </Link>
         </div>
         {error && (
           <p role="alert" className="text-body-small mt-3 text-(--color-state-error-text)">
