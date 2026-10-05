@@ -135,6 +135,7 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
   const [removedLicenseIds, setRemovedLicenseIds] = useState<string[]>([]);
   // 同意聲明每次送審都要重新勾選
   const [consent, setConsent] = useState(false);
+  const [termsConsent, setTermsConsent] = useState(false);
 
   // 按過一次送出之後才顯示必填錯誤，之後每次修改都即時重新檢查
   const addEducation = useEducationAdder(education, setEducation);
@@ -162,6 +163,7 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
       hasFile: license.file !== null,
     })),
     consent,
+    termsConsent,
   });
   const errors: CoachApplicationErrors = attempted ? validation : {};
 
@@ -213,6 +215,7 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
           licenses: uploadedLicenses,
           removedLicenseIds,
           consent,
+          termsConsent,
         });
         if (result?.error) setSubmitError(result.error);
       } catch (error) {
@@ -428,7 +431,7 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
         <LicenseList value={licenses} onChange={setLicenses} errors={errors.licenses} />
       </Section>
 
-      <Section number={6} title="個資蒐集同意" description={<p>{CONSENT_INTRO}</p>}>
+      <Section number={6} title="個資蒐集與條款同意" description={<p>{CONSENT_INTRO}</p>}>
         <ol className="text-body-small flex list-decimal flex-col gap-2 pl-5 text-text-secondary">
           {CONSENT_ITEMS.map((item) => (
             <li key={item.title}>
@@ -445,6 +448,27 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
           onChange={(event) => setConsent(event.target.checked)}
         />
         {errors.consent && <p className="text-caption text-state-error-text">{errors.consent}</p>}
+
+        <CheckboxField
+          label="我已閱讀並同意《教練合作條款》。"
+          name="termsConsent"
+          checked={termsConsent}
+          invalid={Boolean(errors.termsConsent)}
+          onChange={(event) => setTermsConsent(event.target.checked)}
+        />
+        <p className="text-body-small -mt-2 pl-9 text-text-secondary">
+          <Link
+            href="/coach-terms"
+            target="_blank"
+            className="text-brand-deep underline underline-offset-4"
+          >
+            查看教練合作條款
+          </Link>
+          （另開分頁）
+        </p>
+        {errors.termsConsent && (
+          <p className="text-caption text-state-error-text">{errors.termsConsent}</p>
+        )}
       </Section>
 
       {attempted && hasErrors(validation) && (

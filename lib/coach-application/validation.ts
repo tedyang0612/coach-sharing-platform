@@ -39,6 +39,8 @@ export type CoachApplicationInput = {
 
   licenses: { name: string; hasFile: boolean }[];
   consent: boolean;
+  // 教練合作條款（/coach-terms），PRD v4.8
+  termsConsent: boolean;
 };
 
 export type CoachApplicationErrors = {
@@ -59,6 +61,7 @@ export type CoachApplicationErrors = {
   // key 是證照在清單裡的位置（從 0 開始）
   licenses?: Record<number, string>;
   consent?: string;
+  termsConsent?: string;
 };
 
 /** 公開欄位含聯絡資訊時回傳警示文字，沒有則回傳 undefined。 */
@@ -245,6 +248,7 @@ export function validateCoachApplication(
   if (licenseErrors) errors.licenses = licenseErrors;
 
   if (!input.consent) errors.consent = "請勾選同意個資蒐集聲明後再送出";
+  if (!input.termsConsent) errors.termsConsent = "請勾選同意教練合作條款後再送出";
 
   return errors;
 }
