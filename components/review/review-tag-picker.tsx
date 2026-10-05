@@ -1,5 +1,6 @@
 "use client";
 
+import { Chip } from "@/components/ui/chip";
 import { REVIEW_TAG_MAX, REVIEW_TAGS } from "@/lib/reviews/review-tags";
 
 type ReviewTagPickerProps = {
@@ -21,38 +22,27 @@ export function ReviewTagPicker({ value, onChange }: ReviewTagPickerProps) {
 
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="text-sm font-semibold text-neutral-800">
-        這堂課如何？
-        <span className="ml-1 text-xs font-normal text-neutral-500">
-          選填，最多 {REVIEW_TAG_MAX} 個（{value.length}/{REVIEW_TAG_MAX}）
-        </span>
+      <legend className="text-label text-text-primary">
+        這位教練的特色（選填，最多選 {REVIEW_TAG_MAX} 個）
       </legend>
-      <div className="mt-1.5 flex flex-wrap gap-2">
+      <div className="mt-2 flex flex-wrap gap-2">
         {REVIEW_TAGS.map((tag) => {
           const selected = value.includes(tag);
           return (
-            <button
+            <Chip
               key={tag}
-              type="button"
-              aria-pressed={selected}
+              selected={selected}
               disabled={!selected && isFull}
               onClick={() => toggle(tag)}
-              className={`rounded-full border px-4 py-1.5 text-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${
-                selected
-                  ? "border-brand bg-brand font-semibold text-white"
-                  : "border-neutral-200 bg-white text-neutral-700 hover:border-brand"
-              }`}
             >
               {tag}
-            </button>
+            </Chip>
           );
         })}
       </div>
-      {isFull && (
-        <p className="text-xs text-neutral-500">
-          已選滿 {REVIEW_TAG_MAX} 個，取消一個才能再選。
-        </p>
-      )}
+      <p className="text-caption text-text-secondary">
+        已選 {value.length} / {REVIEW_TAG_MAX} 個，不隨星數變化
+      </p>
     </fieldset>
   );
 }

@@ -5,8 +5,9 @@ import { useState, useTransition, type FormEvent } from "react";
 import { submitReview } from "@/app/actions/reviews";
 import { ReviewTagPicker } from "@/components/review/review-tag-picker";
 import { StarInput } from "@/components/review/star-input";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClassName } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
+import { Textarea } from "@/components/ui/textarea";
 import { contactInfoWarning } from "@/lib/coach-application/validation";
 
 const COMMENT_MAX_LENGTH = 500;
@@ -15,9 +16,11 @@ type ReviewFormProps = {
   registrationId: string;
   coachId: string;
   coachName: string;
+  // 卡片標題下方那一行：課名・教練・上課時間
+  summary: string;
 };
 
-export function ReviewForm({ registrationId, coachId, coachName }: ReviewFormProps) {
+export function ReviewForm({ registrationId, coachId, coachName, summary }: ReviewFormProps) {
   const [rating, setRating] = useState(0);
   const [tags, setTags] = useState<string[]>([]);
   const [comment, setComment] = useState("");
@@ -50,23 +53,20 @@ export function ReviewForm({ registrationId, coachId, coachName }: ReviewFormPro
 
   if (done) {
     return (
-      <div className="flex flex-col items-center gap-4 rounded-2xl border border-neutral-200 bg-white p-8 text-center">
+      <div className="flex flex-col items-center gap-4 rounded-lg border border-border-default bg-brand-white p-8 text-center">
         <span
           aria-hidden
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-ink text-2xl font-bold text-brand"
+          className="text-h2 flex size-14 items-center justify-center rounded-pill bg-tint-blue-100 text-text-primary"
         >
           ✓
         </span>
-        <div>
-          <p className="text-lg font-bold text-neutral-900">評價已送出，謝謝你的回饋！</p>
-          <p className="mt-1 text-sm text-neutral-500">
+        <div className="flex flex-col gap-1">
+          <p className="text-h3 text-text-primary">評價已送出，謝謝你的回饋！</p>
+          <p className="text-body-small text-text-secondary">
             你的評價會顯示在 {coachName} 的教練個人檔案。
           </p>
         </div>
-        <Link
-          href={`/coaches/${coachId}`}
-          className="rounded-xl bg-brand px-6 py-3 text-sm font-bold text-white transition hover:opacity-90"
-        >
+        <Link href={`/coaches/${coachId}`} className={buttonClassName("primary")}>
           查看教練個人檔案
         </Link>
       </div>
@@ -75,10 +75,15 @@ export function ReviewForm({ registrationId, coachId, coachName }: ReviewFormPro
 
   return (
     <form
-      className="flex flex-col gap-5 rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6"
+      className="flex flex-col gap-5 rounded-lg border border-border-default bg-brand-white px-5 py-6 sm:p-10"
       noValidate
       onSubmit={handleSubmit}
     >
+      <div className="flex flex-col gap-2">
+        <h1 className="text-h2 text-text-primary">評價這堂課</h1>
+        <p className="text-body-small text-text-secondary">{summary}</p>
+      </div>
+
       <StarInput
         value={rating}
         onChange={setRating}
@@ -88,39 +93,48 @@ export function ReviewForm({ registrationId, coachId, coachName }: ReviewFormPro
       <ReviewTagPicker value={tags} onChange={setTags} />
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="comment" className="text-sm font-semibold text-neutral-800">
-          文字心得（選填）
-        </label>
-        <p className="text-xs text-neutral-500">
-          心得會公開顯示在教練個人檔案，讓其他學員參考。請勿填寫電話、Email、LINE ID 或網址。
-        </p>
-        <textarea
-          id="comment"
+        <Textarea
+          label="文字心得（選填，500 字以內，會公開顯示）"
           name="comment"
-          rows={5}
+          rows={4}
           placeholder="這堂課的感受、教練的教學方式、適合什麼程度的人…"
           value={comment}
           onChange={(event) => setComment(event.target.value)}
           aria-invalid={commentInvalid ? true : undefined}
-          className={`rounded-xl border bg-neutral-50 px-4 py-2.5 text-sm text-neutral-900 outline-none transition focus:bg-white focus:ring-2 ${
-            commentInvalid
-              ? "border-red-500 focus:border-red-500 focus:ring-red-100"
-              : "border-neutral-200 focus:border-brand focus:ring-brand-ink"
-          }`}
         />
-        <p className={`text-xs ${commentTooLong ? "text-red-600" : "text-neutral-400"}`}>
-          {commentLength}/{COMMENT_MAX_LENGTH}
+        <p
+          className={`text-caption text-right ${commentTooLong ? "text-state-error-text" : "text-text-secondary"}`}
+        >
+          {commentLength} / {COMMENT_MAX_LENGTH}
           {commentTooLong && "，超過字數上限"}
         </p>
-        {contactWarning && <p className="text-xs text-red-600">{contactWarning}</p>}
       </div>
+
+      {contactWarning && (
+        <p className="text-body-small rounded-md border-[1.5px] border-state-error bg-state-error-bg px-3.5 py-2.5 text-state-error-text">
+          偵測到聯絡資訊（電話、Email、LINE ID、網址或「@帳號」），請移除後再送出。
+        </p>
+      )}
 
       {submitError && <FormError message={submitError} />}
 
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "送出中…" : "送出評價"}
-      </Button>
-      <p className="text-center text-xs text-neutral-400">每筆訂單只能評價一次，送出後無法修改。</p>
+      <div className="flex gap-3">
+        <Link href="/my-courses" className={buttonClassName("secondary", true)}>
+          稍後再評
+        </Link>
+        <Button
+          type="submit"
+          fullWidth
+          loading={isSubmitting}
+          loadingText="送出中"
+          disabled={commentInvalid}
+        >
+          送出評價
+        </Button>
+      </div>
+      <p className="text-caption text-center text-text-secondary">
+        每筆訂單只能評價一次，送出後無法修改。
+      </p>
     </form>
   );
 }

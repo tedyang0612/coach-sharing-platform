@@ -23,9 +23,9 @@ function formatTaipeiTime(iso: string): string {
 
 function Notice({ title, body, children }: { title: string; body: string; children?: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-8 text-center">
-      <p className="text-lg font-bold text-neutral-900">{title}</p>
-      <p className="text-sm text-neutral-500">{body}</p>
+    <div className="flex flex-col items-center gap-3 rounded-lg border border-border-default bg-brand-white p-8 text-center">
+      <h1 className="text-h3 text-text-primary">{title}</h1>
+      <p className="text-body-small text-text-secondary">{body}</p>
       {children}
     </div>
   );
@@ -87,16 +87,8 @@ export default async function CourseReviewPage({ params }: PageProps<"/courses/[
   const target = pending[0];
 
   return (
-    <main className="flex-1 px-4 py-8 sm:px-6 sm:py-12">
-      <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
-        <header>
-          <h1 className="text-2xl font-bold text-neutral-900">填寫課程評價</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            {course.title}・{coachName}
-            {target?.startAt && `・${formatTaipeiTime(target.startAt)}`}
-          </p>
-        </header>
-
+    <main className="flex-1 px-4 pb-8 pt-6 sm:px-6 sm:pb-24 sm:pt-14">
+      <div className="mx-auto flex w-full max-w-[720px] flex-col gap-4">
         {target ? (
           // key 讓同一堂課有多筆待評價訂單時，送出一筆後換下一筆會重置表單
           <ReviewForm
@@ -104,12 +96,15 @@ export default async function CourseReviewPage({ params }: PageProps<"/courses/[
             registrationId={target.id}
             coachId={course.coach_id}
             coachName={coachName}
+            summary={[course.title, coachName, target.startAt ? formatTaipeiTime(target.startAt) : ""]
+              .filter(Boolean)
+              .join("・")}
           />
         ) : completed.length > 0 ? (
           <Notice title="已評價" body="你已經評價過這堂課了，每筆訂單只能評價一次。">
             <Link
               href={`/coaches/${course.coach_id}`}
-              className="text-sm font-semibold text-brand hover:underline"
+              className="text-label text-brand-deep underline underline-offset-4"
             >
               查看教練個人檔案
             </Link>
