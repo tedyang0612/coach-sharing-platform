@@ -9,6 +9,8 @@ interface Props {
   active: boolean;
   // 面板寬一點（例如「地區」要放兩欄）
   wide?: boolean;
+  // 右下角主按鈕的文字（價格面板依設計稿是「套用」，其他面板是「完成」）
+  doneLabel?: string;
   onClear?: () => void;
   children: React.ReactNode;
 }
@@ -21,6 +23,7 @@ export default function FilterPill({
   label,
   active,
   wide = false,
+  doneLabel = "完成",
   onClear,
   children,
 }: Props) {
@@ -100,7 +103,7 @@ export default function FilterPill({
             }}
             className="rounded-full bg-teal-600 px-4 py-1 font-medium text-white hover:bg-teal-700"
           >
-            完成
+            {doneLabel}
           </button>
         </div>
       </div>

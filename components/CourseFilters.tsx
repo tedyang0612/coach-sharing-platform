@@ -98,35 +98,40 @@ function PriceInputs({
     if (e.key === "Enter") commit();
   }
   const inputClass =
-    "w-24 rounded-xl border border-neutral-300 bg-white px-3 py-2 font-normal";
+    "w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 font-normal placeholder:text-neutral-400";
 
+  // 版面依設計稿 S04 價格選單：標籤在上、兩欄中間一條「–」
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <label className="flex items-center gap-1">
-        最低 NT$
+    <div className="flex items-end gap-2">
+      <label className="flex-1 space-y-1 text-xs font-bold text-slate-800">
+        最低價
         <input
           id="filter-price-min"
           type="text"
           inputMode="numeric"
+          placeholder="NT$"
           value={draftMin}
           onChange={(e) => setDraftMin(e.target.value.replace(/\D/g, ""))}
           onBlur={commit}
           onKeyDown={commitOnEnter}
-          className={inputClass}
+          className={`${inputClass} text-sm`}
         />
       </label>
-      <span aria-hidden="true">～</span>
-      <label className="flex items-center gap-1">
-        最高 NT$
+      <span aria-hidden="true" className="pb-2.5 text-neutral-400">
+        –
+      </span>
+      <label className="flex-1 space-y-1 text-xs font-bold text-slate-800">
+        最高價
         <input
           id="filter-price-max"
           type="text"
           inputMode="numeric"
+          placeholder="NT$"
           value={draftMax}
           onChange={(e) => setDraftMax(e.target.value.replace(/\D/g, ""))}
           onBlur={commit}
           onKeyDown={commitOnEnter}
-          className={inputClass}
+          className={`${inputClass} text-sm`}
         />
       </label>
     </div>
@@ -481,13 +486,15 @@ export default function CourseFilters({
         <FilterPill
           id="filter-price"
           label="價格"
+          wide
+          doneLabel="套用"
           active={value.priceMin !== undefined || value.priceMax !== undefined}
           onClear={() =>
             navigate({ ...value, priceMin: undefined, priceMax: undefined })
           }
         >
           <div className="space-y-2 text-sm">
-            <p className="font-medium">每人費用（自己輸入）</p>
+            <p className="font-medium">價格區間（NT$）</p>
             {/* 換條件或清除後網址的值會變，用 key 讓輸入框跟著重設 */}
             <PriceInputs
               key={`${value.priceMin ?? ""}-${value.priceMax ?? ""}`}
