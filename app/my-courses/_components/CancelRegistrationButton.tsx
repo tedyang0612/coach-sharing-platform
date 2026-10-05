@@ -66,7 +66,7 @@ export default function CancelRegistrationButton({ registrationId, className }: 
         </p>
         <div className="text-body-small mt-4 space-y-2 rounded-(--radius-md) bg-(--color-brand-light) p-3">
           <p>開課前 24 小時以上：可線上取消，已扣款者全額退款</p>
-          <p>開課前 24 小時內：請聯絡教練協助，扣除 30% 手續費</p>
+          <p>開課前 24 小時內：請聯絡教練協助，將收取 50% 取消手續費</p>
         </div>
         {error && (
           <p role="alert" className="text-body-small mt-3 text-(--color-state-error-text)">
