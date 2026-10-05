@@ -40,6 +40,26 @@ function VerifiedIcon() {
   );
 }
 
+// 線條圖示取自設計稿的 icons（map-pin、calendar）；用 currentColor 跟著文字色
+function LineIcon({ children }: { children: React.ReactNode }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="shrink-0"
+    >
+      {children}
+    </svg>
+  );
+}
+
 const MAX_VISIBLE_TAGS = 3;
 
 interface Props {
@@ -49,13 +69,20 @@ interface Props {
 export default function CourseCard({ course }: Props) {
   const isConfirmed = course.enrolled >= course.minToOpen;
   const isFull = course.enrolled >= course.capacity;
-  const progressPercent = Math.min(
-    100,
-    Math.round((course.enrolled / course.capacity) * 100),
-  );
+  const gap = course.minToOpen - course.enrolled;
+  // 狀態小圓點：差 1 人用黃綠提醒「快開課」，其他未達標用藍，已達標用深色
+  const dotClass = isConfirmed
+    ? "bg-slate-800"
+    : gap === 1
+      ? "bg-lime-400"
+      : "bg-sky-400";
 
   return (
-    <article className="group flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white text-slate-800 transition-all duration-300 hover:border-teal-200 hover:shadow-xl">
+    <article
+      className={`group flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white text-slate-800 transition-all duration-300 hover:border-teal-200 hover:shadow-xl ${
+        isFull ? "opacity-60" : ""
+      }`}
+    >
       {/* 先用漸層佔位；之後有課程圖片欄位再換成圖片 */}
       <div className="relative h-48 bg-gradient-to-br from-teal-100 to-sky-200">
         <div className="absolute left-3 top-3 flex gap-2">
@@ -64,15 +91,6 @@ export default function CourseCard({ course }: Props) {
           </span>
           <span className="rounded-full bg-slate-900/80 px-3 py-1 text-xs font-bold text-white shadow-sm backdrop-blur-md">
             {LEVEL_LABELS[course.level]}
-          </span>
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-bold text-white shadow-sm ${
-              isConfirmed ? "bg-emerald-500" : "bg-orange-500"
-            }`}
-          >
-            {isConfirmed
-              ? "✅ 已達開課人數"
-              : `🔥 差 ${course.minToOpen - course.enrolled} 人開課`}
           </span>
         </div>
       </div>
@@ -85,11 +103,21 @@ export default function CourseCard({ course }: Props) {
               {course.title}
             </Link>
           </h3>
-          <p className="mt-2 text-xs text-slate-500">
-            📍 {course.city}{course.district} {course.venue}
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+            <LineIcon>
+              <path d="M12 22C12 22 20 16 20 10C20 7.87827 19.1571 5.84344 17.6569 4.34315C16.1566 2.84285 14.1217 2 12 2C9.87827 2 7.84344 2.84285 6.34315 4.34315C4.84285 5.84344 4 7.87827 4 10C4 16 12 22 12 22Z" />
+              <path d="M12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13Z" />
+            </LineIcon>
+            <span>
+              {course.city}{course.district} {course.venue}
+            </span>
           </p>
-          <p className="mt-1 text-xs text-slate-500">
-            📅 {formatSchedule(course.startsAt, course.endsAt)}
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+            <LineIcon>
+              <path d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z" />
+              <path d="M16 2V6M8 2V6M3 10H21" />
+            </LineIcon>
+            <span>{formatSchedule(course.startsAt, course.endsAt)}</span>
           </p>
         </div>
 
@@ -142,31 +170,19 @@ export default function CourseCard({ course }: Props) {
             </ul>
           )}
 
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-400">招募進度</span>
-            <span className="font-bold text-slate-800">
-              {course.enrolled}/{course.capacity}人
-            </span>
-          </div>
-
-          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-            <div
-              className={`h-full transition-all duration-500 ${
-                isConfirmed ? "bg-emerald-500" : "bg-orange-500"
-              }`}
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-
           <div className="flex items-center justify-between pt-1">
-            <div>
-              <span className="text-lg font-black text-teal-600">
-                NT$ {course.price.toLocaleString()}
-              </span>
-            </div>
-            {/* 列表卡片不放報名按鈕（QA／UI 決定），報名在課程詳情頁選場次；額滿只留文字提示 */}
-            {isFull && (
+            <span className="text-lg font-black text-slate-900">
+              NT$ {course.price.toLocaleString()}
+              <span className="text-sm font-medium text-slate-500"> / 人</span>
+            </span>
+            {/* 列表卡片不放報名按鈕（QA／UI 決定），報名在課程詳情頁選場次；人數進度也只在詳情頁（設計稿 S04 沒有） */}
+            {isFull ? (
               <span className="text-xs font-bold text-slate-400">已額滿</span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
+                <span className={`h-2 w-2 rounded-full ${dotClass}`} />
+                {isConfirmed ? "已達開課人數" : `差 ${gap} 人開課`}
+              </span>
             )}
           </div>
         </div>

@@ -234,7 +234,7 @@ export default function CourseFilters({
         </div>
       </fieldset>
 
-      {/* 第二排：膠囊下拉（地區、日期、星期、時段、程度、指定時段、價格區間），點開是面板 */}
+      {/* 第二排：膠囊下拉（地區、日期、星期、時段、程度、指定時段、價格），點開是面板 */}
       {/* 手機單列橫向捲動（和運動晶片一致）。面板在手機是 fixed 定位，不會被捲動容器裁掉；
           sm 以上面板是 absolute，所以桌面維持換行 */}
       <div
@@ -480,7 +480,7 @@ export default function CourseFilters({
 
         <FilterPill
           id="filter-price"
-          label="價格區間"
+          label="價格"
           active={value.priceMin !== undefined || value.priceMax !== undefined}
           onClear={() =>
             navigate({ ...value, priceMin: undefined, priceMax: undefined })

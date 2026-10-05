@@ -1,5 +1,5 @@
 import Link from "next/link";
-import CourseCard from "@/components/CourseCard";
+import CourseGrid from "@/components/CourseGrid";
 import CourseFilters from "@/components/CourseFilters";
 import SortSelect from "@/components/SortSelect";
 import { filterCourses, parseFilters } from "@/lib/courses/filterCourses";
@@ -37,11 +37,8 @@ export default async function CoursesPage({
   const courses = sortCourses(filterCourses(allCourses, filters), sort);
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
-      <h1 className="text-2xl font-semibold">搜尋與篩選課程</h1>
-      <p className="mt-1 text-sm text-neutral-500">
-        根據你的時間、地點與運動程度找到適合的課程
-      </p>
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
+      <h1 className="text-2xl font-semibold">課程搜尋結果</h1>
 
       <div className="mt-6">
         <CourseFilters
@@ -53,7 +50,7 @@ export default async function CoursesPage({
       </div>
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-neutral-500">共找到 {courses.length} 個課程</p>
+        <p className="text-sm text-neutral-500">共 {courses.length} 堂課程</p>
         <SortSelect filters={filters} sort={sort} />
       </div>
       {courses.length === 0 ? (
@@ -69,11 +66,8 @@ export default async function CoursesPage({
           </Link>
         </div>
       ) : (
-        <div className="mt-3 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {courses.map((course) => (
-            <CourseCard key={course.id} course={course} />
-          ))}
-        </div>
+        // 篩選或排序改變就換 key，「載入更多」回到第一批
+        <CourseGrid key={JSON.stringify(params)} courses={courses} />
       )}
     </main>
   );
