@@ -8,7 +8,7 @@ import { loginHref } from "@/lib/courses/loginHref";
 import { registerHref } from "@/lib/courses/registerHref";
 
 const BUTTON_CLASS =
-  "rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400";
+  "text-button rounded-full bg-(--color-brand-blue) px-5 py-2 text-(--color-text-inverse) transition hover:bg-(--color-brand-blue-pressed) disabled:cursor-not-allowed disabled:bg-(--color-state-disabled-bg) disabled:text-(--color-state-disabled-text)";
 
 // 不能按時的文案：教練本人用設計稿 S05 的字；取消與結束分開寫，學員看得出原因
 function disabledLabel(state: RegistrationState) {

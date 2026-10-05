@@ -1,3 +1,4 @@
+import { ChevronDownIcon } from "@/components/goland/icons";
 import type { CourseQaItem } from "@/lib/courses/types";
 
 // 課程 QA：預設只顯示問題，點問題展開回答，再點一次收合；每一題各自開合。
@@ -8,21 +9,18 @@ export default function CourseQa({ items }: { items?: CourseQaItem[] }) {
 
   return (
     <section className="space-y-3">
-      <h2 className="font-bold">課程 Q&amp;A</h2>
-      <ul className="divide-y divide-slate-100 rounded-2xl border border-slate-100">
+      <h2 className="text-h3">課程 Q&amp;A</h2>
+      <ul className="divide-y divide-(--color-border-default) rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default)">
         {items.map((item, index) => (
           <li key={index}>
             <details className="group">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-slate-800 [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-body px-4 py-3 font-bold text-(--color-text-primary) [&::-webkit-details-marker]:hidden">
                 <span>{item.question}</span>
-                <span
-                  aria-hidden="true"
-                  className="shrink-0 text-slate-400 transition-transform group-open:rotate-180"
-                >
-                  ⌄
+                <span className="shrink-0 text-(--color-text-secondary) transition-transform group-open:rotate-180">
+                  <ChevronDownIcon size={18} />
                 </span>
               </summary>
-              <p className="whitespace-pre-line px-4 pb-4 text-sm text-slate-600">
+              <p className="text-body-small whitespace-pre-line px-4 pb-4 text-(--color-text-secondary)">
                 {item.answer}
               </p>
             </details>

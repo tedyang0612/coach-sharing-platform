@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CalendarIcon, MapPinIcon } from "@/components/goland/icons";
 import { LEVEL_LABELS, type Course } from "@/lib/courses/types";
 
 // 例如「10/10（六） 19:00–20:00」；日期與時間分開組字串，避免 Node 與瀏覽器的 Intl 空白不同
@@ -25,7 +26,7 @@ function VerifiedIcon() {
   return (
     <span title="認證教練" className="inline-flex shrink-0">
       <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="12" cy="12" r="11" className="fill-amber-400" />
+        <circle cx="12" cy="12" r="11" className="fill-(--color-brand-blue)" />
         <path
           d="m7.5 12.3 3 3 6-6.6"
           fill="none"
@@ -37,26 +38,6 @@ function VerifiedIcon() {
       </svg>
       <span className="sr-only">已認證教練</span>
     </span>
-  );
-}
-
-// 線條圖示取自設計稿的 icons（map-pin、calendar）；用 currentColor 跟著文字色
-function LineIcon({ children }: { children: React.ReactNode }) {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className="shrink-0"
-    >
-      {children}
-    </svg>
   );
 }
 
@@ -107,19 +88,13 @@ export default function CourseCard({ course }: Props) {
             </Link>
           </h3>
           <p className="mt-2 flex items-center gap-1.5 text-body-small text-(--color-text-secondary)">
-            <LineIcon>
-              <path d="M12 22C12 22 20 16 20 10C20 7.87827 19.1571 5.84344 17.6569 4.34315C16.1566 2.84285 14.1217 2 12 2C9.87827 2 7.84344 2.84285 6.34315 4.34315C4.84285 5.84344 4 7.87827 4 10C4 16 12 22 12 22Z" />
-              <path d="M12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13Z" />
-            </LineIcon>
+            <MapPinIcon size={14} />
             <span>
               {course.city}{course.district} {course.venue}
             </span>
           </p>
           <p className="mt-1 flex items-center gap-1.5 text-body-small text-(--color-text-secondary)">
-            <LineIcon>
-              <path d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z" />
-              <path d="M16 2V6M8 2V6M3 10H21" />
-            </LineIcon>
+            <CalendarIcon size={14} />
             <span>{formatSchedule(course.startsAt, course.endsAt)}</span>
           </p>
         </div>

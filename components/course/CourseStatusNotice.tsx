@@ -36,14 +36,14 @@ export default function CourseStatusNotice({
   return (
     <div
       role="status"
-      className="rounded-2xl border border-neutral-300 bg-neutral-100 p-4 text-neutral-800"
+      className="rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-subtle) p-4 text-(--color-text-primary)"
     >
-      <p className="font-semibold">{title}</p>
-      <p className="mt-1 text-sm text-neutral-600">{detail}</p>
+      <p className="text-h3">{title}</p>
+      <p className="mt-1 text-body-small text-(--color-text-secondary)">{detail}</p>
       {coachProfileHref && (
         <Link
           href={coachProfileHref}
-          className="mt-3 inline-block rounded-full border border-neutral-800 px-4 py-1.5 text-sm font-medium hover:bg-neutral-200"
+          className="text-button mt-3 inline-block rounded-full border border-(--color-brand-blue) bg-(--color-surface-default) px-5 py-2 text-(--color-text-primary) hover:bg-(--color-tint-blue-100)"
         >
           看教練的其他課程
         </Link>
