@@ -11,8 +11,15 @@ import { COVER_URL_ERROR, isAllowedCoverUrl } from "./_lib/cover-image";
 import {
   COURSE_FIELDS,
   computeSessionSlots,
+  filledQaItems,
   formDataToCourseValues,
+  parseQa,
+  parseSlots,
+  serializeSlots,
+  slotsFromCourse,
   validateCourseValues,
+  validateQa,
+  validateTemplateName,
   type CourseFieldErrors,
   type CourseInput,
 } from "./_lib/course-input";
@@ -27,7 +34,7 @@ import { canCoachCancelSession, isActiveRegistration } from "./_lib/session-rule
 import type { RegistrationStatus } from "@/types/database";
 
 export type CourseFormState = {
-  errors?: CourseFieldErrors & { form?: string };
+  errors?: CourseFieldErrors & { form?: string; template_name?: string };
 };
 
 export type SessionActionState = {
@@ -71,9 +78,9 @@ async function ownedSourceId(ctx: OkCoach, raw: FormDataEntryValue | null): Prom
 
 /**
  * 新增課程。表單的 intent：
- * - "publish"（預設）：建立課程＋切場次＋改為已發布（招生中）
- * - "template"：存成範本，不產生場次、不公開
- * 從範本／複製進來的表單會帶 sourceId，記到 template_source_id。
+ * - "publish"（預設）：建立課程＋切場次＋改為已發布（招生中）；勾了 also_template 時，同時另存一份範本
+ * - "template"：只存成範本，不產生場次、不公開
+ * 從範本／複製進來的表單會帶 sourceId，記到 template_source_id。範本名稱（template_name）選填，只寫在範本那筆。
  *
  * 場次在應用層切，不呼叫 DB 的 generate_sessions_for_course()：那支 function 用 date + time
  * 組 timestamptz 時沒指定時區，會依 DB session timezone（Supabase 預設 UTC）解讀，14:00 會變成台灣時間 22:00。
@@ -83,12 +90,17 @@ export async function createCourse(_prev: CourseFormState, formData: FormData): 
   if (!ctx.ok) return { errors: { form: notCoachMessage(ctx.reason) } };
 
   const asTemplate = formData.get("intent") === "template";
+  const alsoTemplate = !asTemplate && formData.get("also_template") === "on";
+  const template = validateTemplateName(String(formData.get("template_name") ?? ""));
+  if (template.error && (asTemplate || alsoTemplate)) return { errors: { template_name: template.error } };
+
   const result = validateCourseValues(formDataToCourseValues(formData), {
     requireFutureDeadline: !asTemplate,
     userId: ctx.userId,
   });
   if (result.errors) return { errors: result.errors };
   const input = result.input;
+  const sourceId = await ownedSourceId(ctx, formData.get("sourceId"));
 
   const { data: course, error: insertError } = await ctx.supabase
     .from("courses")
@@ -98,7 +110,8 @@ export async function createCourse(_prev: CourseFormState, formData: FormData): 
       // 發布也先用 draft 建立，場次寫入成功後才改成 published，避免學員看到沒有場次的課程
       status: "draft",
       is_template: asTemplate,
-      template_source_id: await ownedSourceId(ctx, formData.get("sourceId")),
+      template_name: asTemplate ? template.name : null,
+      template_source_id: sourceId,
     })
     .select("id")
     .single();
@@ -109,14 +122,37 @@ export async function createCourse(_prev: CourseFormState, formData: FormData): 
     redirect("/coach/courses?view=templates");
   }
 
+  // 同時存成範本：先寫範本，失敗就整個回復，不會變成「課程發布了但範本沒存到」
+  let templateId: string | null = null;
+  if (alsoTemplate) {
+    const { data: templateRow, error: templateError } = await ctx.supabase
+      .from("courses")
+      .insert({
+        ...input,
+        coach_id: ctx.userId,
+        status: "draft",
+        is_template: true,
+        template_name: template.name,
+        template_source_id: course.id,
+      })
+      .select("id")
+      .single();
+    if (templateError || !templateRow) {
+      await ctx.supabase.from("courses").delete().eq("id", course.id);
+      return { errors: { form: "儲存失敗，請稍後再試。" } };
+    }
+    templateId = templateRow.id;
+  }
+
   const { error: sessionsError } = await ctx.supabase.from("sessions").insert(sessionRows(course.id, input));
   const { error: publishError } = sessionsError
     ? { error: sessionsError }
     : await ctx.supabase.from("courses").update({ status: "published" }).eq("id", course.id);
 
   if (publishError) {
-    // 沒有交易可以包，失敗就把剛建的課程刪掉（sessions 會跟著 cascade），不留半套資料
+    // 沒有交易可以包，失敗就把剛建的課程（與同時建立的範本）刪掉（sessions 會跟著 cascade），不留半套資料
     await ctx.supabase.from("courses").delete().eq("id", course.id);
+    if (templateId) await ctx.supabase.from("courses").delete().eq("id", templateId);
     return { errors: { form: "發布失敗，請稍後再試。" } };
   }
 
@@ -126,8 +162,8 @@ export async function createCourse(_prev: CourseFormState, formData: FormData): 
 
 /**
  * 編輯課程。
- * - 任一場次有有效報名 → 只更新課程須知（notes）與封面圖，其他欄位就算有送也忽略（PRD 系統規則）
- * - 未鎖定且改到日期／時段／課程長度／報名截止 → 重切場次；但只要有任何報名紀錄或非 open 的場次就不允許，
+ * - 任一場次有有效報名 → 只更新課程須知（notes）、課程 QA 與封面圖，其他欄位就算有送也忽略（PRD 系統規則）
+ * - 未鎖定且改到日期／場次時間表／報名截止 → 重建場次；但只要有任何報名紀錄或非 open 的場次就不允許，
  *   因為刪除舊場次會 cascade 刪掉報名紀錄
  */
 export async function updateCourse(_prev: CourseFormState, formData: FormData): Promise<CourseFormState> {
@@ -143,14 +179,22 @@ export async function updateCourse(_prev: CourseFormState, formData: FormData): 
 
   if (isCourseEditLocked(course)) {
     if (containsContactInfo(values.notes)) return { errors: { notes: CONTACT_INFO_MESSAGE } };
+    const qaItems = parseQa(values.qa);
+    const qaError = qaItems ? validateQa(qaItems) : "課程 QA 格式不正確";
+    if (qaError || !qaItems) return { errors: { qa: qaError ?? "課程 QA 格式不正確" } };
     const coverOk = isAllowedCoverUrl(values.cover_image_url, {
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
       userId: ctx.userId,
     });
     if (!coverOk) return { errors: { cover_image_url: COVER_URL_ERROR } };
+    // 有人報名後只能改這三欄（資料庫的鎖定 trigger 也是同一份白名單）
     const { error } = await ctx.supabase
       .from("courses")
-      .update({ notes: values.notes || null, cover_image_url: values.cover_image_url || null })
+      .update({
+        notes: values.notes || null,
+        qa: filledQaItems(qaItems),
+        cover_image_url: values.cover_image_url || null,
+      })
       .eq("id", course.id);
     if (error) return { errors: { form: "儲存失敗，請稍後再試。" } };
     revalidateCourse(course.id);
@@ -159,15 +203,18 @@ export async function updateCourse(_prev: CourseFormState, formData: FormData): 
 
   const scheduleChanged =
     course.session_date !== values.session_date ||
-    course.time_range_start.slice(0, 5) !== values.time_range_start ||
-    course.time_range_end.slice(0, 5) !== values.time_range_end ||
-    String(course.session_duration_minutes) !== values.session_duration_minutes ||
+    serializeSlots(slotsFromCourse(course)) !== serializeSlots(parseSlots(values.session_slots) ?? []) ||
     String(course.registration_deadline_hours) !== (values.registration_deadline_hours || "24");
   const needsRegenerate = !course.is_template && course.status === "published" && scheduleChanged;
 
   const result = validateCourseValues(values, { requireFutureDeadline: needsRegenerate, userId: ctx.userId });
   if (result.errors) return { errors: result.errors };
   const input = result.input;
+
+  // 編輯範本時可以改範本名稱；一般課程不會有範本名稱，不動它
+  const template = validateTemplateName(String(formData.get("template_name") ?? ""));
+  if (course.is_template && template.error) return { errors: { template_name: template.error } };
+  const update = course.is_template ? { ...input, template_name: template.name } : input;
 
   // corner case：人數上限不可低於已報名人數。未鎖定時理論上每場都是 0 人，這裡是防同時有人報名的第二道防線
   const maxActive = Math.max(0, ...course.sessions.map((s) => s.active_count));
@@ -189,7 +236,7 @@ export async function updateCourse(_prev: CourseFormState, formData: FormData): 
       .select("id");
     if (error) return { errors: { form: "儲存失敗，請稍後再試。" } };
 
-    const { error: updateError } = await ctx.supabase.from("courses").update(input).eq("id", course.id);
+    const { error: updateError } = await ctx.supabase.from("courses").update(update).eq("id", course.id);
     if (updateError) {
       await ctx.supabase.from("sessions").delete().in("id", inserted.map((s) => s.id));
       return { errors: { form: "儲存失敗，請稍後再試。" } };
@@ -199,7 +246,7 @@ export async function updateCourse(_prev: CourseFormState, formData: FormData): 
       await ctx.supabase.from("sessions").delete().in("id", oldSessionIds);
     }
   } else {
-    const { error } = await ctx.supabase.from("courses").update(input).eq("id", course.id);
+    const { error } = await ctx.supabase.from("courses").update(update).eq("id", course.id);
     if (error) return { errors: { form: "儲存失敗，請稍後再試。" } };
   }
 
@@ -223,6 +270,10 @@ export async function saveCourseAsTemplate(
 
   const { error } = await ctx.supabase.from("courses").insert({
     ...fields,
+    // 舊欄位（not null）一併帶過去；session_slots 為 null 的舊資料也能靠這三欄推回時間表
+    time_range_start: course.time_range_start,
+    time_range_end: course.time_range_end,
+    session_duration_minutes: course.session_duration_minutes,
     latitude: course.latitude,
     longitude: course.longitude,
     coach_id: ctx.userId,
@@ -237,7 +288,7 @@ export async function saveCourseAsTemplate(
 }
 
 /**
- * 教練取消場次（PRD 1.0 規格7）。條件先在這裡用 canCoachCancelSession() 檢查一次（含「尚未成團」的人數判斷，
+ * 教練取消場次（PRD 1.0 規格7）。條件先在這裡用 canCoachCancelSession() 檢查一次（含「尚未確定開課」的人數判斷，
  * DB function 沒檢查這條），再呼叫 coach_cancel_session()：它會把場次改成 cancelled_by_coach、
  * 報名改成已取消（未扣款）、並發站內＋Email 通知給學員。
  */

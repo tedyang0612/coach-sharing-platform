@@ -17,7 +17,7 @@ export type SessionStatus =
   | "completed"; // 已結束
 
 export type RegistrationStatus =
-  | "pending_match" // 已報名（待成團）
+  | "pending_match" // 已報名（待確認開課）
   | "confirmed" // 訂單成立
   | "cancelled" // 已取消（未扣款）
   | "refunded" // 已退款（全額）
@@ -26,7 +26,8 @@ export type RegistrationStatus =
 
 // MVP 運動種類（PRD v4.2：共八種，開課運動項目與學員篩選皆以此為限）
 // sport_type 欄位本身是自由文字，不是資料庫層級 enum，之後要加新類型不用跑 migration
-export const SPORT_TYPES = ["重訓", "瑜珈", "跑酷", "抱石", "衝浪", "羽球", "匹克球", "排球"] as const;
+// 順序依 PRD v4.7（畫面選單、篩選晶片都用這個順序）
+export const SPORT_TYPES = ["重訓", "瑜珈", "羽球", "排球", "匹克球", "衝浪", "抱石", "跑酷"] as const;
 export type SportType = (typeof SPORT_TYPES)[number] | (string & {});
 
 export interface Profile {
@@ -111,12 +112,20 @@ export interface Course {
   is_template: boolean;
   template_source_id: string | null;
   cover_image_url: string | null; // null＝依運動項目顯示預設圖（20261002000018）
+  // 每一堂的時間表（台灣時間 HH:MM，20261003000027）；null＝舊資料，依 time_range_*／session_duration_minutes 平均切分
+  session_slots: { start: string; end: string }[] | null;
   // 縣市／行政區（20261003000034）：參照 districts.id，縣市由 districts.city 反查；草稿可為 null，發布時必填
   district_id: number | null;
+  // 課程 QA（20261005000039）：只存問題與回答都有填的項目，公開內容
+  qa: CourseQaItem[];
+  // 範本名稱（20261005000039）：只有範本會用，null 時畫面沿用課程名稱
+  template_name: string | null;
 
   created_at: string;
   updated_at: string;
 }
+
+export type CourseQaItem = { q: string; a: string };
 
 // 縣市／行政區參照表（20261003000033，內政部資料，全部用「台」）；只讀
 export interface District {
@@ -124,6 +133,7 @@ export interface District {
   towncode: string; // 內政部鄉鎮市區代碼（8 碼）
   city: string; // 縣市
   district: string; // 鄉鎮市區
+  sort_order: number; // 顯示排序（20261005000039）：縣市由北到南，縣市內依官方代碼
 }
 
 export interface Session {
