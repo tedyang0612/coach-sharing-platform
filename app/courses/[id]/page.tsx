@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getRegistrationState } from "@/app/registrations/_lib/registration-rules";
+import CoachMini from "@/components/course/CoachMini";
 import CourseQa from "@/components/course/CourseQa";
 import GroupProgress from "@/components/course/GroupProgress";
 import KeyInfoStrip from "@/components/course/KeyInfoStrip";
+import RefundRule from "@/components/course/RefundRule";
 import GolandTheme from "@/components/goland/GolandTheme";
 import { ArrowLeftIcon } from "@/components/goland/icons";
 import ShareButton from "@/components/share/ShareButton";
 import CourseStatusNotice from "@/components/course/CourseStatusNotice";
 import SessionRegisterButton from "@/components/course/SessionRegisterButton";
+import StickyBookingBar from "@/components/course/StickyBookingBar";
 import { getCourseAvailability } from "@/lib/course-status/getCourseAvailability";
 import { getCourseDetail } from "@/lib/courses/getCourseDetail";
 import { getCourseViewer } from "@/lib/courses/queries";
@@ -92,7 +95,7 @@ export default async function CourseDetailPage({
 
   return (
     <GolandTheme>
-      <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-6 px-(--spacing-screen-padding) pb-12 pt-4 lg:pt-8">
+      <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-6 px-(--spacing-screen-padding) pb-32 pt-4 lg:pb-12 lg:pt-8">
         <Link
           href="/courses"
           className="text-body-small flex items-center gap-1.5 text-(--color-text-secondary) hover:underline"
@@ -193,15 +196,30 @@ export default async function CourseDetailPage({
 
         <CourseQa items={course.qa} />
 
-        {/* 手機：主按鈕暫時放在內容下方，第二輪改成底部固定列 */}
-        <div className="lg:hidden">
+        <section className="space-y-3">
+          <h2 className="text-h3">授課教練</h2>
+          <CoachMini
+            href={`/coaches/${course.coachId}`}
+            name={course.coachName}
+            photoUrl={course.coachPhotoUrl}
+            verified={course.coachVerified}
+            rating={course.coachRating}
+            reviewCount={course.coachReviewCount}
+            tags={course.coachTags}
+          />
+        </section>
+
+        <RefundRule />
+
+        {/* 手機：底部固定列（每人價格＋主按鈕）；桌機的在英雄區 */}
+        <StickyBookingBar price={course.price}>
           <SessionRegisterButton
             fullWidth
             state={state}
             courseId={course.courseId}
             sessionId={chosen.id}
           />
-        </div>
+        </StickyBookingBar>
       </main>
     </GolandTheme>
   );

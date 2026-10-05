@@ -100,3 +100,19 @@ export function ArrowLeftIcon({ size }: Props) {
     </Icon>
   );
 }
+
+export function ArrowRightIcon({ size }: Props) {
+  return (
+    <Icon size={size}>
+      <path d="M5 12H19M12 19L19 12L12 5" />
+    </Icon>
+  );
+}
+
+export function StarIcon({ size }: Props) {
+  return (
+    <Icon size={size}>
+      <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+    </Icon>
+  );
+}
