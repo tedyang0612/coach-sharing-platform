@@ -7,7 +7,7 @@ export function NotificationBellIcon({ unreadCount }: { unreadCount: number }) {
     <Link
       href="/notifications"
       aria-label={unreadCount > 0 ? `通知中心，${unreadCount} 則未讀` : "通知中心"}
-      className="relative inline-flex h-10 w-10 items-center justify-center rounded-full text-neutral-700 transition hover:bg-brand-ink hover:text-brand"
+      className="relative inline-flex size-10 items-center justify-center rounded-pill text-text-primary transition hover:bg-tint-blue-100"
     >
       <svg
         width="22"
@@ -24,7 +24,7 @@ export function NotificationBellIcon({ unreadCount }: { unreadCount: number }) {
         <path d="M13.73 21a2 2 0 0 1-3.46 0" />
       </svg>
       {unreadCount > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-bold leading-none text-white">
+        <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-pill bg-state-error px-1 text-[11px] font-bold leading-none text-text-inverse">
           {unreadCount > 99 ? "99+" : unreadCount}
         </span>
       )}

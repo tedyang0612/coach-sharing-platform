@@ -35,20 +35,24 @@ export default async function NotificationsPage() {
   const unreadCount = items.filter((item) => !item.is_read).length;
 
   return (
-    <main className="flex-1 px-4 py-8 sm:px-6 sm:py-12">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-        <header className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-neutral-900">通知中心</h1>
-            <p className="mt-1 text-sm text-neutral-500">
-              {unreadCount > 0 ? `${unreadCount} 則未讀` : "沒有未讀通知"}
+    <main className="flex-1 px-4 pb-8 pt-4 sm:px-6 sm:pb-20 sm:pt-10">
+      <div className="mx-auto flex w-full max-w-[720px] flex-col gap-4">
+        <header className="flex items-end justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <h1 className="text-h1 text-text-primary">通知</h1>
+            <p className="text-body-small text-text-secondary">
+              {items.length === 0
+                ? "目前沒有通知"
+                : unreadCount > 0
+                  ? `你有 ${unreadCount} 則未讀通知`
+                  : "沒有未讀通知"}
             </p>
           </div>
           {unreadCount > 0 && (
             <form action={markAllNotificationsRead}>
               <button
                 type="submit"
-                className="text-sm font-semibold text-brand hover:underline"
+                className="text-label text-brand-deep underline underline-offset-4"
               >
                 全部標示為已讀
               </button>

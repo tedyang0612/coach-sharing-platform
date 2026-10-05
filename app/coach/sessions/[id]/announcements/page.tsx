@@ -43,13 +43,13 @@ export default async function SessionAnnouncementsPage({
 
   const { data: session } = await supabase
     .from("sessions")
-    .select("id, start_at, courses!inner(title, location_name, coach_id)")
+    .select("id, start_at, courses!inner(id, title, location_name, coach_id)")
     .eq("id", sessionId)
     .maybeSingle();
   // 巢狀查詢的結果型別依關聯方向可能是物件或陣列，兩種都處理
   const course = session
     ? ([session.courses].flat()[0] as
-        | { title: string; location_name: string; coach_id: string }
+        | { id: string; title: string; location_name: string; coach_id: string }
         | undefined)
     : undefined;
 
@@ -71,21 +71,14 @@ export default async function SessionAnnouncementsPage({
   const recipientCount = count ?? 0;
 
   return (
-    <main className="flex-1 px-4 py-8 sm:px-6 sm:py-12">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-        <header>
-          <h1 className="text-2xl font-bold text-neutral-900">發布課程公告</h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            {course.title}・{formatTaipeiTime(session.start_at)}・{course.location_name}
-          </p>
-          <p className="mt-2 text-sm text-neutral-700">
-            {recipientCount > 0
-              ? `目前有 ${recipientCount} 位報名學員會收到公告。`
-              : "這個場次目前沒有報名學員，無法發送公告。"}
-          </p>
-        </header>
-
-        <AnnouncementForm sessionId={session.id} recipientCount={recipientCount} />
+    <main className="flex-1 px-4 pb-8 pt-5 sm:px-6 sm:pb-20 sm:pt-10">
+      <div className="mx-auto flex w-full max-w-[560px] flex-col gap-4">
+        <AnnouncementForm
+          sessionId={session.id}
+          recipientCount={recipientCount}
+          summary={`${course.title}・${formatTaipeiTime(session.start_at)}・已報名 ${recipientCount} 人`}
+          cancelHref={`/coach/courses/${course.id}`}
+        />
 
         <AnnouncementHistory
           announcements={(announcements ?? []).map((announcement) => ({

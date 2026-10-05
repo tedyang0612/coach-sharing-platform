@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
+import { buttonClassName } from "@/components/ui/button";
 import { safeLinkPath } from "@/lib/notifications/link";
 import type { Notification } from "@/types/database";
 
@@ -16,16 +17,19 @@ type NotificationListProps = {
   markReadAction?: (id: string) => Promise<void>;
 };
 
-// 時間一律指定台灣時區顯示（CLAUDE.md 時間與時區慣例）
+// 時間一律指定台灣時區顯示（CLAUDE.md 時間與時區慣例）。用 formatToParts 自己組字串，
+// 伺服器與瀏覽器產生的文字才會完全一樣（直接 format() 兩邊的空白字元可能不同，會造成 hydration 錯誤）
 function formatTaipeiTime(iso: string): string {
-  return new Intl.DateTimeFormat("zh-TW", {
+  const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Taipei",
-    month: "numeric",
-    day: "numeric",
+    month: "2-digit",
+    day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
-  }).format(new Date(iso));
+    hourCycle: "h23",
+  }).formatToParts(new Date(iso));
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("month")}/${get("day")} ${get("hour")}:${get("minute")}`;
 }
 
 /**
@@ -53,9 +57,14 @@ export function NotificationList({ notifications, markReadAction }: Notification
 
   if (notifications.length === 0) {
     return (
-      <p className="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">
-        目前沒有通知
-      </p>
+      <div className="flex flex-col items-center gap-4 rounded-lg bg-brand-light px-6 py-12 text-center">
+        <p className="text-body text-text-secondary">
+          目前沒有通知，報名課程後會在這裡看到開課確認與上課提醒
+        </p>
+        <Link href="/courses" className={buttonClassName("secondary")}>
+          探索課程
+        </Link>
+      </div>
     );
   }
 
@@ -63,41 +72,37 @@ export function NotificationList({ notifications, markReadAction }: Notification
 
   return (
     <>
-      <ul className="flex flex-col gap-3">
+      <ul className="overflow-hidden rounded-lg border border-border-default bg-brand-white">
         {notifications.map((notification) => {
           const isRead = notification.is_read || readIds.includes(notification.id);
           return (
-            <li key={notification.id}>
+            <li key={notification.id} className="border-b border-border-default last:border-b-0">
               <button
                 type="button"
                 onClick={() => open(notification)}
-                className={`flex w-full gap-3 rounded-2xl border p-4 text-left transition hover:border-brand sm:p-5 ${
-                  isRead ? "border-neutral-200 bg-neutral-50" : "border-brand bg-white shadow-sm"
+                className={`flex w-full gap-3 p-4 text-left transition hover:bg-tint-blue-100 ${
+                  isRead ? "bg-brand-light" : "bg-brand-white"
                 }`}
               >
                 <span
                   aria-hidden
-                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                    isRead ? "bg-transparent" : "bg-brand"
-                  }`}
+                  className={`mt-2 size-2 shrink-0 rounded-pill ${isRead ? "bg-transparent" : "bg-brand-blue"}`}
                 />
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="flex items-start justify-between gap-3">
-                    <span
-                      className={`text-sm text-neutral-900 ${isRead ? "font-medium" : "font-bold"}`}
-                    >
+                    <span className={`text-body text-text-primary ${isRead ? "" : "font-bold"}`}>
                       {!isRead && <span className="sr-only">未讀：</span>}
                       {notification.title}
                     </span>
                     <time
                       dateTime={notification.created_at}
-                      className="shrink-0 text-xs text-neutral-400"
+                      className="text-caption shrink-0 text-text-secondary"
                     >
                       {formatTaipeiTime(notification.created_at)}
                     </time>
                   </span>
                   {notification.body && (
-                    <span className="line-clamp-2 text-sm leading-relaxed text-neutral-600">
+                    <span className="text-body-small line-clamp-2 text-text-secondary">
                       {notification.body}
                     </span>
                   )}
@@ -111,20 +116,20 @@ export function NotificationList({ notifications, markReadAction }: Notification
       <dialog
         ref={dialogRef}
         onClose={() => setSelected(null)}
-        // 點視窗外的灰色背景也能關閉
+        // 點視窗外的背景也能關閉
         onClick={(event) => {
           if (event.target === dialogRef.current) dialogRef.current?.close();
         }}
         aria-labelledby="notification-dialog-title"
-        className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl p-0 backdrop:bg-black/40"
+        className="m-auto w-[calc(100%-2rem)] max-w-[358px] rounded-lg p-0 shadow-md backdrop:bg-brand-deep/60"
       >
         {selected && (
           <div className="flex flex-col gap-4 p-6">
-            <div>
-              <h2 id="notification-dialog-title" className="text-base font-bold text-neutral-900">
+            <div className="flex flex-col gap-1">
+              <h2 id="notification-dialog-title" className="text-h3 text-text-primary">
                 {selected.title}
               </h2>
-              <p className="mt-1 text-xs text-neutral-400">
+              <p className="text-caption text-text-secondary">
                 {formatTaipeiTime(selected.created_at)}
                 {/* MVP 是模擬寄信：資料庫只記錄這則通知有沒有同步發 Email */}
                 {selected.email_sent && "・已同步寄送 Email"}
@@ -132,24 +137,21 @@ export function NotificationList({ notifications, markReadAction }: Notification
             </div>
 
             {selected.body && (
-              <p className="max-h-[50vh] overflow-y-auto whitespace-pre-line text-sm leading-relaxed text-neutral-700">
+              <p className="text-body max-h-[50vh] overflow-y-auto whitespace-pre-line text-text-secondary">
                 {selected.body}
               </p>
             )}
 
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={() => dialogRef.current?.close()}
-                className="rounded-xl border border-neutral-200 px-5 py-2.5 text-sm font-semibold text-neutral-700 transition hover:border-brand"
+                className={buttonClassName("secondary")}
               >
                 關閉
               </button>
               {selectedLink && (
-                <Link
-                  href={selectedLink}
-                  className="rounded-xl bg-brand px-5 py-2.5 text-center text-sm font-bold text-white transition hover:opacity-90"
-                >
+                <Link href={selectedLink} className={buttonClassName("primary")}>
                   前往查看
                 </Link>
               )}
