@@ -1,5 +1,4 @@
 // 「我的課程」專用的兩個線條圖示，取自設計師交接包 design/assets/icons（search、plus）。
-// 共用的在 components/goland/icons.tsx；這兩個先放在這裡，避免和詳情頁那邊同時改同一個檔案。
 function Icon({ size, children }: { size: number; children: React.ReactNode }) {
   return (
     <svg
