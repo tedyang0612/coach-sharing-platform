@@ -4,13 +4,14 @@ import type { Course } from "./types";
 
 export type SortMode = "time" | "recommended" | "price";
 
-// 預設排序：PRD 與 Wireframe 的規定不同、團隊尚未定案，暫時維持「依開課時間」。
-// 定案後只要改這一行就能切換。
-export const DEFAULT_SORT: SortMode = "time";
+// 預設排序：設計稿 S04 與驗收清單都以「推薦排序」為預設。
+// 若團隊改決定，只要改這一行就能切換。
+export const DEFAULT_SORT: SortMode = "recommended";
 
+// 選單順序依此物件的 key 順序；設計稿是推薦、依開課時間，價格低到高是另加的第三項
 export const SORT_LABELS: Record<SortMode, string> = {
-  time: "依開課時間",
   recommended: "推薦排序",
+  time: "依開課時間",
   price: "價格低到高",
 };
 
