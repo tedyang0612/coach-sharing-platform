@@ -1,30 +1,34 @@
 // 取消與退款（PRD 6.0）的規則判斷與固定文案。純函式、不碰資料庫：
 // 「我的課程」決定要不要顯示取消按鈕、結帳頁顯示取消規則、server action 送出前先判斷；
-// 真正的把關與金流狀態變更在資料庫函式 learner_cancel_registration()、coach_assist_refund()（20261003000030）。
+// 真正的把關與金流狀態變更在資料庫函式 learner_cancel_registration()（20261003000030）、
+// coach_assist_refund()（20261005000040）。
 //
-// 錢怎麼分（PRD 第六章 5.4）：
+// 錢怎麼分（PRD v4.7 第六章 5.4）：
 // - 報名截止前取消（還沒扣款）：不扣款
 // - 已扣款、開課 24 小時前取消：全額退款
-// - 開課 24 小時內：學員不能自己取消，要聯絡教練協助退款，退 70%、30% 歸平台、教練不撥款
+// - 開課 24 小時內：學員不能自己取消，要聯絡教練協助退款，退 50%；另外 50% 是取消手續費，
+//   其中 25% 給教練（時間與場地成本補償，列入待撥款）、25% 歸平台
 // - 缺席：視為課程完成，不退款
 
 import type { RegistrationStatus, SessionStatus } from "@/types/database";
 
 /** 學員線上取消的時限：開課前 24 小時以上（和教練取消場次的 48 小時是兩回事） */
 export const LEARNER_CANCEL_WINDOW_HOURS = 24;
-/** 開課 24 小時內由教練協助退款時，平台收的手續費比例 */
-export const COACH_ASSIST_REFUND_FEE_RATE = 0.3;
+/** 開課 24 小時內由教練協助退款時，取消手續費佔課程費用的比例（學員拿回其餘的 50%） */
+export const COACH_ASSIST_REFUND_FEE_RATE = 0.5;
+/** 手續費中教練分得的比例（佔課程費用，取消補償）；其餘歸平台 */
+export const COACH_ASSIST_COACH_SHARE_RATE = 0.25;
 
 /** 結帳頁在付款前要顯示的取消與退款規則（PRD 6.0 AC 3，字句依 PRD） */
 export const CANCEL_POLICY_LINES = [
-  "報名時不扣款，報名截止時達到開課人數才會成團並扣款；未達開課人數會自動取消，不會扣款。",
-  "開課前 24 小時以上可以在「我的課程」取消：尚未扣款者不扣款，已成團扣款者全額退款。",
-  "開課前 24 小時內不能自行取消，如需取消請聯絡該堂教練協助處理，並將扣除 30% 平台手續費用；缺席不予退款。",
+  "報名時不扣款，報名截止時達到開課人數才會確定開課並扣款；未達開課人數會自動取消，不會扣款。",
+  "開課前 24 小時以上可以在「我的課程」取消：尚未扣款者不扣款，已確定開課並扣款者全額退款。",
+  "開課前 24 小時內不能自行取消，如需取消請聯絡該堂教練協助處理，將收取 50% 取消手續費；缺席不予退款。",
 ] as const;
 
 /** 開課前 24 小時內，取消按鈕改顯示的說明（PRD 6.0 AC 2） */
 export const CANCEL_TOO_LATE_MESSAGE =
-  "開課前 24 小時內，如需取消，請聯絡該堂教練協助處理，並將扣除 30% 平台手續費用，缺席不予退款";
+  "開課前 24 小時內，如需取消，請聯絡該堂教練協助處理，將收取 50% 取消手續費，缺席不予退款";
 
 export type LearnerCancelOutcome = "cancel_unpaid" | "refund_full";
 
@@ -38,7 +42,7 @@ export type LearnerCancelEligibility =
 
 /**
  * 學員能不能取消這筆報名。條件和資料庫的 learner_cancel_registration() 一致：
- * 距開課還有 24 小時以上，而且報名狀態是「待成團」或「訂單成立」。
+ * 距開課還有 24 小時以上，而且報名狀態是「待確認開課」或「訂單成立」。
  */
 export function getLearnerCancelEligibility(
   registration: { status: RegistrationStatus },
@@ -88,10 +92,20 @@ export function isWithinLearnerCancelBlock(session: { start_at: string }, now: D
   return now.getTime() > new Date(session.start_at).getTime() - LEARNER_CANCEL_WINDOW_HOURS * 60 * 60 * 1000;
 }
 
-/** 教練協助退款的金額（分）：手續費 30% 四捨五入到分，學員拿回 70%；與資料庫 round(amount * 0.30, 2) 一致 */
-export function coachAssistRefundAmounts(amountCents: number): { fee: number; refund: number } {
+/**
+ * 教練協助退款的金額（分），與資料庫 coach_assist_refund() 一致：
+ * 手續費 = round(amount * 0.50)，學員拿回其餘；教練的取消補償 = round(amount * 0.25)，其餘手續費歸平台，
+ * 所以 學員 + 教練 + 平台 一定剛好等於原金額。
+ */
+export function coachAssistRefundAmounts(amountCents: number): {
+  fee: number;
+  refund: number;
+  coachShare: number;
+  platformShare: number;
+} {
   const fee = Math.round(amountCents * COACH_ASSIST_REFUND_FEE_RATE);
-  return { fee, refund: amountCents - fee };
+  const coachShare = Math.round(amountCents * COACH_ASSIST_COACH_SHARE_RATE);
+  return { fee, refund: amountCents - fee, coachShare, platformShare: fee - coachShare };
 }
 
 /**

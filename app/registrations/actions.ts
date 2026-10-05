@@ -134,7 +134,7 @@ export async function cancelRegistration(registrationId: string): Promise<Cancel
 
 /**
  * 教練協助退款（PRD 6.0）：開課前 24 小時內學員不能自己取消，由該場次的教練在課程管理頁操作，
- * 退 70%、30% 歸平台，這筆不撥款給教練。資料庫函式 coach_assist_refund() 會檢查「是該場次的教練」與
+ * 退 50%，另外 50% 是取消手續費：25% 給教練（取消補償，列入待撥款）、25% 歸平台。資料庫函式 coach_assist_refund() 會檢查「是該場次的教練」與
  * 「報名已扣款」，這裡先判斷課程是否還沒結束，並給明確的錯誤訊息。
  */
 export async function coachAssistRefund(registrationId: string): Promise<CancelActionState> {
