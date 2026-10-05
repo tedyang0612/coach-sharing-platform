@@ -53,7 +53,7 @@ export default async function MyCoursesPage({
               aria-current={category === tab ? "page" : undefined}
               className={`text-body -mb-px shrink-0 border-b-2 pb-2 ${
                 category === tab
-                  ? "border-(--color-brand-blue) font-bold text-(--color-text-primary)"
+                  ? "border-(--color-brand-blue) font-bold! text-(--color-text-primary)"
                   : "border-transparent text-(--color-text-secondary) hover:text-(--color-text-primary)"
               }`}
             >

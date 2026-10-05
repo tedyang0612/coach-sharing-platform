@@ -34,7 +34,7 @@ export default function StatusLine({ item }: { item: MyRegistrationItem }) {
         ? "bg-(--color-text-secondary)"
         : "bg-(--color-brand-deep)";
   return (
-    <p className="text-body-small flex items-center gap-2 font-bold text-(--color-text-primary)">
+    <p className="text-body-small flex items-center gap-2 font-bold! text-(--color-text-primary)">
       <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
       {statusText(item)}
     </p>

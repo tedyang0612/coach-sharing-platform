@@ -117,7 +117,7 @@ export default function MyCourseCard({ item }: { item: MyRegistrationItem }) {
           />
         )}
         <div className="min-w-0 space-y-0.5">
-          <h2 className="text-body font-bold">
+          <h2 className="text-body font-bold!">
             {courseHref ? (
               <Link href={courseHref} className="hover:underline">
                 {course.title}
@@ -128,7 +128,7 @@ export default function MyCourseCard({ item }: { item: MyRegistrationItem }) {
           </h2>
           {!item.unavailable && (
             <>
-              <p className="text-body-small font-bold">
+              <p className="text-body-small font-bold!">
                 {formatSessionTime(session.startAt, session.endAt)}
               </p>
               <p className="text-body-small text-(--color-text-secondary)">{course.locationName}</p>
