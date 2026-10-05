@@ -53,8 +53,8 @@ export const DEMO_JOB_INFO: Record<
   },
   payouts: {
     title: "每週撥款",
-    description: "結算上週一到週日完成的課程（扣 5% 媒合費），以及 24 小時內取消的教練補償，產生撥款紀錄並通知教練。",
-    confirmText: "會立刻產生撥款紀錄並通知教練（以今天為撥款日）。",
+    description: "結算「上週一到週日」完成的課程（扣 5% 媒合費），以及 24 小時內取消的教練補償，產生撥款紀錄並通知教練。不管哪一天按，都是結算上週一到週日。",
+    confirmText: "會立刻產生撥款紀錄並通知教練（撥款日為今天，結算上週一到週日完成的課程）。",
     pending: (o) => `待撥款 ${o.payout_registrations} 筆，預估 NT$ ${Math.round(o.payout_net_estimate).toLocaleString("zh-TW")}`,
   },
 };
