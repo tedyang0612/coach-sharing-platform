@@ -18,20 +18,7 @@ export default async function Home() {
     getRecommendedCoaches(),
   ]);
 
-  const popular = POPULAR_CONDITIONS.map(({ label, filter }) => {
-    const district = filter.district
-      ? districts.find((d) => d.city === filter.city && d.district === filter.district)
-      : undefined;
-    return {
-      label,
-      href: courseListHref({
-        sport: filter.sport,
-        district: district?.id,
-        days: filter.days,
-        slot: filter.slot,
-      }),
-    };
-  });
+  const popular = POPULAR_CONDITIONS.map(({ label, filter }) => ({ label, href: courseListHref(filter) }));
 
   const section = "px-[var(--spacing-screen-padding)] pt-8 md:pt-16";
 
@@ -64,7 +51,7 @@ export default async function Home() {
           <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {/* 手機版 Figma 只放 3 張（桌機 4 張，PRD 14.0） */}
             {classes.map((card, i) => (
-              <ClassCard key={card.href} card={card} className={i >= 3 ? "max-md:hidden" : ""} />
+              <ClassCard key={`${card.href}-${i}`} card={card} className={i >= 3 ? "max-md:hidden" : ""} />
             ))}
           </div>
         </section>

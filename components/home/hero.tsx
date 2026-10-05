@@ -37,7 +37,8 @@ export function Hero({
 
   function search(e: React.FormEvent) {
     e.preventDefault();
-    router.push(courseListHref({ sport, district: districtId ? Number(districtId) : null }));
+    const picked = districts.find((d) => String(d.id) === districtId);
+    router.push(courseListHref({ sport, city: picked?.city, district: picked?.district }));
   }
 
   return (

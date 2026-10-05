@@ -32,8 +32,8 @@ export function formatSessionTime(startAt: string, endAt: string): string {
   return `${date} ${timeFormat.format(start)}–${timeFormat.format(new Date(endAt))}`;
 }
 
-// 課程詳情頁路由尚未定案：一張卡＝一個場次，先以場次 id 為準，路由確定後改這裡。
-const sessionHref = (sessionId: string) => `/sessions/${sessionId}`;
+// 課程詳情頁（小柔 S05）路由是 /courses/[課程 id]，場次在詳情頁內選。
+const courseHref = (courseId: string) => `/courses/${courseId}`;
 const coachHref = (coachId: string) => `/coaches/${coachId}`;
 
 /** 該教練是否有「已通過」的證照＝「已認證」徽章（PRD 4.0／9.0） */
@@ -47,6 +47,7 @@ type SessionRow = {
   start_at: string;
   end_at: string;
   courses: {
+    id: string;
     title: string;
     sport_type: string;
     level: string;
@@ -73,7 +74,7 @@ export async function getRecommendedClasses(limit = 4): Promise<ClassCardData[]>
   const { data } = await supabase
     .from("sessions")
     .select(
-      "id, start_at, end_at, courses!inner(title, sport_type, level, location_name, cover_image_url, price_per_person, min_participants, max_participants, coach_id, status, is_template, districts(city), coach_profiles(display_name, avg_rating))",
+      "id, start_at, end_at, courses!inner(id, title, sport_type, level, location_name, cover_image_url, price_per_person, min_participants, max_participants, coach_id, status, is_template, districts(city), coach_profiles(display_name, avg_rating))",
     )
     .eq("status", "open")
     .gt("registration_deadline_at", new Date().toISOString())
@@ -113,7 +114,7 @@ export async function getRecommendedClasses(limit = 4): Promise<ClassCardData[]>
     ranked.map(async ({ row, enrolled }) => {
       const c = row.courses;
       return {
-        href: sessionHref(row.id),
+        href: courseHref(c.id),
         coverUrl: resolveCoverUrl({ cover_image_url: c.cover_image_url, sport_type: c.sport_type }),
         sport: c.sport_type,
         levelLabel: LEVEL_LABELS[c.level] ?? c.level,
