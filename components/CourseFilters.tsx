@@ -2,13 +2,12 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import DateField from "@/components/DateField";
 import FilterPill from "@/components/FilterPill";
 import {
   filtersToQuery,
   hasActiveFilters,
   isDateRangeInvalid,
-  isPriceRangeInvalid,
-  isTimeRangeInvalid,
   type CourseFilters as Filters,
 } from "@/lib/courses/filterCourses";
 import type { SortMode } from "@/lib/courses/sort";
@@ -30,18 +29,6 @@ interface Props {
   sort: SortMode;
 }
 
-// 指定時間的下拉選項：每 30 分鐘一個；網址帶了不在清單內的時間時，補進去才不會顯示成空白
-function timeOptions(current: string | undefined) {
-  const options = Array.from({ length: 48 }, (_, i) => {
-    const h = String(Math.floor(i / 2)).padStart(2, "0");
-    return `${h}:${i % 2 ? "30" : "00"}`;
-  });
-  if (current && !options.includes(current)) {
-    options.push(current);
-    options.sort();
-  }
-  return options;
-}
 
 // 面板裡的一個選項（單選用 radio、複選用 checkbox）
 function PanelOption({
@@ -73,6 +60,11 @@ function PanelOption({
 
 // 最低、最高價輸入框。打字時只改本地的草稿，離開輸入框或按 Enter 才更新網址，
 // 否則每打一個字就會重新查詢、輸入框也會失去焦點。
+// 草稿存純數字，顯示時超過 3 位數自動加千分位（1000 → 1,000，QA）；最多 7 位（9,999,999）。
+function formatThousands(digits: string) {
+  return digits === "" ? "" : Number(digits).toLocaleString("en-US");
+}
+
 function PriceInputs({
   min,
   max,
@@ -97,10 +89,11 @@ function PriceInputs({
   function commitOnEnter(e: React.KeyboardEvent) {
     if (e.key === "Enter") commit();
   }
+  const digitsOf = (text: string) => text.replace(/\D/g, "").slice(0, 7);
   const inputClass =
     "w-full rounded-xl border border-(--color-border-default) bg-(--color-surface-default) px-3 py-2 font-normal placeholder:text-(--color-text-secondary)";
 
-  // 版面依設計稿 S04 價格選單：標籤在上、兩欄中間一條「–」
+  // 順序：最低價標籤 → 輸入欄 → 最高價標籤 → 輸入欄（QA）；兩欄中間一條「–」（設計稿）
   return (
     <div className="flex items-end gap-2">
       <label className="flex-1 space-y-1 text-xs font-bold text-(--color-text-primary)">
@@ -109,9 +102,9 @@ function PriceInputs({
           id="filter-price-min"
           type="text"
           inputMode="numeric"
-          placeholder="NT$"
-          value={draftMin}
-          onChange={(e) => setDraftMin(e.target.value.replace(/\D/g, ""))}
+          placeholder="最低價"
+          value={formatThousands(draftMin)}
+          onChange={(e) => setDraftMin(digitsOf(e.target.value))}
           onBlur={commit}
           onKeyDown={commitOnEnter}
           className={`${inputClass} text-sm`}
@@ -126,9 +119,9 @@ function PriceInputs({
           id="filter-price-max"
           type="text"
           inputMode="numeric"
-          placeholder="NT$"
-          value={draftMax}
-          onChange={(e) => setDraftMax(e.target.value.replace(/\D/g, ""))}
+          placeholder="最高價"
+          value={formatThousands(draftMax)}
+          onChange={(e) => setDraftMax(digitsOf(e.target.value))}
           onBlur={commit}
           onKeyDown={commitOnEnter}
           className={`${inputClass} text-sm`}
@@ -239,7 +232,7 @@ export default function CourseFilters({
         </div>
       </fieldset>
 
-      {/* 第二排：膠囊下拉（地區、日期、星期、時段、程度、指定時段、價格），點開是面板 */}
+      {/* 第二排：膠囊下拉（地區、日期、星期、時段、程度、價格），點開是面板 */}
       {/* 手機單列橫向捲動（和運動晶片一致）。面板在手機是 fixed 定位，不會被捲動容器裁掉；
           sm 以上面板是 absolute，所以桌面維持換行 */}
       <div
@@ -325,26 +318,22 @@ export default function CourseFilters({
           <div className="space-y-2 text-sm">
             <label className="block font-medium">
               開始日期
-              <input
-                type="date"
+              <DateField
+                key={`from-${value.date ?? ""}`}
+                id="filter-date-from"
+                value={value.date}
                 min={todayTaipei()}
-                value={value.date ?? ""}
-                onChange={(e) =>
-                  navigate({ ...value, date: e.target.value || undefined })
-                }
-                className="mt-1 w-full rounded-xl border border-(--color-border-default) bg-(--color-surface-default) px-3 py-1.5 font-normal"
+                onCommit={(date) => navigate({ ...value, date })}
               />
             </label>
             <label className="block font-medium">
               結束日期（選填）
-              <input
-                type="date"
+              <DateField
+                key={`to-${value.dateTo ?? ""}`}
+                id="filter-date-to"
+                value={value.dateTo}
                 min={value.date || todayTaipei()}
-                value={value.dateTo ?? ""}
-                onChange={(e) =>
-                  navigate({ ...value, dateTo: e.target.value || undefined })
-                }
-                className="mt-1 w-full rounded-xl border border-(--color-border-default) bg-(--color-surface-default) px-3 py-1.5 font-normal"
+                onCommit={(dateTo) => navigate({ ...value, dateTo })}
               />
             </label>
             {isDateRangeInvalid(value) && (
@@ -376,7 +365,8 @@ export default function CourseFilters({
           ))}
         </FilterPill>
 
-        {/* 時段有兩種方式，擇一使用：這裡的快速時段（可複選，OR），或「指定時段」的開始／結束時間 */}
+        {/* 快速時段（可複選，OR）。「指定時段」依 QA 回饋先拿掉（和快速時段擇一、互相清除，操作很怪）；
+            篩選邏輯與網址參數（from／to）仍保留在 lib，之後要補回來只需加回這個面板 */}
         <FilterPill
           id="filter-slots"
           label="時段"
@@ -423,67 +413,6 @@ export default function CourseFilters({
         </FilterPill>
 
         <FilterPill
-          id="filter-time"
-          label="指定時段"
-          active={Boolean(value.timeFrom || value.timeTo)}
-          onClear={() =>
-            navigate({ ...value, timeFrom: undefined, timeTo: undefined })
-          }
-        >
-          <div className="space-y-2 text-sm">
-            <label className="block font-medium">
-              開始時間
-              <select
-                id="filter-time-from"
-                value={value.timeFrom ?? ""}
-                onChange={(e) =>
-                  navigate({
-                    ...value,
-                    timeFrom: e.target.value || undefined,
-                    timeSlots: undefined,
-                  })
-                }
-                className="mt-1 w-full rounded-xl border border-(--color-border-default) bg-(--color-surface-default) px-3 py-2 font-normal"
-              >
-                <option value="">不限</option>
-                {timeOptions(value.timeFrom).map((time) => (
-                  <option key={time} value={time}>
-                    {time}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block font-medium">
-              結束時間
-              <select
-                id="filter-time-to"
-                value={value.timeTo ?? ""}
-                onChange={(e) =>
-                  navigate({
-                    ...value,
-                    timeTo: e.target.value || undefined,
-                    timeSlots: undefined,
-                  })
-                }
-                className="mt-1 w-full rounded-xl border border-(--color-border-default) bg-(--color-surface-default) px-3 py-2 font-normal"
-              >
-                <option value="">不限</option>
-                {timeOptions(value.timeTo).map((time) => (
-                  <option key={time} value={time}>
-                    {time}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {isTimeRangeInvalid(value) && (
-              <p className="text-xs text-(--color-state-error-text)">
-                結束時間要晚於開始時間，目前沒有套用指定時段。
-              </p>
-            )}
-          </div>
-        </FilterPill>
-
-        <FilterPill
           id="filter-price"
           label="價格"
           wide
@@ -504,11 +433,6 @@ export default function CourseFilters({
                 navigate({ ...value, priceMin, priceMax })
               }
             />
-            {isPriceRangeInvalid(value) && (
-              <p className="text-xs text-(--color-state-error-text)">
-                最高價要大於或等於最低價，目前沒有套用價格區間。
-              </p>
-            )}
           </div>
         </FilterPill>
       </div>

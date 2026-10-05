@@ -88,13 +88,18 @@ export function isDateRangeInvalid(filters: CourseFilters) {
   return Boolean(filters.date && filters.dateTo && filters.date > filters.dateTo);
 }
 
-// 最低價高於最高價時不套用，畫面上會提示
-export function isPriceRangeInvalid(filters: CourseFilters) {
-  return (
-    filters.priceMin !== undefined &&
-    filters.priceMax !== undefined &&
-    filters.priceMin > filters.priceMax
-  );
+// 價格上限的預設值：只填最低價時，條件是 最低價 ~ 9,999,999（QA 規格）
+export const PRICE_MAX_DEFAULT = 9999999;
+
+// 價格區間：只填最低價＝x～9,999,999；只填最高價＝0～x；
+// 最高價小於最低價時自動對調（最高 1,000、最低 2,000 → 1,000～2,000），不再提示錯誤。
+export function normalizedPriceRange(
+  filters: CourseFilters,
+): { min: number; max: number } | null {
+  if (filters.priceMin === undefined && filters.priceMax === undefined) return null;
+  const a = filters.priceMin ?? 0;
+  const b = filters.priceMax ?? PRICE_MAX_DEFAULT;
+  return a <= b ? { min: a, max: b } : { min: b, max: a };
 }
 
 // 價格只收 0 以上的整數；其他（空白、負數、小數、文字）當成沒填
@@ -164,9 +169,7 @@ function matchesLevel(courseLevel: Level, selected: Level) {
 }
 
 export function filterCourses(courses: Course[], filters: CourseFilters) {
-  const usePrice =
-    (filters.priceMin !== undefined || filters.priceMax !== undefined) &&
-    !isPriceRangeInvalid(filters);
+  const priceRange = normalizedPriceRange(filters);
 
   const useCustomTime =
     (filters.timeFrom || filters.timeTo) && !isTimeRangeInvalid(filters);
@@ -197,9 +200,8 @@ export function filterCourses(courses: Course[], filters: CourseFilters) {
           (!filters.timeTo || start!.minutes <= toMinutes(filters.timeTo)))) &&
       (!filters.level || matchesLevel(course.level, filters.level)) &&
       (!filters.sport || course.sport === filters.sport) &&
-      (!usePrice ||
-        ((filters.priceMin === undefined || course.price >= filters.priceMin) &&
-          (filters.priceMax === undefined || course.price <= filters.priceMax)))
+      (!priceRange ||
+        (course.price >= priceRange.min && course.price <= priceRange.max))
     );
   });
 }
