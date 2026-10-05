@@ -66,7 +66,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
 
       {errorMessage && <FormError message={errorMessage} />}
 
-      <Button type="submit" disabled={!canSubmit || pending}>
+      <Button type="submit" fullWidth disabled={!canSubmit || pending}>
         {pending ? "登入中…" : "登入平台"}
       </Button>
     </form>

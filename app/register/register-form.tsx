@@ -83,7 +83,7 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
           這裡的錯誤框不再重複放一次連結，純粹顯示文案。 */}
       {errorMessage && <FormError message={errorMessage} />}
 
-      <Button type="submit" disabled={!canSubmit || pending}>
+      <Button type="submit" fullWidth disabled={!canSubmit || pending}>
         {pending ? "建立帳號中…" : "建立帳號"}
       </Button>
     </form>
