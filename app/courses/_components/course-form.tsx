@@ -15,13 +15,13 @@ import { FormError } from "@/components/ui/form-error";
 import { TextField } from "@/components/ui/text-field";
 import type { CourseFormState } from "../actions";
 import {
-  ALWAYS_EDITABLE_FIELDS,
   COURSE_LEVELS,
   DEADLINE_OPTIONS,
   DEFAULT_DEADLINE_HOURS,
   DESCRIPTION_MAX,
   DESCRIPTION_MIN,
   LOCATION_NAME_MAX,
+  LOCKED_EDITABLE_FIELDS,
   MAX_PARTICIPANTS_CAP,
   MIN_PRICE,
   SCHEDULE_FIELDS,
@@ -41,6 +41,7 @@ import {
   type CourseFieldErrors,
   type CourseFormValues,
 } from "../_lib/course-input";
+import { changedSlotsDeadlineError } from "../_lib/slot-sync";
 import { CoverPicker } from "./cover-picker";
 import { FormSection, SelectField, TextAreaField } from "./fields";
 import { QaEditor } from "./qa-editor";
@@ -118,7 +119,8 @@ export function CourseForm({
     setEditedSinceSubmit(new Set());
   }
 
-  const isEditable = (f: CourseField) => !locked || ALWAYS_EDITABLE_FIELDS.includes(f);
+  // 有人報名後：只有公告、QA、封面圖，以及場次時間表（沒有人報名的場次仍可調整，有人報名的那一堂由 SlotsEditor 與 server 各自擋）可以改
+  const isEditable = (f: CourseField) => !locked || LOCKED_EDITABLE_FIELDS.includes(f);
 
   function markEdited(field: string) {
     setEditedSinceSubmit((s) => (s.has(field) ? s : new Set(s).add(field)));
@@ -137,7 +139,8 @@ export function CourseForm({
 
   // 只有新開課，或編輯時真的改到日期／時段，才要求報名截止還沒過（舊課程的過去日期不擋其他欄位的修改）
   const scheduleChanged = SCHEDULE_FIELDS.some((f) => values[f] !== initialValues[f]);
-  const needsFutureDate = !isTemplate && (mode === "create" || scheduleChanged);
+  // 已有人報名時不要求第一堂的截止時間還沒過（那一堂可能已經鎖定、截止），只檢查新增或改過的那幾堂（見 deadlineError）
+  const needsFutureDate = !isTemplate && !locked && (mode === "create" || scheduleChanged);
 
   const publishCheck = validateCourseValues(values, { requireFutureDeadline: needsFutureDate });
   const templateCheck = validateCourseValues(values, { requireFutureDeadline: false });
@@ -147,7 +150,16 @@ export function CourseForm({
   const templateNameError = validateTemplateName(templateName).error;
   const templateNameServerError = state.errors?.template_name && !editedSinceSubmit.has("template_name") ? state.errors.template_name : undefined;
 
-  const lockedErrors = ALWAYS_EDITABLE_FIELDS.some((f) => clientErrors[f]);
+  const slotsNow = parseSlots(values.session_slots) ?? [];
+  const deadlineError = locked
+    ? changedSlotsDeadlineError({
+        date: values.session_date,
+        deadlineHours: Number(values.registration_deadline_hours || DEFAULT_DEADLINE_HOURS),
+        slots: slotsNow,
+        initialSlots: parseSlots(initialValues.session_slots) ?? [],
+      })
+    : null;
+  const lockedErrors = LOCKED_EDITABLE_FIELDS.some((f) => clientErrors[f]) || !!deadlineError;
   const ready = hasAllRequiredFields(values) && !coverUploading && !pending;
   const canPublish = locked
     ? !lockedErrors && !coverUploading && !pending
@@ -166,7 +178,7 @@ export function CourseForm({
   // 時間表的錯誤：「還沒填完」由 disabled 的按鈕表達，不另外顯示；填完後才顯示重疊等錯誤
   const slotsFilled = slots.length > 0 && slots.every((sl) => sl.start && sl.end);
   const slotsServerError = state.errors?.session_slots && !editedSinceSubmit.has("session_slots") ? state.errors.session_slots : undefined;
-  const slotsError = slotsServerError ?? (slotsFilled ? clientErrors.session_slots : undefined);
+  const slotsError = slotsServerError ?? (slotsFilled ? clientErrors.session_slots ?? deadlineError ?? undefined : undefined);
 
   const qaItems = parseQa(values.qa) ?? [];
   const qaError = (state.errors?.qa && !editedSinceSubmit.has("qa") ? state.errors.qa : undefined) ?? clientErrors.qa;
@@ -211,7 +223,7 @@ export function CourseForm({
 
       {locked && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          已有學員報名，時段、地點、價格與人數已鎖定，目前只能修改課程須知、課程 QA 與封面圖。
+          已有學員報名：課程的名稱、運動、程度、地點、價格、人數、報名截止與介紹已鎖定，只能修改課程須知、課程 QA 與封面圖。場次時間依各場次判斷：沒有人報名的場次仍可調整時間、刪除或新增，有人報名的場次時間無法修改。要使用不同的地點或價格，請另外建立課程或複製課程。
         </div>
       )}
 
