@@ -1,6 +1,5 @@
 import Link from "next/link";
 import CourseGrid from "@/components/CourseGrid";
-import GolandTheme from "@/components/goland/GolandTheme";
 import CourseFilters from "@/components/CourseFilters";
 import SortSelect from "@/components/SortSelect";
 import { filterCourses, parseFilters } from "@/lib/courses/filterCourses";
@@ -38,7 +37,6 @@ export default async function CoursesPage({
   const courses = sortCourses(filterCourses(allCourses, filters), sort);
 
   return (
-    <GolandTheme>
     <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
       <h1 className="text-h1">課程搜尋結果</h1>
 
@@ -72,6 +70,5 @@ export default async function CoursesPage({
         <CourseGrid key={JSON.stringify(params)} courses={courses} />
       )}
     </main>
-    </GolandTheme>
   );
 }

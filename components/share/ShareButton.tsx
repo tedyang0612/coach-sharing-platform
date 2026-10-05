@@ -42,7 +42,7 @@ function legacyCopy(text: string) {
   }
 }
 
-// 樣式用設計 token（--color-*），要放在 <GolandTheme> 裡才有值。
+// 樣式用全站的設計 token（app/tokens.css 的 --color-*）。
 export default function ShareButton({ path, title, text, iconOnly = false }: Props) {
   const [status, setStatus] = useState<Status>("idle");
   const [url, setUrl] = useState("");
