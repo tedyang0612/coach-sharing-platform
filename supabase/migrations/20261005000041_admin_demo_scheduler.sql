@@ -1,9 +1,10 @@
 -- Demo 排程頁（PRD 第六章 6「Demo 建議」）：發表現場不用等時間，由管理員在 /admin/demo 按一下就執行排程。
 --
 -- 排程函式（process_session_matching 等）在 20261003000029 已經收回對 anon／authenticated 的執行權限，
--- 頁面不能直接呼叫，所以這裡新增兩個「只有管理員能用」的包裝函式：
+-- 頁面不能直接呼叫，所以這裡新增兩個「只有管理員能用」的包裝函式與一張執行紀錄表：
 --   admin_demo_overview()        回傳四個排程目前各有多少待處理（畫面卡片上的數字）
---   admin_run_demo_job(p_job)    執行指定排程並回傳處理結果（matching／reminders／complete／payouts）
+--   admin_run_demo_job(p_job)    執行指定排程、回傳處理結果（matching／reminders／complete／payouts），並記錄到 scheduled_job_runs
+--   scheduled_job_runs           手動執行的紀錄（畫面卡片上的「最近一次」），只有管理員讀得到，寫入只能透過 admin_run_demo_job()
 --
 -- 管理員判斷沿用 profiles.is_admin（只能由資料庫手動設定，沒有自助升級管道，見 20261002000019）。
 -- 兩個函式都在內部檢查 is_admin，不是管理員就丟錯；執行權限只開給 authenticated（anon 不能呼叫），
@@ -28,6 +29,33 @@ begin
   end if;
 end;
 $$;
+
+-- ============================================================
+-- 一之二、手動執行紀錄表
+-- ============================================================
+
+create table if not exists public.scheduled_job_runs (
+  id bigint generated always as identity primary key,
+  job text not null check (job in ('matching', 'reminders', 'complete', 'payouts')),
+  affected_count int not null default 0,
+  result jsonb,
+  run_by uuid references public.profiles (id) on delete set null,
+  ran_at timestamptz not null default now()
+);
+
+comment on table public.scheduled_job_runs is 'Demo 頁手動執行排程的紀錄（只記手動執行，pg_cron 自動執行不記）';
+create index if not exists scheduled_job_runs_job_ran_at_idx on public.scheduled_job_runs (job, ran_at desc);
+
+alter table public.scheduled_job_runs enable row level security;
+
+-- 只有管理員讀得到；沒有 insert／update／delete policy，寫入只能透過下面的 security definer 函式
+drop policy if exists "admins can view job runs" on public.scheduled_job_runs;
+create policy "admins can view job runs"
+  on public.scheduled_job_runs for select
+  to authenticated
+  using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.is_admin));
+
+revoke insert, update, delete, truncate on public.scheduled_job_runs from anon, authenticated;
 
 -- ============================================================
 -- 二、待處理數量（和各排程函式挑資料的條件一致）
@@ -102,6 +130,7 @@ declare
   n_payouts int;
   v_net numeric(10,2);
   v_comp numeric(10,2);
+  result jsonb;
 begin
   perform public.assert_demo_admin();
 
@@ -111,8 +140,8 @@ begin
     select count(*) filter (where status = 'matched'), count(*) filter (where status = 'cancelled_unmatched')
     into n_confirmed, n_cancelled
     from public.sessions where id = any (ids);
-    return jsonb_build_object('job', p_job, 'processed', coalesce(array_length(ids, 1), 0),
-                              'confirmed', n_confirmed, 'cancelled', n_cancelled);
+    result := jsonb_build_object('job', p_job, 'processed', coalesce(array_length(ids, 1), 0),
+                                 'confirmed', n_confirmed, 'cancelled', n_cancelled);
 
   elsif p_job = 'reminders' then
     ids := array(
@@ -120,12 +149,12 @@ begin
       where status = 'matched' and reminder_sent_at is null and start_at <= now() + interval '24 hours'
     );
     perform public.send_session_reminders();
-    return jsonb_build_object('job', p_job, 'processed', coalesce(array_length(ids, 1), 0));
+    result := jsonb_build_object('job', p_job, 'processed', coalesce(array_length(ids, 1), 0));
 
   elsif p_job = 'complete' then
     ids := array(select id from public.sessions where status = 'matched' and end_at <= now());
     perform public.complete_finished_sessions();
-    return jsonb_build_object('job', p_job, 'processed', coalesce(array_length(ids, 1), 0));
+    result := jsonb_build_object('job', p_job, 'processed', coalesce(array_length(ids, 1), 0));
 
   elsif p_job = 'payouts' then
     payout_ids_before := array(select id from public.payouts);
@@ -133,11 +162,16 @@ begin
     select count(*), coalesce(sum(net_amount), 0), coalesce(sum(compensation_amount), 0)
     into n_payouts, v_net, v_comp
     from public.payouts where id <> all (payout_ids_before);
-    return jsonb_build_object('job', p_job, 'processed', n_payouts, 'net_total', v_net, 'compensation_total', v_comp);
+    result := jsonb_build_object('job', p_job, 'processed', n_payouts, 'net_total', v_net, 'compensation_total', v_comp);
 
   else
     raise exception '不認得的排程項目：%', p_job;
   end if;
+
+  insert into public.scheduled_job_runs (job, affected_count, result, run_by)
+  values (p_job, (result->>'processed')::int, result, auth.uid());
+
+  return result;
 end;
 $$;
 
