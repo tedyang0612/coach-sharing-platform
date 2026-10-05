@@ -30,6 +30,11 @@ const DISABLED_CLASSES: Record<ButtonVariant, string> = {
   ghost: "disabled:bg-transparent disabled:text-state-disabled-text",
 };
 
+/** 給 <Link> 等非 <button> 元素套用同一套按鈕外觀（導覽列的「登入」「註冊」「成為教練」）。 */
+export function buttonClassName(variant: ButtonVariant = "primary", fullWidth = false) {
+  return `text-button inline-flex h-11 items-center justify-center gap-2 rounded-pill px-6 py-3 transition ${fullWidth ? "w-full" : ""} ${VARIANT_CLASSES[variant]}`;
+}
+
 export function Button({
   variant = "primary",
   loading = false,

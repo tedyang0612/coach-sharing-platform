@@ -1,4 +1,5 @@
 import { type InputHTMLAttributes } from "react";
+import { FIELD_CLASSES } from "./field-styles";
 
 type TextFieldProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
@@ -25,7 +26,7 @@ export function TextField({ label, error, hint, id, required, disabled, ...props
       </label>
       <input
         id={inputId}
-        className="text-body rounded-md border border-border-default bg-brand-white px-4 py-3 text-text-primary outline-none transition placeholder:text-text-secondary focus:border-2 focus:border-brand-blue focus:px-[15px] focus:py-[11px] aria-invalid:border-2 aria-invalid:border-state-error aria-invalid:bg-state-error-bg aria-invalid:px-[15px] aria-invalid:py-[11px] disabled:bg-state-disabled-bg disabled:text-state-disabled-text"
+        className={FIELD_CLASSES}
         aria-invalid={error ? true : undefined}
         required={required}
         disabled={disabled}
