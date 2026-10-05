@@ -30,28 +30,28 @@ export function LegalDocument({ title, content }: LegalDocumentProps) {
         <nav aria-label="條款與聲明" className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
           {DOCUMENTS.map((document) =>
             document.label === title ? (
-              <span key={document.href} className="font-semibold text-neutral-900">
+              <span key={document.href} className="font-semibold text-text-primary">
                 {document.label}
               </span>
             ) : (
-              <Link key={document.href} href={document.href} className="text-brand hover:underline">
+              <Link key={document.href} href={document.href} className="text-brand-deep underline underline-offset-4 hover:no-underline">
                 {document.label}
               </Link>
             )
           )}
         </nav>
 
-        <h1 className="mt-6 text-2xl font-bold text-neutral-900">{title}</h1>
+        <h1 className="mt-6 text-2xl font-bold text-text-primary">{title}</h1>
 
-        <p className="mt-4 rounded-xl border border-neutral-200 bg-brand-ink px-4 py-3 text-sm leading-relaxed text-neutral-700">
+        <p className="mt-4 rounded-xl border border-border-default bg-brand-ink px-4 py-3 text-sm leading-relaxed text-text-secondary">
           本平台為學習專題的展示版本，付款為模擬流程；本文件為草稿，經營者名稱與聯絡方式為模擬資料。
         </p>
 
-        <div className="mt-6 flex flex-col gap-3 text-sm leading-relaxed text-neutral-700">
+        <div className="mt-6 flex flex-col gap-3 text-sm leading-relaxed text-text-secondary">
           {lines.map((line, index) => {
             if (line.startsWith("### ")) {
               return (
-                <h3 key={index} className="mt-4 text-base font-semibold text-neutral-900">
+                <h3 key={index} className="mt-4 text-base font-semibold text-text-primary">
                   {line.slice(4)}
                 </h3>
               );
@@ -61,7 +61,7 @@ export function LegalDocument({ title, content }: LegalDocumentProps) {
               // 只有「第○章」才畫分隔線；沒有分章的文件，條的標題不需要每條都隔開
               if (!/^第.+章/.test(text)) {
                 return (
-                  <h2 key={index} className="mt-4 text-base font-semibold text-neutral-900">
+                  <h2 key={index} className="mt-4 text-base font-semibold text-text-primary">
                     {text}
                   </h2>
                 );
@@ -70,7 +70,7 @@ export function LegalDocument({ title, content }: LegalDocumentProps) {
                 <h2
                   key={index}
                   id={headingId(text)}
-                  className="mt-8 scroll-mt-6 border-t border-neutral-200 pt-6 text-lg font-bold text-neutral-900"
+                  className="mt-8 scroll-mt-6 border-t border-border-default pt-6 text-lg font-bold text-text-primary"
                 >
                   {text}
                 </h2>
