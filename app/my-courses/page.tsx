@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import GolandTheme from "@/components/goland/GolandTheme";
 import MyCourseCard from "./_components/MyCourseCard";
-import { TAB_LABELS } from "./_lib/display";
+import { SearchIcon } from "./_components/Icons";
+import { COPY, TAB_LABELS, TAB_ORDER } from "./_lib/display";
 import {
   MY_REGISTRATION_CATEGORIES,
   groupMyRegistrations,
@@ -32,43 +34,62 @@ export default async function MyCoursesPage({
   const groups = groupMyRegistrations(await listMyRegistrations(supabase, user.id));
   const items = groups[tab];
 
+  const hasAny = TAB_ORDER.some((category) => groups[category].length > 0);
+
   return (
-    <main className="mx-auto max-w-3xl space-y-5 px-4 py-8 text-neutral-800">
-      <h1 className="text-2xl font-black text-neutral-900">我的課程</h1>
+    <GolandTheme>
+      <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-6 px-(--spacing-screen-padding) py-8">
+        {/* 桌機內容約 960 寬置中（設計稿），手機滿版 */}
+        <div className="mx-auto w-full max-w-[960px] space-y-6">
+          <h1 className="text-h1">我的課程</h1>
 
-      <nav aria-label="報名狀態" className="flex gap-2 overflow-x-auto pb-1">
-        {MY_REGISTRATION_CATEGORIES.map((category) => (
-          <Link
-            key={category}
-            href={category === "pending" ? "/my-courses" : `/my-courses?tab=${category}`}
-            aria-current={category === tab ? "page" : undefined}
-            className={`shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium ${
-              category === tab
-                ? "border-brand bg-brand text-white"
-                : "border-neutral-300 text-neutral-700 hover:bg-neutral-100"
-            }`}
+          {/* 頁籤順序依設計稿；文字頁籤，選中加粗並有底線，不顯示數量 */}
+          <nav
+            aria-label="報名狀態"
+            className="flex gap-6 overflow-x-auto border-b border-(--color-border-default)"
           >
-            {TAB_LABELS[category]}（{groups[category].length}）
-          </Link>
-        ))}
-      </nav>
+            {TAB_ORDER.map((category) => (
+              <Link
+                key={category}
+                href={category === "pending" ? "/my-courses" : `/my-courses?tab=${category}`}
+                aria-current={category === tab ? "page" : undefined}
+                className={`text-body -mb-px shrink-0 border-b-2 pb-2 ${
+                  category === tab
+                    ? "border-(--color-brand-blue) font-bold text-(--color-text-primary)"
+                    : "border-transparent text-(--color-text-secondary) hover:text-(--color-text-primary)"
+                }`}
+              >
+                {TAB_LABELS[category]}
+              </Link>
+            ))}
+          </nav>
 
-      {items.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500">
-          <p>目前沒有「{TAB_LABELS[tab]}」的課程</p>
-          <Link href="/courses" className="mt-3 inline-block font-medium text-brand underline">
-            去看看課程
-          </Link>
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center gap-4 rounded-(--radius-lg) bg-(--color-brand-light) px-4 py-12 text-center">
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-(--color-tint-blue-100)">
+                <SearchIcon size={24} />
+              </span>
+              <p className="text-body-large">
+                {hasAny ? `目前沒有「${TAB_LABELS[tab]}」的課程` : COPY.emptyAll}
+              </p>
+              <Link
+                href="/courses"
+                className="text-button rounded-full bg-(--color-brand-blue) px-8 py-2.5 text-(--color-text-inverse) hover:bg-(--color-brand-blue-pressed)"
+              >
+                {COPY.explore}
+              </Link>
+            </div>
+          ) : (
+            <ul className="grid items-start gap-4 lg:grid-cols-2">
+              {items.map((item) => (
+                <li key={item.registrationId}>
+                  <MyCourseCard item={item} />
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-      ) : (
-        <ul className="space-y-4">
-          {items.map((item) => (
-            <li key={item.registrationId}>
-              <MyCourseCard item={item} />
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+      </main>
+    </GolandTheme>
   );
 }

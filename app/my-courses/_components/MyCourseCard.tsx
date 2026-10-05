@@ -1,103 +1,158 @@
 import Link from "next/link";
 import { resolveCoverUrl } from "@/app/courses/_lib/cover-image";
 import {
-  formatDateTime,
+  COPY,
+  formatDeadline,
   formatSessionTime,
-  toV46Wording,
 } from "../_lib/display";
 import type { MyRegistrationItem } from "../_lib/my-registrations";
 import CancelRegistrationButton from "./CancelRegistrationButton";
+import StatusLine from "./StatusLine";
 
-// 結構先排好，畫面等 UI 定稿再套。狀態、取消與評價的判斷都來自資料層（item 已整理好），這裡不再自己判斷。
+const OUTLINE_BUTTON =
+  "text-button flex items-center justify-center rounded-full border border-(--color-brand-blue) bg-(--color-surface-default) px-5 py-2.5 text-(--color-text-primary) hover:bg-(--color-tint-blue-100)";
+const PRIMARY_BUTTON =
+  "text-button flex items-center justify-center rounded-full bg-(--color-brand-blue) px-5 py-2.5 text-(--color-text-inverse) hover:bg-(--color-brand-blue-pressed)";
+const TEXT_BUTTON =
+  "text-button flex items-center justify-center rounded-full px-5 py-2.5 text-(--color-text-primary) hover:bg-(--color-tint-blue-100)";
+
+function Note({ children, tone = "plain" }: { children: React.ReactNode; tone?: "plain" | "info" }) {
+  return (
+    <p
+      className={`text-body-small rounded-(--radius-md) px-3 py-2.5 text-(--color-text-secondary) ${
+        tone === "info"
+          ? "border border-(--color-brand-blue) bg-(--color-tint-blue-100) text-(--color-text-primary)"
+          : "bg-(--color-brand-light)"
+      }`}
+    >
+      {children}
+    </p>
+  );
+}
+
+// 版型依設計稿 S09：左邊縮圖、右邊標題與時間地點，下面狀態列、說明框、按鈕。
+// 狀態、取消與評價的判斷都來自資料層（item 已整理好），這裡不再自己判斷。
+// 待確認開課的「差 N 人開課」進度條需要場次報名人數與上下限，資料層沒帶，下一輪補。
 export default function MyCourseCard({ item }: { item: MyRegistrationItem }) {
   const { course, session } = item;
+  const courseHref = item.unavailable
+    ? null
+    : `/courses/${course.id}?session=${session.id}`;
+  const cancelled = item.category === "cancelled";
+
+  // 說明框的內容：依狀態決定，設計稿沒畫的情況不硬加
+  let note: React.ReactNode = null;
+  if (item.category === "pending") {
+    note = (
+      <Note>
+        預計於 {formatDeadline(session.registrationDeadlineAt)} 通知是否確定開課，確定開課後才會扣款。
+      </Note>
+    );
+  } else if (item.category === "confirmed") {
+    if (item.cancelButton === "contact_coach") {
+      note = <Note tone="info">{COPY.contactCoach}</Note>;
+    } else if (item.announcements.length > 0) {
+      note = <Note>{COPY.confirmedAnnouncement}</Note>;
+    }
+  } else if (item.category === "completed") {
+    note = item.review ? (
+      <Note>你的評價：{item.review.rating} 顆星，謝謝你的回饋。</Note>
+    ) : item.canReview ? (
+      <Note>{COPY.reviewPrompt}</Note>
+    ) : null;
+  } else if (cancelled) {
+    if (item.status === "cancelled") note = <Note>{COPY.cancelledNoCharge}</Note>;
+    else if (item.status === "refunded" && item.session.status !== "cancelled_by_coach")
+      note = <Note>{COPY.refundedFull}</Note>;
+  }
+
+  // 按鈕：同一排最多兩顆；確定開課的卡片設計稿沒有「查看課程」，只有取消與查看行前公告
+  const buttons: React.ReactNode[] = [];
+  if (item.cancelButton === "show" && item.cancel.ok) {
+    buttons.push(
+      <CancelRegistrationButton
+        key="cancel"
+        registrationId={item.registrationId}
+        outcome={item.cancel.outcome}
+        className={OUTLINE_BUTTON}
+      />,
+    );
+  }
+  if (item.canReview) {
+    buttons.push(
+      <Link key="review" href={item.reviewHref} className={PRIMARY_BUTTON}>
+        撰寫評價
+      </Link>,
+    );
+  }
+  if (item.category === "confirmed") {
+    // 通知中心是牛牛的 7.0（/notifications），合併前點不開
+    buttons.push(
+      <Link key="announcement" href="/notifications" className={PRIMARY_BUTTON}>
+        查看行前公告
+      </Link>,
+    );
+  } else if (courseHref) {
+    buttons.push(
+      <Link key="view" href={courseHref} className={TEXT_BUTTON}>
+        查看課程
+      </Link>,
+    );
+  }
+
   return (
-    <article className="flex flex-col gap-4 rounded-2xl border border-neutral-200 bg-white p-4 sm:flex-row">
-      {!item.unavailable && (
-        // 封面網址可能來自 Supabase Storage（外部網域），next.config.ts 還沒設定圖片網域，先用一般 <img>
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={resolveCoverUrl({
-            cover_image_url: course.coverImageUrl,
-            sport_type: course.sportType,
-          })}
-          alt=""
-          loading="lazy"
-          className="h-32 w-full rounded-xl object-cover sm:h-28 sm:w-40"
-        />
-      )}
-
-      <div className="min-w-0 flex-1 space-y-2">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-500">
-          <span>訂單編號 {item.orderNumber}</span>
-          <span>報名於 {formatDateTime(item.createdAt)}</span>
-        </div>
-
-        <h2 className="text-base font-bold text-neutral-900">
-          {item.unavailable ? (
-            course.title
-          ) : (
-            <Link href={`/courses/${course.id}`} className="hover:underline">
-              {course.title}
-            </Link>
-          )}
-        </h2>
-
+    <article className="space-y-3 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-4">
+      <div className="flex gap-4">
         {!item.unavailable && (
-          <>
-            <p className="text-sm text-neutral-600">
-              📅 {formatSessionTime(session.startAt, session.endAt)}
-            </p>
-            <p className="text-sm text-neutral-600">📍 {course.locationName}</p>
-          </>
+          // 封面可能來自 Supabase Storage（外部網域），不設定 next/image 網域，用一般 img
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={resolveCoverUrl({
+              cover_image_url: course.coverImageUrl,
+              sport_type: course.sportType,
+            })}
+            alt=""
+            loading="lazy"
+            className="h-18 w-18 shrink-0 rounded-(--radius-md) bg-(--color-tint-blue-100) object-cover"
+          />
         )}
-
-        <p className="text-sm font-medium text-neutral-800">
-          {toV46Wording(item.detailLabel)}
-          <span className="ml-2 font-normal text-neutral-500">
-            NT$ {item.amount.toLocaleString()}
-          </span>
-        </p>
-
-        {item.announcements.length > 0 && (
-          <ul className="space-y-1 rounded-xl bg-neutral-50 p-3 text-sm text-neutral-700">
-            {item.announcements.map((a) => (
-              <li key={a.id}>
-                <span className="mr-2 text-xs text-neutral-400">
-                  {formatDateTime(a.sent_at)}
-                </span>
-                {a.content}
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div className="flex flex-wrap items-center gap-2 pt-1">
-          {item.cancelButton === "show" && item.cancel.ok && (
-            <CancelRegistrationButton
-              registrationId={item.registrationId}
-              outcome={item.cancel.outcome}
-            />
-          )}
-          {item.cancelButton === "contact_coach" && !item.cancel.ok && (
-            <p className="text-sm text-neutral-600">{item.cancel.message}</p>
-          )}
-
-          {item.review && (
-            <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-600">
-              已評價・{"★".repeat(item.review.rating)}
-            </span>
-          )}
-          {item.canReview && (
-            <Link
-              href={item.reviewHref}
-              className="rounded-xl bg-brand px-4 py-2 text-sm font-bold text-white hover:opacity-90"
-            >
-              前往評價
-            </Link>
+        <div className="min-w-0 space-y-0.5">
+          <h2 className="text-body font-bold">
+            {courseHref ? (
+              <Link href={courseHref} className="hover:underline">
+                {course.title}
+              </Link>
+            ) : (
+              course.title
+            )}
+          </h2>
+          {!item.unavailable && (
+            <>
+              <p className="text-body-small font-bold">
+                {formatSessionTime(session.startAt, session.endAt)}
+              </p>
+              <p className="text-body-small text-(--color-text-secondary)">{course.locationName}</p>
+            </>
           )}
         </div>
       </div>
+
+      <StatusLine item={item} />
+      {note}
+
+      {item.category === "completed" && item.review ? (
+        <button
+          type="button"
+          disabled
+          className="text-button w-full rounded-full bg-(--color-state-disabled-bg) px-5 py-2.5 text-(--color-state-disabled-text)"
+        >
+          已評價
+        </button>
+      ) : (
+        buttons.length > 0 && (
+          <div className={`grid gap-3 ${buttons.length > 1 ? "grid-cols-2" : ""}`}>{buttons}</div>
+        )
+      )}
     </article>
   );
 }

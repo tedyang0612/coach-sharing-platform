@@ -1,0 +1,77 @@
+/* 夠練 GoLand 設計 token：複製自設計師交接包 design/tokens.css（2026-10-05 版），
+   差別只有兩處：
+   1. 變數與字級 class 都限定在 .goland 底下，只影響包在 <GolandTheme> 裡的頁面，不動全站；
+   2. 字體變數接 next/font 載入的 Noto Sans TC 與 Poppins。
+   數值有變動請回設計師的 tokens.css 更新，不要在這裡自己改。
+   全站套用（改 globals.css）要先在群組說，到時候這個外層就可以拿掉。 */
+.goland {
+  /* Color / brand */
+  --color-brand-light: #F1F8FD;
+  --color-brand-blue: #6AA9EA;
+  --color-brand-blue-pressed: #5B97D6;
+  --color-brand-deep: #063065;
+  --color-brand-lime: #DFFF3F;   /* 只做小面積強調（約 5%），不可當大面積背景 */
+  --color-brand-white: #FFFFFF;
+
+  /* Color / text */
+  --color-text-primary: #063065;          /* = brand deep */
+  --color-text-secondary: rgba(6, 48, 101, 0.65);
+  --color-text-inverse: #FFFFFF;
+
+  /* Color / surface & border */
+  --color-surface-page: #F6F6F6;          /* 所有頁面底色 */
+  --color-surface-default: #FFFFFF;       /* 卡片、輸入框 */
+  --color-surface-subtle: #F1F8FD;
+  --color-border-default: rgba(6, 48, 101, 0.12);
+
+  /* Color / tint */
+  --color-tint-blue-100: #E1EEFB;
+  --color-tint-blue-200: #C3DDF7;
+
+  /* Color / state（錯誤色由品牌色轉紅） */
+  --color-state-error: #EA6A6A;
+  --color-state-error-bg: #FDEAEA;
+  --color-state-error-text: #660505;
+  --color-state-disabled-bg: rgba(6, 48, 101, 0.08);
+  --color-state-disabled-text: rgba(6, 48, 101, 0.35);
+
+  /* Spacing */
+  --spacing-4: 4px;  --spacing-8: 8px;  --spacing-12: 12px; --spacing-16: 16px;
+  --spacing-24: 24px; --spacing-32: 32px; --spacing-48: 48px;
+  --spacing-screen-padding: 16px;  /* 手機左右邊距；桌機 80px */
+  --spacing-section: 32px;         /* 桌機區塊間距 48–64px */
+  --spacing-card-padding: 16px;
+  --spacing-component-gap: 12px;
+  --spacing-element-gap: 8px;
+
+  /* Radius */
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 24px; --radius-pill: 999px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 3px rgba(6, 48, 101, 0.08);
+  --shadow-md: 0 4px 25px rgba(6, 48, 101, 0.10);
+
+  /* Font family：中文 Noto Sans TC；英數字 Poppins（Poppins 不含中文字，不可套在中文上） */
+  --font-cjk: var(--font-noto-sans-tc), "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-latin: var(--font-poppins), "Poppins", "Noto Sans TC", sans-serif;
+}
+
+/* Type scale（font: weight size/line-height） */
+.goland .text-hero        { font: 700 60px/72px var(--font-cjk); }  /* 桌機首頁主標 */
+.goland .text-hero-mobile { font: 700 38px/48px var(--font-cjk); }
+.goland .text-display     { font: 700 32px/40px var(--font-cjk); }
+.goland .text-h1          { font: 700 28px/36px var(--font-cjk); }
+.goland .text-h2          { font: 700 22px/30px var(--font-cjk); }
+.goland .text-h3          { font: 700 18px/26px var(--font-cjk); }
+.goland .text-body-large  { font: 400 17px/26px var(--font-cjk); }
+.goland .text-body        { font: 400 15px/24px var(--font-cjk); }
+.goland .text-body-small  { font: 400 13px/20px var(--font-cjk); }
+.goland .text-caption     { font: 400 12px/18px var(--font-cjk); }
+.goland .text-button      { font: 700 15px/20px var(--font-cjk); }
+.goland .text-label       { font: 500 13px/18px var(--font-cjk); }
+.goland .text-number-large{ font: 600 24px/32px var(--font-latin); } /* 只用在英數字 */
+.goland .text-number      { font: 500 15px/22px var(--font-latin); }
+
+/* Breakpoints：手機優先。手機 390（4 欄、邊距 16）；桌機 1440（12 欄、gutter 24、邊距 80）；平板 8 欄為暫定 */
+@media (min-width: 768px)  { .goland { --spacing-screen-padding: 32px; } }
+@media (min-width: 1200px) { .goland { --spacing-screen-padding: 80px; --spacing-section: 64px; } }
