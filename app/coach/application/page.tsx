@@ -36,13 +36,22 @@ export default async function CoachApplicationStatusPage() {
     .eq("coach_id", user.id)
     .order("created_at", { ascending: true });
 
+  // 審核中的摘要：送出時間以最後一次送出（同意聲明的時間）為準
+  const uploadedDocuments = [
+    ...(application.criminal_record_url && !application.criminal_record_deleted ? ["良民證"] : []),
+    ...(licenses ?? []).map((license) => license.name).filter(Boolean),
+  ];
+
   return (
-    <main className="flex-1 px-4 py-8 sm:px-6 sm:py-12">
-      <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
+    <main className="flex-1 px-4 pb-8 pt-5 sm:px-6 sm:pb-20 sm:pt-10">
+      <div className="mx-auto flex w-full max-w-[800px] flex-col gap-4">
         <StatusCard
           status={application.application_status as CoachApplicationStatus}
           rejectionReason={application.rejection_reason}
-          reviewedAt={application.reviewed_at}
+          submittedAt={application.consent_at ?? application.created_at}
+          sportCategories={application.sport_categories ?? []}
+          uploadedDocuments={uploadedDocuments}
+          coachId={user.id}
         />
         <LicenseStatusList
           licenses={(licenses ?? []).map((license) => ({

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LogoBadge } from "@/components/brand/logo-badge";
+import { buttonClassName } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "成為教練｜夠練 GoLand",
@@ -40,14 +40,13 @@ const CHECKLIST = [
 
 export default function BecomeCoachPage() {
   return (
-    <main className="flex-1 px-4 py-10 sm:px-6 sm:py-16">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-10">
-        <header className="flex flex-col items-center gap-3 text-center">
-          <LogoBadge />
-          <h1 className="text-2xl font-bold text-neutral-900 sm:text-3xl">
+    <main className="flex-1 px-4 pb-8 pt-5 sm:px-6 sm:pb-20 sm:pt-10">
+      <div className="mx-auto flex w-full max-w-[800px] flex-col gap-4">
+        <header className="flex flex-col gap-4">
+          <h1 className="text-h1 text-text-primary">
             成為夠練
           </h1>
-          <p className="max-w-lg text-sm text-neutral-500">
+          <p className="text-body text-text-secondary">
             上架你的小班課，報名、收款與開課確認交給平台，你專心教學就好。
           </p>
         </header>
@@ -56,76 +55,76 @@ export default function BecomeCoachPage() {
           {BENEFITS.map((benefit) => (
             <div
               key={benefit.title}
-              className="rounded-2xl border border-neutral-200 bg-white p-5"
+              className="rounded-lg border border-border-default bg-brand-white p-6"
             >
-              <h2 className="text-sm font-bold text-neutral-900">{benefit.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-neutral-500">
+              <h2 className="text-h3 text-text-primary">{benefit.title}</h2>
+              <p className="text-body-small mt-2 text-text-secondary">
                 {benefit.body}
               </p>
             </div>
           ))}
         </section>
 
-        <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
-          <h2 className="text-base font-bold text-neutral-900">申請流程</h2>
+        <section className="rounded-lg border border-border-default bg-brand-white p-6">
+          <h2 className="text-h3 text-text-primary">申請流程</h2>
           <ol className="mt-4 flex flex-col gap-4">
             {STEPS.map((step, index) => (
               <li key={step.title} className="flex gap-3">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-ink text-sm font-bold text-brand">
+                <span className="text-label flex size-7 shrink-0 items-center justify-center rounded-pill bg-tint-blue-200 text-text-primary">
                   {index + 1}
                 </span>
                 <div>
-                  <p className="text-sm font-semibold text-neutral-900">{step.title}</p>
-                  <p className="mt-0.5 text-sm text-neutral-500">{step.body}</p>
+                  <p className="text-body font-medium text-text-primary">{step.title}</p>
+                  <p className="text-body-small mt-0.5 text-text-secondary">{step.body}</p>
                 </div>
               </li>
             ))}
           </ol>
         </section>
 
-        <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
-          <h2 className="text-base font-bold text-neutral-900">申請前請先準備</h2>
-          <ul className="mt-4 flex list-disc flex-col gap-2 pl-5 text-sm text-neutral-600">
+        <section className="rounded-lg border border-border-default bg-brand-white p-6">
+          <h2 className="text-h3 text-text-primary">申請前請先準備</h2>
+          <ul className="text-body mt-4 flex list-disc flex-col gap-2 pl-5 text-text-primary">
             {CHECKLIST.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
-          <p className="mt-4 text-xs leading-relaxed text-neutral-500">
+          <p className="text-caption mt-4 text-text-secondary">
             聯絡方式不會公開，只在場次確定開課後透過行前公告提供給該場次學員。
           </p>
         </section>
 
-        <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
-          <h2 className="text-base font-bold text-neutral-900">為什麼需要良民證？</h2>
-          <dl className="mt-4 flex flex-col gap-4 text-sm">
+        <section className="rounded-lg border border-border-default bg-brand-white p-6">
+          <h2 className="text-h3 text-text-primary">為什麼需要良民證？</h2>
+          <dl className="mt-4 flex flex-col gap-4">
             <div>
-              <dt className="font-semibold text-neutral-800">讓學員安心報名</dt>
-              <dd className="mt-1 leading-relaxed text-neutral-600">
+              <dt className="text-body font-medium text-text-primary">讓學員安心報名</dt>
+              <dd className="text-body-small mt-1 text-text-secondary">
                 學員會和教練實際見面上課，平台以良民證（警察刑事紀錄證明）作為基本把關。
               </dd>
             </div>
             <div>
-              <dt className="font-semibold text-neutral-800">怎麼申請</dt>
+              <dt className="text-body font-medium text-text-primary">怎麼申請</dt>
               {/* 申請方式與費用依內政部警政署公告（2026/10 查詢），之後若有調整請同步更新 */}
-              <dd className="mt-1 leading-relaxed text-neutral-600">
+              <dd className="text-body-small mt-1 text-text-secondary">
                 可在內政部警政署網站線上申請，再攜帶身分證件到警察局領取。規費每份新臺幣 100
                 元，一般約 1–3 個工作天，實際時間以各地警察局為準。
               </dd>
             </div>
             <div>
-              <dt className="font-semibold text-neutral-800">我們怎麼保管</dt>
-              <dd className="mt-1 leading-relaxed text-neutral-600">
+              <dt className="text-body font-medium text-text-primary">我們怎麼保管</dt>
+              <dd className="text-body-small mt-1 text-text-secondary">
                 僅用於身分審核，審核完成後 7 日內刪除原檔，只保留審核結果與審核日期。
               </dd>
             </div>
           </dl>
         </section>
 
-        <div className="flex justify-center">
+        <div className="flex justify-end">
           {/* 樣式比照 components/ui/button.tsx；這裡是換頁所以用 Link 而不是 <button> */}
           <Link
             href="/coach/apply"
-            className="w-full rounded-xl bg-brand px-8 py-3 text-center text-sm font-bold text-white transition hover:opacity-90 sm:w-auto"
+            className={buttonClassName("primary")}
           >
             開始填寫教練申請
           </Link>
