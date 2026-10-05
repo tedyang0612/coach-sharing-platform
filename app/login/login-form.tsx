@@ -62,7 +62,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
 
       {state?.errors?.form && <FormError message={state.errors.form} />}
 
-      <Button type="submit" disabled={!canSubmit || pending}>
+      <Button type="submit" fullWidth disabled={!canSubmit || pending}>
         {pending ? "登入中…" : "登入平台"}
       </Button>
     </form>
