@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarIcon, MapPinIcon } from "@/components/goland/icons";
+import { CalendarIcon, MapPinIcon, StarIcon } from "@/components/goland/icons";
 import { LEVEL_LABELS, type Course } from "@/lib/courses/types";
 
 // 例如「10/10（六） 19:00–20:00」；日期與時間分開組字串，避免 Node 與瀏覽器的 Intl 空白不同
@@ -111,16 +111,15 @@ export default function CourseCard({ course }: Props) {
               </Link>
               {course.coachVerified && <VerifiedIcon />}
             </div>
-            <span className="shrink-0">
+            <span className="flex shrink-0 items-center gap-1">
               {course.coachRating !== null ? (
                 <>
-                  <span className="text-(--color-text-secondary)">★</span>{" "}
+                  <StarIcon size={14} />
                   <span className="font-bold text-(--color-text-primary)">
                     {/* 資料庫的 avg_rating 已四捨五入到小數一位，直接顯示才會和教練檔案一致 */}
                     {course.coachRating.toFixed(1)}
                   </span>
                   <span className="text-(--color-text-secondary)">
-                    {" "}
                     ({course.coachReviewCount})
                   </span>
                 </>
