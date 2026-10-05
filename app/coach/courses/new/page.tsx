@@ -59,7 +59,16 @@ export default async function NewCoursePage({ searchParams }: PageProps<"/coach/
       )}
 
       {ctx.ok ? (
-        <CourseForm action={createCourse} initialValues={initialValues} districts={districts} mode="create" sourceId={source?.id} />
+        // key：從「快速套用範本」切到 ?from=<id> 時網址路徑沒變，React 會沿用同一個表單實例，
+        // 表單內部 state 只在第一次渲染讀 initialValues，不加 key 就不會帶入範本的內容
+        <CourseForm
+          key={source?.id ?? "blank"}
+          action={createCourse}
+          initialValues={initialValues}
+          districts={districts}
+          mode="create"
+          sourceId={source?.id}
+        />
       ) : (
         <NotCoachNotice />
       )}
