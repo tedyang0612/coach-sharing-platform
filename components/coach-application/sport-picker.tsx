@@ -1,5 +1,6 @@
 "use client";
 
+import { Chip } from "@/components/ui/chip";
 import { SPORT_CATEGORIES } from "@/lib/coach-application/constants";
 
 type SportPickerProps = {
@@ -8,7 +9,7 @@ type SportPickerProps = {
   error?: string;
 };
 
-/** 運動類別複選：點一下選取、再點一下取消。 */
+/** 運動類別複選：點一下選取、再點一下取消（設計稿 C01 的 Chip 列）。 */
 export function SportPicker({ value, onChange, error }: SportPickerProps) {
   function toggle(sport: string) {
     onChange(
@@ -17,32 +18,16 @@ export function SportPicker({ value, onChange, error }: SportPickerProps) {
   }
 
   return (
-    <fieldset className="flex flex-col gap-1.5">
-      <legend className="text-sm font-semibold text-neutral-800">
-        運動類別＊
-        <span className="ml-1 text-xs font-normal text-neutral-500">可複選</span>
-      </legend>
-      <div className="mt-1.5 flex flex-wrap gap-2">
-        {SPORT_CATEGORIES.map((sport) => {
-          const selected = value.includes(sport);
-          return (
-            <button
-              key={sport}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => toggle(sport)}
-              className={`rounded-full border px-4 py-1.5 text-sm transition ${
-                selected
-                  ? "border-brand bg-brand font-semibold text-white"
-                  : "border-neutral-200 bg-white text-neutral-700 hover:border-brand"
-              }`}
-            >
-              {sport}
-            </button>
-          );
-        })}
+    <fieldset className="flex flex-col gap-2">
+      <legend className="text-label text-text-primary">運動類別（可複選，必填）</legend>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {SPORT_CATEGORIES.map((sport) => (
+          <Chip key={sport} selected={value.includes(sport)} onClick={() => toggle(sport)}>
+            {sport}
+          </Chip>
+        ))}
       </div>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-caption text-state-error-text">{error}</p>}
     </fieldset>
   );
 }

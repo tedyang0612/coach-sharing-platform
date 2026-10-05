@@ -5,6 +5,7 @@ import { useState, useTransition, type FormEvent } from "react";
 import { updateCoachProfile } from "@/app/actions/coach-profile";
 import {
   EducationList,
+  useEducationAdder,
   type EducationDraft,
 } from "@/components/coach-application/education-list";
 import {
@@ -108,6 +109,7 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
   const [newLicenses, setNewLicenses] = useState<LicenseDraft[]>([]);
   const [removedLicenseIds, setRemovedLicenseIds] = useState<string[]>([]);
 
+  const addEducation = useEducationAdder(education, setEducation);
   const [attempted, setAttempted] = useState(false);
   const [saveError, setSaveError] = useState<string>();
   // 儲存成功後顯示的訊息；有新證照送審時會多提醒一句
@@ -241,10 +243,10 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
         description="會公開顯示在你的教練個人檔案，請勿填寫電話、Email、LINE ID 或網址。"
       >
         <FileField
-          label="大頭貼＊"
+          label="大頭貼（必填）"
           name="photo"
           kind="photo"
-          hint="會以圓形顯示在課程卡片與個人檔案，請選臉部清楚的照片。"
+          hint="教練檔案與評價頁使用。JPG／PNG，5MB 以內"
           previewShape="circle"
           file={photo}
           onChange={setPhoto}
@@ -254,10 +256,11 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
           error={errors.photo}
         />
         <FileField
-          label="生活／運動照片＊"
+          label="生活／運動照片（必填）"
           name="lifestylePhoto"
           kind="photo"
-          hint="一張能看出你教學或運動樣子的照片，會顯示在推薦教練與個人檔案。"
+          hint="首頁推薦教練卡片與教練檔案使用。JPG／PNG，5MB 以內"
+          previewShape="portrait"
           file={lifestylePhoto}
           onChange={setLifestylePhoto}
           existing={
@@ -282,6 +285,9 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
           error={errors.education}
           itemErrors={errors.educationItems}
         />
+        <Button type="button" variant="ghost" onClick={addEducation} className="self-start">
+          ＋ 新增學歷
+        </Button>
 
         <TextAreaField
           label="工作／教學經歷（選填）"

@@ -2,8 +2,10 @@
 
 import { useState, useTransition, type FormEvent } from "react";
 import { submitCoachApplication } from "@/app/actions/coach-application";
+import Link from "next/link";
 import {
   EducationList,
+  useEducationAdder,
   type EducationDraft,
 } from "@/components/coach-application/education-list";
 import { ExistingLicenseList } from "@/components/coach-application/existing-license-list";
@@ -15,7 +17,7 @@ import {
 import { SportPicker } from "@/components/coach-application/sport-picker";
 import { TagInput } from "@/components/coach-application/tag-input";
 import { TextAreaField } from "@/components/coach-application/text-area-field";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClassName } from "@/components/ui/button";
 import { CheckboxField } from "@/components/ui/checkbox";
 import { FormError } from "@/components/ui/form-error";
 import { TextField } from "@/components/ui/text-field";
@@ -61,20 +63,34 @@ export type ExistingApplication = {
   licenses: { id: string; name: string; status: LicenseStatus }[];
 };
 
+// 設計稿 C01：每一段是一張白底卡片，標題前面有編號（1　基本資料）
 function Section({
+  number,
   title,
   description,
+  action,
   children,
 }: {
+  number: number;
   title: string;
-  description: string;
+  description?: React.ReactNode;
+  // 標題列右邊的動作（例如「＋ 新增學歷」）
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-5 rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
-      <div>
-        <h2 className="text-base font-bold text-neutral-900">{title}</h2>
-        <p className="mt-1 text-xs text-neutral-500">{description}</p>
+    <section className="flex flex-col gap-4 rounded-lg border border-border-default bg-brand-white p-6">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-h3 text-text-primary">
+            <span className="mr-3 font-[family-name:var(--font-latin)] font-medium">{number}</span>
+            {title}
+          </h2>
+          {action}
+        </div>
+        {description && (
+          <div className="text-body-small flex flex-col gap-1 text-text-secondary">{description}</div>
+        )}
       </div>
       {children}
     </section>
@@ -121,6 +137,7 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
   const [consent, setConsent] = useState(false);
 
   // 按過一次送出之後才顯示必填錯誤，之後每次修改都即時重新檢查
+  const addEducation = useEducationAdder(education, setEducation);
   const [attempted, setAttempted] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
   const [isSubmitting, startSubmit] = useTransition();
@@ -205,59 +222,51 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
   }
 
   return (
-    <form className="flex flex-col gap-6" noValidate onSubmit={handleSubmit}>
+    <form className="flex flex-col gap-4" noValidate onSubmit={handleSubmit}>
       {existing && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-          <p className="text-sm font-bold text-amber-800">
-            {existing.status === "needs_more_info" ? "申請需要補件" : "上次申請未通過"}
+        <div className="flex flex-col gap-1.5 rounded-md border border-state-error bg-state-error-bg px-4 py-3.5">
+          <p className="text-label text-state-error-text">
+            {existing.status === "needs_more_info" ? "補件原因" : "未通過原因"}
           </p>
-          <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-amber-900">
+          <p className="text-body whitespace-pre-line text-state-error-text">
             {existing.rejectionReason ?? "管理員未填寫說明，請聯繫平台。"}
           </p>
-          <p className="mt-2 text-xs text-amber-800">
+          <p className="text-caption text-text-secondary">
             已帶入你先前填寫的內容，修改後送出就會重新進入審核。
           </p>
         </div>
       )}
 
-      <Section
-        title="姓名"
-        description="真實姓名只給管理員核對良民證，不會公開。學員看到的是暱稱，已先帶入你註冊時填的暱稱，可以修改；暱稱留空的話，會以真實姓名作為公開顯示的教練名稱。"
-      >
-        <TextField
-          label="真實姓名＊"
-          name="realName"
-          autoComplete="name"
-          placeholder="請與良民證上的姓名相同"
-          value={realName}
-          onChange={(event) => setRealName(event.target.value)}
-          error={errors.realName}
-        />
-        <TextField
-          label="暱稱（選填）"
-          name="nickname"
-          placeholder="例：Amy 教練"
-          value={nickname}
-          onChange={(event) => setNickname(event.target.value)}
-          error={contactInfoWarning(nickname) ?? errors.nickname}
-        />
-        <p className="-mt-2 text-xs text-neutral-500">
-          學員會看到的名稱：
-          <span className="font-semibold text-neutral-800">
-            {resolveCoachDisplayName(realName, nickname) || "（請先填寫真實姓名）"}
-          </span>
-        </p>
-      </Section>
+      <Section number={1} title="基本資料">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField
+            label="真實姓名（必填）"
+            name="realName"
+            autoComplete="name"
+            placeholder="請輸入真實姓名"
+            hint="不公開，僅供管理員核對良民證"
+            value={realName}
+            onChange={(event) => setRealName(event.target.value)}
+            error={errors.realName}
+          />
+          <TextField
+            label="暱稱（選填）"
+            name="nickname"
+            placeholder="請輸入暱稱"
+            hint={`公開顯示以暱稱為準，未填沿用真實姓名。學員會看到：${
+              resolveCoachDisplayName(realName, nickname) || "（請先填寫真實姓名）"
+            }`}
+            value={nickname}
+            onChange={(event) => setNickname(event.target.value)}
+            error={contactInfoWarning(nickname) ?? errors.nickname}
+          />
+        </div>
 
-      <Section
-        title="個人檔案"
-        description="審核通過後會公開顯示在你的教練個人檔案，請勿填寫電話、Email、LINE ID 或網址。"
-      >
         <FileField
-          label="大頭貼＊"
+          label="大頭貼（必填）"
           name="photo"
           kind="photo"
-          hint="會以圓形顯示在課程卡片與個人檔案，請選臉部清楚的照片。"
+          hint="教練檔案與評價頁使用。JPG／PNG，5MB 以內"
           previewShape="circle"
           file={photo}
           onChange={setPhoto}
@@ -269,10 +278,11 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
           error={errors.photo}
         />
         <FileField
-          label="生活／運動照片＊"
+          label="生活／運動照片（必填）"
           name="lifestylePhoto"
           kind="photo"
-          hint="一張能看出你教學或運動樣子的照片，會顯示在推薦教練與個人檔案。"
+          hint="首頁推薦教練卡片與教練檔案使用。JPG／PNG，5MB 以內"
+          previewShape="portrait"
           file={lifestylePhoto}
           onChange={setLifestylePhoto}
           existing={
@@ -292,6 +302,25 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
         <TagInput value={tags} onChange={setTags} />
 
         {/* 公開欄位邊打字邊檢查聯絡資訊，偵測到就即時警示（PRD 第六章 7） */}
+        <TextAreaField
+          label="簡述（必填）"
+          name="bioIntro"
+          placeholder="請簡述你的教學風格"
+          value={bioIntro}
+          onChange={(event) => setBioIntro(event.target.value)}
+          error={contactInfoWarning(bioIntro) ?? errors.bioIntro}
+        />
+      </Section>
+
+      <Section
+        number={2}
+        title="學歷與經歷"
+        action={
+          <Button type="button" variant="ghost" onClick={addEducation}>
+            ＋ 新增學歷
+          </Button>
+        }
+      >
         <EducationList
           value={education}
           onChange={setEducation}
@@ -302,7 +331,6 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
         <TextAreaField
           label="工作／教學經歷（選填）"
           name="workExperience"
-          rows={3}
           placeholder="例：知名健身房 5 年教練經驗"
           value={workExperience}
           onChange={(event) => setWorkExperience(event.target.value)}
@@ -312,57 +340,68 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
         <TextAreaField
           label="比賽經歷（選填）"
           name="bioCompetition"
-          placeholder="例：2023 全國健美錦標賽 75kg 級第 3 名"
+          placeholder="例：全國社會組羽球賽 男雙第 4 名"
           value={bioCompetition}
           onChange={(event) => setBioCompetition(event.target.value)}
           error={contactInfoWarning(bioCompetition)}
         />
-
-        <TextAreaField
-          label="簡述＊"
-          name="bioIntro"
-          hint="用幾句話介紹你的教學專長與風格，讓學員認識你。"
-          value={bioIntro}
-          onChange={(event) => setBioIntro(event.target.value)}
-          error={contactInfoWarning(bioIntro) ?? errors.bioIntro}
-        />
       </Section>
 
       <Section
-        title="聯絡方式"
-        description="電話、LINE、社群帳號至少填寫一項。不會公開，僅供平台聯繫，以及場次確定開課後透過行前公告提供給該場次學員。Email 通知會寄到你註冊帳號的信箱，不用另外填寫。"
+        number={3}
+        title="聯絡方式（不公開）"
+        description={
+          <p>
+            電話、LINE、社群帳號至少填一項；Email
+            使用註冊帳號信箱。僅供平台聯繫，以及確定開課後透過行前公告提供給確定開課的學員。
+          </p>
+        }
       >
-        <TextField
-          label="電話"
-          name="contactPhone"
-          type="tel"
-          autoComplete="tel"
-          placeholder="0912-345-678"
-          value={contactPhone}
-          onChange={(event) => setContactPhone(event.target.value)}
-        />
-        <TextField
-          label="LINE ID"
-          name="contactLine"
-          value={contactLine}
-          onChange={(event) => setContactLine(event.target.value)}
-        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <TextField
+            label="電話"
+            name="contactPhone"
+            type="tel"
+            autoComplete="tel"
+            placeholder="0912-345-678"
+            value={contactPhone}
+            onChange={(event) => setContactPhone(event.target.value)}
+          />
+          <TextField
+            label="LINE"
+            name="contactLine"
+            placeholder="請輸入 LINE ID"
+            value={contactLine}
+            onChange={(event) => setContactLine(event.target.value)}
+          />
+        </div>
         <TextField
           label="社群帳號"
           name="contactSocial"
-          placeholder="例：Instagram @your_account"
+          placeholder="請輸入社群帳號"
           value={contactSocial}
           onChange={(event) => setContactSocial(event.target.value)}
         />
-        {errors.contact && <p className="text-xs text-red-600">{errors.contact}</p>}
+        {errors.contact && <p className="text-caption text-state-error-text">{errors.contact}</p>}
       </Section>
 
       <Section
-        title="良民證"
-        description="警察刑事紀錄證明，僅用於身分審核，審核完成後 7 日內刪除原檔。"
+        number={4}
+        title="身分文件"
+        description={
+          <>
+            <p>良民證屬特種個資，僅用於審核；審核完成後 7 日內刪除原檔，只保留審核結果與日期。</p>
+            <p>為什麼需要：學員會與教練實際見面，良民證作為基本把關。</p>
+            {/* 申請方式與費用依內政部警政署公告（2026/10 查詢），之後若有調整請同步更新 */}
+            <p>
+              申請方式與費用：可在內政部警政署網站線上申請，再攜帶身分證件到警察局領取；規費每份新臺幣
+              100 元，一般約 1–3 個工作天。
+            </p>
+          </>
+        }
       >
         <FileField
-          label="良民證＊"
+          label="上傳良民證（必填）"
           name="criminalRecord"
           kind="document"
           file={criminalRecord}
@@ -373,8 +412,11 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
       </Section>
 
       <Section
+        number={5}
         title="專業證照（選填）"
-        description="例如 ACE、NASM 或運動協會證照，可新增多張。任一張審核通過後，個人檔案與課程卡片會顯示「已認證」徽章；沒有上傳不影響開課。"
+        description={
+          <p>可上傳多張、不限數量；每張需填寫證照名稱，審核通過後顯示「已認證」。</p>
+        }
       >
         {existing && (
           <ExistingLicenseList
@@ -386,11 +428,11 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
         <LicenseList value={licenses} onChange={setLicenses} errors={errors.licenses} />
       </Section>
 
-      <Section title="個人資料蒐集同意聲明" description={CONSENT_INTRO}>
-        <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm leading-relaxed text-neutral-600">
+      <Section number={6} title="個資蒐集同意" description={<p>{CONSENT_INTRO}</p>}>
+        <ol className="text-body-small flex list-decimal flex-col gap-2 pl-5 text-text-secondary">
           {CONSENT_ITEMS.map((item) => (
             <li key={item.title}>
-              <span className="font-semibold text-neutral-800">{item.title}：</span>
+              <span className="font-medium text-text-primary">{item.title}：</span>
               {item.body}
             </li>
           ))}
@@ -399,9 +441,10 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
           label={CONSENT_CHECKBOX_LABEL}
           name="consent"
           checked={consent}
+          invalid={Boolean(errors.consent)}
           onChange={(event) => setConsent(event.target.checked)}
         />
-        {errors.consent && <p className="text-xs text-red-600">{errors.consent}</p>}
+        {errors.consent && <p className="text-caption text-state-error-text">{errors.consent}</p>}
       </Section>
 
       {attempted && hasErrors(validation) && (
@@ -409,9 +452,14 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
       )}
       {submitError && <FormError message={submitError} />}
 
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "上傳並送出中…" : existing ? "重新送審" : "送出申請"}
-      </Button>
+      <div className="flex justify-end gap-3">
+        <Link href={existing ? "/coach/application" : "/become-coach"} className={buttonClassName("secondary")}>
+          取消
+        </Link>
+        <Button type="submit" loading={isSubmitting} loadingText="上傳並送出中">
+          {existing ? "重新送審" : "送出申請"}
+        </Button>
+      </div>
     </form>
   );
 }
