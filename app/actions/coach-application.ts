@@ -32,6 +32,7 @@ export type CoachApplicationPayload = {
   // 重新送審時要移除的舊證照
   removedLicenseIds: string[];
   consent: boolean;
+  termsConsent: boolean;
 };
 
 // 成功時直接導向申請狀態頁；只有失敗才會回傳
@@ -99,6 +100,7 @@ export async function submitCoachApplication(
       hasFile: license.filePath !== "",
     })),
     consent: payload.consent,
+    termsConsent: payload.termsConsent,
   });
   if (hasErrors(errors)) {
     return { error: "填寫內容有誤，請重新檢查表單後再送出。" };
