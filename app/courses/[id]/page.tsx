@@ -1,15 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getRegistrationState } from "@/app/registrations/_lib/registration-rules";
 import CourseQa from "@/components/course/CourseQa";
 import ShareButton from "@/components/share/ShareButton";
 import CourseStatusNotice from "@/components/course/CourseStatusNotice";
-import {
-  canRegister,
-  getCourseAvailability,
-} from "@/lib/course-status/getCourseAvailability";
+import SessionRegisterButton from "@/components/course/SessionRegisterButton";
+import { getCourseAvailability } from "@/lib/course-status/getCourseAvailability";
 import { getCourseDetail } from "@/lib/courses/getCourseDetail";
-import { loginHref } from "@/lib/courses/loginHref";
-import { isLoggedIn } from "@/lib/courses/queries";
+import { getCourseViewer } from "@/lib/courses/queries";
 import { LEVEL_LABELS } from "@/lib/courses/types";
 
 // 台灣時區；日期與時間分開組字串，避免 Node 與瀏覽器的 Intl 空白不同
@@ -39,7 +37,6 @@ export default async function CourseDetailPage({
   const course = await getCourseDetail(id);
   if (!course) notFound();
 
-  const loggedIn = await isLoggedIn();
   const now = new Date();
   const sessions = course.sessions
     // 已開始的場次不顯示（和列表一致）
@@ -56,9 +53,10 @@ export default async function CourseDetailPage({
       now,
     ),
   }));
+  const viewer = await getCourseViewer(sessions.map((s) => s.id));
   const bookable = sessions.filter((s) => s.availability !== "ended");
   // 整個課程都沒有可報名場次時，提示用第一個場次的狀態（取消優先於已結束／額滿）
-  const courseAvailability = bookable.some((s) => canRegister(s.availability))
+  const courseAvailability = bookable.some((s) => s.availability === "open")
     ? "open"
     : (bookable[0] ?? sessions[0]).availability;
 
@@ -119,13 +117,29 @@ export default async function CourseDetailPage({
             const left = s.enrolled >= course.minToOpen
               ? "✅ 已達開課人數"
               : `🔥 差 ${course.minToOpen - s.enrolled} 人開課`;
-            const actionable = canRegister(s.availability);
-            const label = {
-              open: "報名",
-              full: "已額滿",
-              ended: "已結束",
-              cancelled: "已取消",
-            }[s.availability];
+            // 按鈕狀態用 Ted 的 getRegistrationState（#36）：自己的課、已報名、截止、額滿、未登入
+            const state = getRegistrationState({
+              session: {
+                status: s.rawStatus,
+                registration_deadline_at: s.registrationDeadlineAt,
+                end_at: s.endsAt,
+              },
+              course: {
+                coach_id: course.coachId,
+                min_participants: course.minToOpen,
+                max_participants: course.capacity,
+              },
+              enrolledCount: s.enrolled,
+              viewer:
+                viewer.kind === "guest"
+                  ? { kind: "guest" }
+                  : {
+                      kind: "user",
+                      userId: viewer.userId,
+                      hasActiveRegistration: viewer.registeredSessionIds.has(s.id),
+                    },
+              now,
+            });
             return (
               <li
                 key={s.id}
@@ -137,25 +151,11 @@ export default async function CourseDetailPage({
                     {s.enrolled}/{course.capacity} 人・{left}
                   </p>
                 </div>
-                {/* 未登入：導向登入頁，登入後回到這一頁。
-                    TODO: 已登入的報名動作與已報名、截止等判斷，等 Ted 的 PR #21 進 main 再接
-                    （getRegistrationState）；目前已登入時按了沒有動作 */}
-                {actionable && !loggedIn ? (
-                  <Link
-                    href={loginHref(`/courses/${course.courseId}`)}
-                    className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white hover:bg-teal-700"
-                  >
-                    登入後報名
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={!actionable}
-                    className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-                  >
-                    {label}
-                  </button>
-                )}
+                <SessionRegisterButton
+                  state={state}
+                  courseId={course.courseId}
+                  sessionId={s.id}
+                />
               </li>
             );
           })}

@@ -9,7 +9,7 @@ import type { Course, CourseQaItem } from "./types";
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 const SESSION_SELECT = `
-  id, course_id, start_at, end_at, status,
+  id, course_id, start_at, end_at, registration_deadline_at, status,
   courses!inner (
     id, coach_id, title, description, notes, sport_type, level,
     location_name, location_address, price_per_person,
@@ -23,6 +23,7 @@ interface RawSession {
   course_id: string;
   start_at: string;
   end_at: string;
+  registration_deadline_at: string;
   status: SessionStatus;
   courses: {
     id: string;
@@ -144,6 +145,9 @@ export interface CourseSession {
   endsAt: string;
   enrolled: number;
   status: "open" | "cancelled";
+  // 報名按鈕狀態（getRegistrationState）要用的原始欄位
+  registrationDeadlineAt: string;
+  rawStatus: SessionStatus;
 }
 
 export interface CourseDetail extends Course {
@@ -195,6 +199,8 @@ export async function getCourseWithSessions(courseId: string): Promise<CourseDet
       endsAt: s.end_at,
       enrolled: counts.get(s.id) ?? 0,
       status: LISTED_STATUSES.includes(s.status) ? "open" : "cancelled",
+      registrationDeadlineAt: s.registration_deadline_at,
+      rawStatus: s.status,
     })),
   };
 }
@@ -207,4 +213,30 @@ export async function isLoggedIn(): Promise<boolean> {
     data: { user },
   } = await supabase.auth.getUser();
   return Boolean(user);
+}
+
+// 報名按鈕要知道「看的人是誰」：訪客，或登入學員加上他已經報名（還沒取消）的場次。
+// 一次查完這門課所有場次，不要每個場次各查一次。
+export type CourseViewer =
+  | { kind: "guest" }
+  | { kind: "user"; userId: string; registeredSessionIds: Set<string> };
+
+export async function getCourseViewer(sessionIds: string[]): Promise<CourseViewer> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { kind: "guest" };
+
+  const { data } = await supabase
+    .from("registrations")
+    .select("session_id")
+    .eq("learner_id", user.id)
+    .neq("status", "cancelled")
+    .in("session_id", sessionIds);
+  return {
+    kind: "user",
+    userId: user.id,
+    registeredSessionIds: new Set((data ?? []).map((r) => r.session_id as string)),
+  };
 }
