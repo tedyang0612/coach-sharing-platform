@@ -58,13 +58,13 @@ function PanelOption({
   children: React.ReactNode;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-normal text-neutral-800 hover:bg-neutral-50">
+    <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-normal text-(--color-text-primary) hover:bg-(--color-surface-subtle)">
       <input
         type={type}
         name={name}
         checked={checked}
         onChange={onChange}
-        className="h-4 w-4 accent-teal-600"
+        className="h-4 w-4 accent-(--color-brand-blue)"
       />
       {children}
     </label>
@@ -98,12 +98,12 @@ function PriceInputs({
     if (e.key === "Enter") commit();
   }
   const inputClass =
-    "w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 font-normal placeholder:text-neutral-400";
+    "w-full rounded-xl border border-(--color-border-default) bg-(--color-surface-default) px-3 py-2 font-normal placeholder:text-(--color-text-secondary)";
 
   // 版面依設計稿 S04 價格選單：標籤在上、兩欄中間一條「–」
   return (
     <div className="flex items-end gap-2">
-      <label className="flex-1 space-y-1 text-xs font-bold text-slate-800">
+      <label className="flex-1 space-y-1 text-xs font-bold text-(--color-text-primary)">
         最低價
         <input
           id="filter-price-min"
@@ -117,10 +117,10 @@ function PriceInputs({
           className={`${inputClass} text-sm`}
         />
       </label>
-      <span aria-hidden="true" className="pb-2.5 text-neutral-400">
+      <span aria-hidden="true" className="pb-2.5 text-(--color-text-secondary)">
         –
       </span>
-      <label className="flex-1 space-y-1 text-xs font-bold text-slate-800">
+      <label className="flex-1 space-y-1 text-xs font-bold text-(--color-text-primary)">
         最高價
         <input
           id="filter-price-max"
@@ -180,7 +180,7 @@ function Chip({
         onChange={onChange}
         className="peer sr-only"
       />
-      <span className={`block whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-1.5 text-sm font-medium${large ? " md:px-4 md:py-1.5 md:text-center md:text-base" : ""} text-neutral-700 transition peer-checked:border-teal-600 peer-checked:bg-teal-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-teal-600 peer-focus-visible:ring-offset-2 hover:border-teal-400`}>
+      <span className={`block whitespace-nowrap rounded-full border border-(--color-border-default) bg-(--color-surface-default) px-4 py-1.5 text-sm font-medium${large ? " md:px-4 md:py-1.5 md:text-center md:text-base" : ""} text-(--color-text-primary) transition peer-checked:border-(--color-brand-blue) peer-checked:bg-(--color-tint-blue-100) peer-checked:font-bold peer-focus-visible:ring-2 peer-focus-visible:ring-(--color-brand-blue) peer-focus-visible:ring-offset-2 hover:border-(--color-brand-blue)`}>
         {children}
       </span>
     </label>
@@ -210,7 +210,7 @@ export default function CourseFilters({
   }
 
   return (
-    <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-4">
+    <div className="space-y-3 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-4">
       {/* 運動種類是最高層級的搜尋條件：單選 Chips 放在其他篩選上面。
           桌面直接展開；手機單列橫向捲動，不縮小字級。用原生 radio，單選與方向鍵切換都不用自己寫 */}
       {/* fieldset 預設的最小寬度是內容寬度，不加 min-w-0 的話手機上整頁會被晶片列撐寬 */}
@@ -259,7 +259,7 @@ export default function CourseFilters({
           {/* 縣市有 22 個、行政區最多將近 30 個，各欄自己捲動，面板不會變得很長 */}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="max-h-64 overflow-y-auto">
-              <p className="px-2 pb-1 text-xs font-semibold text-neutral-500">縣市</p>
+              <p className="px-2 pb-1 text-xs font-semibold text-(--color-text-secondary)">縣市</p>
               <PanelOption
                 type="radio"
                 name="region-city"
@@ -286,7 +286,7 @@ export default function CourseFilters({
               ))}
             </div>
             <div className="max-h-64 overflow-y-auto">
-              <p className="px-2 pb-1 text-xs font-semibold text-neutral-500">行政區</p>
+              <p className="px-2 pb-1 text-xs font-semibold text-(--color-text-secondary)">行政區</p>
               {value.city ? (
                 <>
                   <PanelOption
@@ -310,7 +310,7 @@ export default function CourseFilters({
                   ))}
                 </>
               ) : (
-                <p className="px-2 py-1.5 text-sm text-neutral-400">請先選縣市</p>
+                <p className="px-2 py-1.5 text-sm text-(--color-text-secondary)">請先選縣市</p>
               )}
             </div>
           </div>
@@ -332,7 +332,7 @@ export default function CourseFilters({
                 onChange={(e) =>
                   navigate({ ...value, date: e.target.value || undefined })
                 }
-                className="mt-1 w-full rounded-xl border border-neutral-300 bg-white px-3 py-1.5 font-normal"
+                className="mt-1 w-full rounded-xl border border-(--color-border-default) bg-(--color-surface-default) px-3 py-1.5 font-normal"
               />
             </label>
             <label className="block font-medium">
@@ -344,11 +344,11 @@ export default function CourseFilters({
                 onChange={(e) =>
                   navigate({ ...value, dateTo: e.target.value || undefined })
                 }
-                className="mt-1 w-full rounded-xl border border-neutral-300 bg-white px-3 py-1.5 font-normal"
+                className="mt-1 w-full rounded-xl border border-(--color-border-default) bg-(--color-surface-default) px-3 py-1.5 font-normal"
               />
             </label>
             {isDateRangeInvalid(value) && (
-              <p className="text-xs text-orange-600">
+              <p className="text-xs text-(--color-state-error-text)">
                 結束日期要晚於開始日期，目前沒有套用日期。
               </p>
             )}
@@ -443,7 +443,7 @@ export default function CourseFilters({
                     timeSlots: undefined,
                   })
                 }
-                className="mt-1 w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 font-normal"
+                className="mt-1 w-full rounded-xl border border-(--color-border-default) bg-(--color-surface-default) px-3 py-2 font-normal"
               >
                 <option value="">不限</option>
                 {timeOptions(value.timeFrom).map((time) => (
@@ -465,7 +465,7 @@ export default function CourseFilters({
                     timeSlots: undefined,
                   })
                 }
-                className="mt-1 w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 font-normal"
+                className="mt-1 w-full rounded-xl border border-(--color-border-default) bg-(--color-surface-default) px-3 py-2 font-normal"
               >
                 <option value="">不限</option>
                 {timeOptions(value.timeTo).map((time) => (
@@ -476,7 +476,7 @@ export default function CourseFilters({
               </select>
             </label>
             {isTimeRangeInvalid(value) && (
-              <p className="text-xs text-orange-600">
+              <p className="text-xs text-(--color-state-error-text)">
                 結束時間要晚於開始時間，目前沒有套用指定時段。
               </p>
             )}
@@ -505,7 +505,7 @@ export default function CourseFilters({
               }
             />
             {isPriceRangeInvalid(value) && (
-              <p className="text-xs text-orange-600">
+              <p className="text-xs text-(--color-state-error-text)">
                 最高價要大於或等於最低價，目前沒有套用價格區間。
               </p>
             )}
@@ -515,11 +515,11 @@ export default function CourseFilters({
 
       {/* 程度的面板裡沒有一次清掉全部的按鈕，所以有任何條件時都要能一次清掉 */}
       {hasActiveFilters(value) && (
-        <div className="flex border-t border-neutral-100 pt-3 text-sm">
+        <div className="flex border-t border-(--color-border-default) pt-3 text-sm">
           <button
             type="button"
             onClick={() => router.replace(pathname, { scroll: false })}
-            className="ml-auto text-neutral-500 underline hover:text-neutral-800"
+            className="ml-auto text-(--color-text-secondary) underline hover:text-(--color-text-primary)"
           >
             清除所有篩選
           </button>

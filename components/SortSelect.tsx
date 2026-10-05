@@ -24,12 +24,12 @@ export default function SortSelect({
   }
 
   return (
-    <label className="flex items-center gap-2 text-sm font-medium text-neutral-700">
+    <label className="flex items-center gap-2 text-sm font-medium text-(--color-text-primary)">
       排序
       <select
         value={sort}
         onChange={(e) => changeSort(e.target.value as SortMode)}
-        className="rounded-full border border-neutral-300 bg-white px-4 py-1.5 text-sm font-normal"
+        className="rounded-full border border-(--color-border-default) bg-(--color-surface-default) px-4 py-1.5 text-sm font-normal"
       >
         {(Object.keys(SORT_LABELS) as SortMode[]).map((mode) => (
           <option key={mode} value={mode}>

@@ -24,7 +24,7 @@ export default function CourseGrid({ courses }: { courses: Course[] }) {
           <button
             type="button"
             onClick={() => setVisible((n) => n + PAGE_SIZE)}
-            className="rounded-full border border-teal-500 bg-white px-8 py-2.5 text-sm font-bold text-slate-800 hover:bg-teal-50"
+            className="rounded-full border border-(--color-brand-blue) bg-(--color-surface-default) px-8 py-2.5 text-sm font-bold text-(--color-text-primary) hover:bg-(--color-tint-blue-100)"
           >
             載入更多課程
           </button>

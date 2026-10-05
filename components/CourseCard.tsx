@@ -72,24 +72,24 @@ export default function CourseCard({ course }: Props) {
   const gap = course.minToOpen - course.enrolled;
   // 狀態小圓點：差 1 人用黃綠提醒「快開課」，其他未達標用藍，已達標用深色
   const dotClass = isConfirmed
-    ? "bg-slate-800"
+    ? "bg-(--color-brand-deep)"
     : gap === 1
-      ? "bg-lime-400"
-      : "bg-sky-400";
+      ? "bg-(--color-brand-lime)"
+      : "bg-(--color-brand-blue)";
 
   return (
     <article
-      className={`group flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white text-slate-800 transition-all duration-300 hover:border-teal-200 hover:shadow-xl ${
+      className={`group flex flex-col overflow-hidden rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) text-(--color-text-primary) shadow-(--shadow-sm) transition-shadow duration-300 hover:shadow-(--shadow-md) ${
         isFull ? "opacity-60" : ""
       }`}
     >
       {/* 先用漸層佔位；之後有課程圖片欄位再換成圖片 */}
-      <div className="relative h-48 bg-gradient-to-br from-teal-100 to-sky-200">
+      <div className="relative h-48 bg-(--color-tint-blue-100)">
         <div className="absolute left-3 top-3 flex gap-2">
-          <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-800 shadow-sm backdrop-blur-md">
+          <span className="rounded-full bg-(--color-surface-default) px-3 py-1 text-caption text-(--color-text-primary)">
             {course.sport}
           </span>
-          <span className="rounded-full bg-slate-900/80 px-3 py-1 text-xs font-bold text-white shadow-sm backdrop-blur-md">
+          <span className="rounded-full bg-(--color-surface-default) px-3 py-1 text-caption text-(--color-text-primary)">
             {LEVEL_LABELS[course.level]}
           </span>
         </div>
@@ -97,7 +97,7 @@ export default function CourseCard({ course }: Props) {
 
       <div className="flex flex-1 flex-col justify-between gap-4 p-5">
         <div>
-          <h3 className="line-clamp-2 text-base font-bold text-slate-900 transition-colors group-hover:text-teal-700">
+          <h3 className="text-h3 line-clamp-2 text-(--color-text-primary)">
             {/* 只有標題是連結，整張卡片不是，這樣教練名稱的連結才不會巢狀 */}
             <Link
               href={`/courses/${course.courseId}?session=${course.id}`}
@@ -106,7 +106,7 @@ export default function CourseCard({ course }: Props) {
               {course.title}
             </Link>
           </h3>
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-slate-500">
+          <p className="mt-2 flex items-center gap-1.5 text-body-small text-(--color-text-secondary)">
             <LineIcon>
               <path d="M12 22C12 22 20 16 20 10C20 7.87827 19.1571 5.84344 17.6569 4.34315C16.1566 2.84285 14.1217 2 12 2C9.87827 2 7.84344 2.84285 6.34315 4.34315C4.84285 5.84344 4 7.87827 4 10C4 16 12 22 12 22Z" />
               <path d="M12 13C13.6569 13 15 11.6569 15 10C15 8.34315 13.6569 7 12 7C10.3431 7 9 8.34315 9 10C9 11.6569 10.3431 13 12 13Z" />
@@ -115,7 +115,7 @@ export default function CourseCard({ course }: Props) {
               {course.city}{course.district} {course.venue}
             </span>
           </p>
-          <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+          <p className="mt-1 flex items-center gap-1.5 text-body-small text-(--color-text-secondary)">
             <LineIcon>
               <path d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z" />
               <path d="M16 2V6M8 2V6M3 10H21" />
@@ -124,13 +124,13 @@ export default function CourseCard({ course }: Props) {
           </p>
         </div>
 
-        <div className="space-y-3 border-t border-slate-100 pt-3">
-          <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
+        <div className="space-y-3 border-t border-(--color-border-default) pt-3">
+          <div className="flex items-center justify-between gap-2 text-body-small text-(--color-text-secondary)">
             <div className="flex min-w-0 items-center gap-2">
               {/* 卡片本身不是連結，所以教練名稱可以直接放連結（連結不能巢狀） */}
               <Link
                 href={`/coaches/${course.coachId}`}
-                className="truncate font-semibold text-slate-800 hover:underline"
+                className="truncate font-bold text-(--color-text-primary) hover:underline"
               >
                 {course.coachName}
               </Link>
@@ -139,18 +139,18 @@ export default function CourseCard({ course }: Props) {
             <span className="shrink-0">
               {course.coachRating !== null ? (
                 <>
-                  <span className="text-amber-500">★</span>{" "}
-                  <span className="font-bold text-slate-800">
+                  <span className="text-(--color-text-secondary)">★</span>{" "}
+                  <span className="font-bold text-(--color-text-primary)">
                     {/* 資料庫的 avg_rating 已四捨五入到小數一位，直接顯示才會和教練檔案一致 */}
                     {course.coachRating.toFixed(1)}
                   </span>
-                  <span className="text-slate-400">
+                  <span className="text-(--color-text-secondary)">
                     {" "}
                     ({course.coachReviewCount})
                   </span>
                 </>
               ) : (
-                <span className="text-slate-400">尚無評價</span>
+                <span className="text-(--color-text-secondary)">尚無評價</span>
               )}
             </span>
           </div>
@@ -160,13 +160,13 @@ export default function CourseCard({ course }: Props) {
               {course.coachTags.slice(0, MAX_VISIBLE_TAGS).map((tag) => (
                 <li
                   key={tag}
-                  className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600"
+                  className="rounded-full bg-(--color-tint-blue-100) px-2 py-0.5 text-caption text-(--color-text-primary)"
                 >
                   {tag}
                 </li>
               ))}
               {course.coachTags.length > MAX_VISIBLE_TAGS && (
-                <li className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-400">
+                <li className="rounded-full bg-(--color-tint-blue-100) px-2 py-0.5 text-caption text-(--color-text-secondary)">
                   +{course.coachTags.length - MAX_VISIBLE_TAGS}
                 </li>
               )}
@@ -174,15 +174,15 @@ export default function CourseCard({ course }: Props) {
           )}
 
           <div className="flex items-center justify-between pt-1">
-            <span className="text-lg font-black text-slate-900">
+            <span className="text-h3 text-(--color-text-primary)">
               NT$ {course.price.toLocaleString()}
-              <span className="text-sm font-medium text-slate-500"> / 人</span>
+              <span className="text-body-small text-(--color-text-secondary)"> / 人</span>
             </span>
             {/* 列表卡片不放報名按鈕（QA／UI 決定），報名在課程詳情頁選場次；人數進度也只在詳情頁（設計稿 S04 沒有） */}
             {isFull ? (
-              <span className="text-xs font-bold text-slate-400">已額滿</span>
+              <span className="text-xs font-bold text-(--color-text-secondary)">已額滿</span>
             ) : (
-              <span className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
+              <span className="flex items-center gap-1.5 text-body-small text-(--color-text-primary)">
                 <span className={`h-2 w-2 rounded-full ${dotClass}`} />
                 {isConfirmed ? "已達開課人數" : `差 ${gap} 人開課`}
               </span>
