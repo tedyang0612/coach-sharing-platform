@@ -5,7 +5,8 @@ import {
   type CoachProfileData,
 } from "@/components/coach/coach-profile-view";
 import { parseEducation } from "@/lib/coach-application/education";
-import { parseReviewComment, topReviewTag } from "@/lib/reviews/review-tags";
+import { parseReviewComment } from "@/lib/reviews/review-tags";
+import { topReviewTags } from "@/lib/reviews/top-review-tags";
 import { createClient } from "@/lib/supabase/server";
 
 // 評價先顯示最近 20 則；MVP 階段評價量不大，之後有需要再做分頁
@@ -34,7 +35,7 @@ async function loadCoachProfile(coachId: string): Promise<CoachProfileData | nul
   const { data: profile } = await supabase
     .from("coach_profiles")
     .select(
-      "id, display_name, photo_url, sport_categories, tags, bio_education, bio_competition, bio_intro, is_verified, application_status, avg_rating, review_count"
+      "id, display_name, photo_url, lifestyle_photo_url, sport_categories, tags, bio_education, bio_competition, bio_intro, is_verified, application_status, avg_rating, review_count"
     )
     .eq("id", coachId)
     .maybeSingle();
@@ -74,6 +75,7 @@ async function loadCoachProfile(coachId: string): Promise<CoachProfileData | nul
     // 公開顯示的教練名稱（有暱稱用暱稱，沒有用真實姓名），由教練申請時寫入
     name: profile.display_name || "教練",
     photoUrl: profile.photo_url,
+    lifestylePhotoUrl: profile.lifestyle_photo_url ?? null,
     isVerified: Boolean(profile.is_verified),
     sportCategories: profile.sport_categories ?? [],
     tags: profile.tags ?? [],
@@ -84,7 +86,7 @@ async function loadCoachProfile(coachId: string): Promise<CoachProfileData | nul
     licenseNames: (licenses.data ?? []) as string[],
     avgRating: profile.avg_rating === null ? null : Number(profile.avg_rating),
     reviewCount: profile.review_count ?? 0,
-    topReviewTag: topReviewTag((allComments.data ?? []).map((row) => row.comment)),
+    topReviewTags: topReviewTags((allComments.data ?? []).map((row) => row.comment)),
     reviews: reviewRows.map((review) => {
       // comment 裡同時存了評價 Tag 與文字心得，顯示前先拆開
       const { tags, text } = parseReviewComment(review.comment);
@@ -126,8 +128,8 @@ export default async function CoachProfilePage({ params }: PageProps<"/coaches/[
   if (!coach) notFound();
 
   return (
-    <main className="flex-1 px-4 py-8 sm:px-6 sm:py-12">
-      <div className="mx-auto w-full max-w-4xl">
+    <main className="flex-1 px-4 pb-8 pt-4 sm:px-6 lg:px-20 lg:pb-20 lg:pt-8">
+      <div className="mx-auto w-full max-w-[1280px]">
         <CoachProfileView coach={coach} />
       </div>
     </main>

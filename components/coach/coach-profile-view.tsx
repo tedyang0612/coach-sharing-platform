@@ -1,12 +1,14 @@
 import Link from "next/link";
 import type { EducationEntry } from "@/lib/coach-application/education";
-import { CoachTags } from "./coach-tags";
-import { RatingSummary, StarRating } from "./star-rating";
+import { Badge } from "@/components/ui/badge";
+import { StarRating } from "./star-rating";
 import { VerifiedBadge } from "./verified-badge";
 
 export type CoachProfileData = {
   name: string;
   photoUrl: string;
+  // 生活／運動照片；較早通過審核的教練可能還沒有
+  lifestylePhotoUrl: string | null;
   isVerified: boolean;
   sportCategories: string[];
   tags: string[];
@@ -18,8 +20,8 @@ export type CoachProfileData = {
   licenseNames: string[];
   avgRating: number | null;
   reviewCount: number;
-  // 被點選最多次的評價 Tag，顯示在平均星級旁；沒有人點選過則為 null
-  topReviewTag: string | null;
+  // 被點選次數最多的前 3 個評價 Tag，顯示在平均星級旁；沒有人點選過則為空陣列
+  topReviewTags: string[];
   reviews: {
     id: string;
     rating: number;
@@ -40,178 +42,199 @@ export type CoachProfileData = {
   }[];
 };
 
-// 時間一律指定台灣時區顯示（CLAUDE.md 時間與時區慣例）
+// 時間一律指定台灣時區顯示（CLAUDE.md 時間與時區慣例）；用 formatToParts 自己組字串，
+// 伺服器與瀏覽器產生的文字才會完全一樣
 function formatTaipeiDate(iso: string): string {
-  return new Intl.DateTimeFormat("zh-TW", {
+  const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Taipei",
     year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  }).format(new Date(iso));
-}
-
-/** 平均星級旁的「最常被選的評價 Tag」（PRD 9.0，v4.5）。 */
-function TopReviewTag({ tag }: { tag: string }) {
-  return (
-    <span
-      title="學員最常選的評價"
-      className="rounded-full bg-brand-ink px-2.5 py-0.5 text-xs font-semibold text-brand"
-    >
-      {tag}
-    </span>
-  );
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(iso));
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+  return `${get("year")}/${get("month")}/${get("day")}`;
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
-      <h2 className="text-base font-bold text-neutral-900">{title}</h2>
-      <div className="mt-3">{children}</div>
+    <section className="flex flex-col gap-3 rounded-lg border border-border-default bg-brand-white p-5">
+      <h2 className="text-h3 text-text-primary">{title}</h2>
+      {children}
     </section>
   );
 }
 
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-caption text-text-secondary">{label}</dt>
+      <dd className="text-body-small whitespace-pre-line text-text-primary">{children}</dd>
+    </div>
+  );
+}
+
 /**
- * 教練個人檔案的畫面（PRD 9.0）。只負責顯示，資料由頁面查好傳進來。
+ * 教練個人檔案的畫面（設計稿 S12；PRD 9.0）。只負責顯示，資料由頁面查好傳進來。
  * 這裡不會收到、也不會顯示教練的聯絡方式（PRD 4.0 AC 4）。
+ * 桌機：左欄（關於教練、證照、評價）＋右欄（招生中的課程）；
+ * 手機：個人資料 → 關於教練 → 證照 → 招生中的課程 → 評價。
  */
 export function CoachProfileView({ coach }: { coach: CoachProfileData }) {
+  const hasRating = coach.avgRating !== null && coach.reviewCount > 0;
+
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 rounded-2xl border border-neutral-200 bg-white p-5 sm:flex-row sm:items-center sm:p-6">
+    <div className="flex flex-col gap-4">
+      <header className="flex flex-col gap-6 rounded-lg border border-border-default bg-brand-white p-5 sm:flex-row sm:items-center sm:p-8">
         {/* 教練上傳到 Storage 的公開照片；next/image 要另外在共用的 next.config.ts 設定網域，這裡先用 img */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={coach.photoUrl}
-          alt={`${coach.name} 的照片`}
-          className="h-24 w-24 shrink-0 rounded-2xl bg-neutral-100 object-cover sm:h-28 sm:w-28"
+          alt={`${coach.name} 的大頭貼`}
+          className="size-[88px] shrink-0 rounded-pill bg-tint-blue-200 object-cover sm:size-[140px]"
         />
-        <div className="flex min-w-0 flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-neutral-900">{coach.name}</h1>
+        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-h1 text-text-primary">{coach.name}</h1>
             {coach.isVerified && <VerifiedBadge size="md" />}
           </div>
-          <p className="text-sm text-neutral-600">{coach.sportCategories.join("・")}</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <RatingSummary average={coach.avgRating} count={coach.reviewCount} />
-            {coach.topReviewTag && <TopReviewTag tag={coach.topReviewTag} />}
-          </div>
-          <CoachTags tags={coach.tags} />
+
+          {hasRating ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <StarRating rating={Math.round(coach.avgRating ?? 0)} size={16} />
+              <span className="text-body font-medium text-text-primary">
+                {(coach.avgRating ?? 0).toFixed(1)}
+              </span>
+              <span className="text-body-small text-text-secondary">（{coach.reviewCount} 則評價）</span>
+              {coach.topReviewTags.length > 0 && (
+                <span className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-caption text-text-secondary">最多人點選：</span>
+                  {coach.topReviewTags.map((tag) => (
+                    <Badge key={tag} type="info">
+                      {tag}
+                    </Badge>
+                  ))}
+                </span>
+              )}
+            </div>
+          ) : (
+            <p className="text-body-small text-text-secondary">尚無評價</p>
+          )}
+
+          {coach.sportCategories.length > 0 && (
+            <ul className="flex flex-wrap gap-2" aria-label="運動類別">
+              {coach.sportCategories.map((sport) => (
+                <li key={sport}>
+                  <Badge type="neutral">{sport}</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {coach.tags.length > 0 && (
+            <ul className="flex flex-wrap gap-2" aria-label="教練特色">
+              {coach.tags.map((tag) => (
+                <li key={tag}>
+                  <Badge type="info">{tag}</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </header>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="flex flex-col gap-6 md:col-span-2">
-          <Card title="簡述">
-            <p className="whitespace-pre-line text-sm leading-relaxed text-neutral-700">
-              {coach.intro}
-            </p>
-          </Card>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6">
+        <div className="flex flex-col gap-4">
+          <section className="flex flex-col gap-4 rounded-lg border border-border-default bg-brand-white p-5 sm:flex-row sm:gap-9">
+            {coach.lifestylePhotoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={coach.lifestylePhotoUrl}
+                alt={`${coach.name} 的生活／運動照片`}
+                className="h-[280px] w-full shrink-0 rounded-lg bg-tint-blue-200 object-cover sm:h-[380px] sm:w-[280px]"
+              />
+            )}
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              <h2 className="text-h3 text-text-primary">關於教練</h2>
+              <p className="text-body whitespace-pre-line text-text-secondary">{coach.intro}</p>
 
-          <Card title="學歷與經歷">
-            <dl className="flex flex-col gap-4 text-sm">
-              <div>
-                <dt className="font-semibold text-neutral-800">學歷</dt>
-                <dd className="mt-1">
-                  <ul className="flex flex-col gap-1 text-neutral-700">
-                    {coach.education.map((entry, index) => (
-                      <li key={index}>
-                        {entry.degree && (
-                          <span className="mr-2 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600">
-                            {entry.degree}
-                          </span>
-                        )}
-                        {entry.school}
-                      </li>
-                    ))}
-                  </ul>
-                </dd>
-              </div>
-              {coach.workExperience && (
-                <div>
-                  <dt className="font-semibold text-neutral-800">工作／教學經歷</dt>
-                  <dd className="mt-1 whitespace-pre-line leading-relaxed text-neutral-700">
-                    {coach.workExperience}
-                  </dd>
-                </div>
-              )}
-              {coach.competition && (
-                <div>
-                  <dt className="font-semibold text-neutral-800">比賽經歷</dt>
-                  <dd className="mt-1 whitespace-pre-line leading-relaxed text-neutral-700">
-                    {coach.competition}
-                  </dd>
-                </div>
-              )}
-            </dl>
-          </Card>
-
-          <Card title="招生中的課程">
-            {coach.courses.length === 0 ? (
-              <p className="text-sm text-neutral-500">目前沒有招生中的課程</p>
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {coach.courses.map((course) => (
-                  <li key={course.id}>
-                    <Link
-                      href={`/courses/${course.id}`}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-neutral-200 p-4 transition hover:border-brand"
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-bold text-neutral-900">
-                          {course.title}
-                        </span>
-                        <span className="mt-1 block text-xs text-neutral-500">
-                          {course.whenLabel}・{course.locationName}
-                        </span>
-                      </span>
-                      <span className="shrink-0 text-sm font-bold text-brand">
-                        NT$ {course.pricePerPerson.toLocaleString("zh-TW")}
-                      </span>
-                    </Link>
-                  </li>
+              <h2 className="text-h3 mt-1 text-text-primary">學歷與經歷</h2>
+              <dl className="flex flex-col gap-3">
+                {coach.education.map((entry, index) => (
+                  <Fact key={index} label="學歷">
+                    {entry.degree ? `${entry.degree}｜${entry.school}` : entry.school}
+                  </Fact>
                 ))}
-              </ul>
+                {coach.workExperience && <Fact label="工作／教學經歷">{coach.workExperience}</Fact>}
+                {coach.competition && <Fact label="比賽經歷">{coach.competition}</Fact>}
+              </dl>
+            </div>
+          </section>
+
+          <Card title="已認證的專業證照">
+            {coach.licenseNames.length === 0 ? (
+              <p className="text-body-small text-text-secondary">尚無通過審核的證照</p>
+            ) : (
+              <>
+                <ul className="flex flex-wrap gap-2">
+                  {coach.licenseNames.map((name, index) => (
+                    <li key={`${name}-${index}`}>
+                      <Badge type="verified">{name}</Badge>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-caption text-text-secondary">只顯示通過審核的證照名稱。</p>
+              </>
             )}
           </Card>
 
+          {/* 手機版：招生中的課程排在評價前面（設計稿 S12 手機） */}
+          <div className="lg:hidden">
+            <CourseList courses={coach.courses} />
+          </div>
+
           <Card title="評價與學員回饋">
-            <div className="flex flex-wrap items-center gap-2">
-              <RatingSummary average={coach.avgRating} count={coach.reviewCount} />
-              {coach.topReviewTag && <TopReviewTag tag={coach.topReviewTag} />}
-            </div>
+            {hasRating ? (
+              <div className="flex items-center gap-3">
+                <span className="text-display text-text-primary">{(coach.avgRating ?? 0).toFixed(1)}</span>
+                <div className="flex flex-col gap-1">
+                  <StarRating rating={Math.round(coach.avgRating ?? 0)} size={16} />
+                  <span className="text-body-small text-text-secondary">共 {coach.reviewCount} 則評價</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-body-small text-text-secondary">尚無評價</p>
+            )}
+
             {coach.reviews.length > 0 && (
-              <ul className="mt-4 flex flex-col gap-4">
+              <ul className="flex flex-col gap-3">
                 {coach.reviews.map((review) => (
-                  <li key={review.id} className="border-t border-neutral-100 pt-4">
+                  <li
+                    key={review.id}
+                    className="flex flex-col gap-2.5 rounded-md border border-border-default p-4"
+                  >
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-semibold text-neutral-800">
-                        {review.reviewerName}
-                      </span>
-                      <time dateTime={review.createdAt} className="text-xs text-neutral-400">
-                        {formatTaipeiDate(review.createdAt)}
-                      </time>
+                      <div className="flex min-w-0 items-baseline gap-2">
+                        <span className="text-body truncate font-medium text-text-primary">
+                          {review.reviewerName}
+                        </span>
+                        <time dateTime={review.createdAt} className="text-caption shrink-0 text-text-secondary">
+                          {formatTaipeiDate(review.createdAt)}
+                        </time>
+                      </div>
+                      <StarRating rating={review.rating} size={16} />
                     </div>
-                    <div className="mt-1">
-                      <StarRating rating={review.rating} />
-                    </div>
+                    {review.comment && (
+                      <p className="text-body whitespace-pre-line text-text-secondary">{review.comment}</p>
+                    )}
                     {review.tags.length > 0 && (
-                      <ul className="mt-2 flex flex-wrap gap-1.5">
+                      <ul className="flex flex-wrap gap-1.5">
                         {review.tags.map((tag) => (
-                          <li
-                            key={tag}
-                            className="rounded-full border border-neutral-200 px-2.5 py-0.5 text-xs text-neutral-600"
-                          >
-                            {tag}
+                          <li key={tag}>
+                            <Badge type="info">{tag}</Badge>
                           </li>
                         ))}
                       </ul>
                     )}
-                    {review.comment && (
-                      <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-neutral-700">
-                        {review.comment}
-                      </p>
-                    )}
                   </li>
                 ))}
               </ul>
@@ -219,26 +242,39 @@ export function CoachProfileView({ coach }: { coach: CoachProfileData }) {
           </Card>
         </div>
 
-        <aside>
-          <Card title="已認證的專業證照">
-            {coach.licenseNames.length === 0 ? (
-              <p className="text-sm text-neutral-500">尚無通過審核的證照</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {coach.licenseNames.map((name, index) => (
-                  <li
-                    key={`${name}-${index}`}
-                    className="rounded-xl border border-neutral-200 bg-neutral-50 p-3"
-                  >
-                    <p className="text-sm font-semibold text-neutral-900">{name}</p>
-                    <p className="mt-0.5 text-xs text-brand">平台人工審核通過</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+        <aside className="hidden lg:block">
+          <CourseList courses={coach.courses} />
         </aside>
       </div>
     </div>
+  );
+}
+
+function CourseList({ courses }: { courses: CoachProfileData["courses"] }) {
+  return (
+    <Card title="招生中的課程">
+      {courses.length === 0 ? (
+        <p className="text-body-small text-text-secondary">目前沒有招生中的課程</p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {courses.map((course) => (
+            <li key={course.id}>
+              <Link
+                href={`/courses/${course.id}`}
+                className="flex flex-col gap-1.5 rounded-md border border-border-default p-4 transition hover:border-brand-blue"
+              >
+                <span className="text-body font-medium text-text-primary">{course.title}</span>
+                <span className="text-body-small text-text-secondary">
+                  {course.whenLabel}・{course.locationName}
+                </span>
+                <span className="text-body text-text-primary">
+                  NT$ {course.pricePerPerson.toLocaleString("zh-TW")} / 人
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }

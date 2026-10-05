@@ -5,7 +5,7 @@ function Star({ filled, size }: { filled: boolean; size: number }) {
       height={size}
       viewBox="0 0 24 24"
       aria-hidden="true"
-      className={filled ? "fill-amber-400" : "fill-neutral-200"}
+      className={filled ? "fill-brand-blue" : "fill-tint-blue-200"}
     >
       <path d="m12 2 3.1 6.6 7 .9-5.1 5 1.3 7.1L12 18.2l-6.3 3.4L7 14.5l-5.1-5 7-.9z" />
     </svg>
@@ -35,13 +35,13 @@ export function RatingSummary({
   count: number;
 }) {
   if (average === null || count === 0) {
-    return <span className="text-sm text-neutral-500">尚無評價</span>;
+    return <span className="text-body-small text-text-secondary">尚無評價</span>;
   }
   return (
-    <span className="inline-flex items-center gap-1 text-sm text-neutral-700">
+    <span className="text-body-small inline-flex items-center gap-1 text-text-secondary">
       <Star filled size={16} />
-      <span className="font-bold text-neutral-900">{average.toFixed(1)}</span>
-      <span className="text-neutral-500">（{count} 則評價）</span>
+      <span className="font-medium text-text-primary">{average.toFixed(1)}</span>
+      <span>（{count} 則評價）</span>
     </span>
   );
 }
