@@ -17,6 +17,16 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
   const [password, setPassword] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  // React 19：表單 action 結束後會重置表單（reset），原生 checkbox 會被清成沒勾，但上面的 state 還是 true，
+  // 畫面就變成「按鈕可按、方框沒勾」。同意與否改由 state 決定（hidden 欄位送出），
+  // 並在每次送出結果回來後換一個 key 讓勾選框重新建立，畫面與 state 才會一致。
+  const [seenState, setSeenState] = useState(state);
+  const [checkboxKey, setCheckboxKey] = useState(0);
+  if (state !== seenState) {
+    setSeenState(state);
+    setCheckboxKey((k) => k + 1);
+  }
+
   // 8.0 QA 修正：按鈕只看「有沒有填」，不看格式對不對——
   // 格式／長度等驗證錯誤交給送出後的 server action 判斷，
   // 不然使用者會卡在「上面欄位格式錯但看不到錯誤提示、按鈕又按不下去」的情境。
@@ -85,8 +95,10 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
 
       {/* PRD v4.8 8.0：同意服務條款與隱私權政策（Figma S03：密碼欄下方、錯誤框上方）。
           連結開新分頁，免得填到一半的表單被帶走；未勾選時下方按鈕維持 disabled。 */}
+      <input type="hidden" name="agreeTerms" value={agreedToTerms ? "on" : ""} />
       <CheckboxField
-        name="agreeTerms"
+        key={checkboxKey}
+        id="agree-terms"
         checked={agreedToTerms}
         onChange={(event) => setAgreedToTerms(event.target.checked)}
         invalid={!!state?.errors?.terms}
