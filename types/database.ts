@@ -43,6 +43,7 @@ export interface CoachProfile {
   real_name: string; // 真實姓名，不公開，管理員核對良民證用（20261003000024）
   display_name: string; // 公開顯示的教練名稱：有填暱稱用暱稱，沒填用真實姓名（20261003000024）
   photo_url: string;
+  lifestyle_photo_url: string | null; // 生活／運動照片公開網址（首頁推薦教練卡片、教練個人檔案用）；檔案在 coach-photos bucket；既有資料可為 null，必填由申請表單檢查（20261004000038）
   sport_categories: string[];
   tags: string[]; // 上限 5 個，每個建議 10 字內
   years_experience: number | null; // 前端已停用，固定傳 null，欄位保留
@@ -219,6 +220,7 @@ export type CoachProfileInsert = Pick<
   Partial<
     Pick<
       CoachProfile,
+      | "lifestyle_photo_url"
       | "tags"
       | "years_experience"
       | "bio_competition"
