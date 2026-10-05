@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import ShareButton from "@/components/share/ShareButton";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
 import { redirect } from "next/navigation";
@@ -65,6 +66,8 @@ export default async function CoachProfileEditPage() {
               <Link href={`/coaches/${user.id}`} className={buttonClassName("secondary", true)}>
                 查看公開檔案
               </Link>
+              {/* 複製自己的公開檔案連結（PRD 10.0）；元件是小柔的 */}
+              <ShareButton path={`/coaches/${user.id}`} title="我的教練檔案｜夠練 GoLand" />
             </section>
 
             <section className="flex flex-col gap-3 rounded-lg border border-border-default bg-brand-white p-6">

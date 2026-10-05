@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { EducationEntry } from "@/lib/coach-application/education";
+import ShareButton from "@/components/share/ShareButton";
 import { Badge } from "@/components/ui/badge";
 import { StarRating } from "./star-rating";
 import { VerifiedBadge } from "./verified-badge";
@@ -139,6 +140,11 @@ export function CoachProfileView({ coach }: { coach: CoachProfileData }) {
               ))}
             </ul>
           )}
+        </div>
+
+        {/* 分享（PRD 9.0 規格 6、10.0）：元件是小柔的，沒傳 path 時分享目前這一頁的網址 */}
+        <div className="shrink-0 self-start sm:self-center">
+          <ShareButton title={`${coach.name}｜夠練 GoLand`} />
         </div>
       </header>
 
