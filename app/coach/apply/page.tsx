@@ -86,14 +86,12 @@ export default async function CoachApplyPage() {
   }
 
   return (
-    <main className="flex-1 px-4 py-8 sm:px-6 sm:py-12">
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-        <header>
-          <h1 className="text-2xl font-bold text-neutral-900">
-            {existing ? "修改教練申請" : "教練身分申請"}
-          </h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            為維護課程品質與學員安全，請如實填寫。標示＊為必填。
+    <main className="flex-1 px-4 pb-8 pt-5 sm:px-6 sm:pb-20 sm:pt-10">
+      <div className="mx-auto flex w-full max-w-[800px] flex-col gap-4">
+        <header className="flex flex-col gap-4">
+          <h1 className="text-h1 text-text-primary">{existing ? "修改教練申請" : "成為教練"}</h1>
+          <p className="text-body text-text-secondary">
+            完成一次身分審核就能開課。審核通過後，你的帳號會多一個教練身分，原本的學員功能一樣可以用。
           </p>
         </header>
 

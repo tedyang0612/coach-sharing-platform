@@ -6,6 +6,8 @@ import {
   TAG_MAX_COUNT,
   TAG_MAX_LENGTH,
 } from "@/lib/coach-application/constants";
+import { buttonClassName } from "@/components/ui/button";
+import { FIELD_CLASSES } from "@/components/ui/field-styles";
 import { contactInfoWarning } from "@/lib/coach-application/validation";
 
 type TagInputProps = {
@@ -60,10 +62,10 @@ export function TagInput({ value, onChange }: TagInputProps) {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor="tag-input" className="text-sm font-semibold text-neutral-800">
-        特色 Tag
-        <span className="ml-1 text-xs font-normal text-neutral-500">
-          選填，最多 {TAG_MAX_COUNT} 個、每個 {TAG_MAX_LENGTH} 字內（{value.length}/{TAG_MAX_COUNT}）
+      <label htmlFor="tag-input" className="text-label text-text-primary">
+        特色 Tag（選填，最多 {TAG_MAX_COUNT} 個、每個 {TAG_MAX_LENGTH} 字）
+        <span className="text-caption ml-2 text-text-secondary">
+          已選 {value.length}／{TAG_MAX_COUNT}
         </span>
       </label>
 
@@ -72,14 +74,14 @@ export function TagInput({ value, onChange }: TagInputProps) {
           {value.map((tag) => (
             <li
               key={tag}
-              className="flex items-center gap-1 rounded-full bg-brand-ink py-1 pl-3 pr-1.5 text-sm text-brand"
+              className="text-label flex items-center gap-1 rounded-pill border border-brand-blue bg-tint-blue-200 py-1.5 pl-3.5 pr-2 text-text-primary"
             >
               {tag}
               <button
                 type="button"
                 aria-label={`移除 ${tag}`}
                 onClick={() => onChange(value.filter((item) => item !== tag))}
-                className="flex h-5 w-5 items-center justify-center rounded-full hover:bg-white"
+                className="flex size-5 items-center justify-center rounded-pill hover:bg-brand-white"
               >
                 ×
               </button>
@@ -100,34 +102,30 @@ export function TagInput({ value, onChange }: TagInputProps) {
           }}
           onKeyDown={handleKeyDown}
           aria-invalid={shownError ? true : undefined}
-          className={`min-w-0 flex-1 rounded-xl border bg-neutral-50 px-4 py-2.5 text-sm text-neutral-900 outline-none transition focus:bg-white focus:ring-2 disabled:opacity-50 ${
-            isTooLong
-              ? "border-red-500 focus:border-red-500 focus:ring-red-100"
-              : "border-neutral-200 focus:border-brand focus:ring-brand-ink"
-          }`}
+          className={`${FIELD_CLASSES} min-w-0 flex-1`}
         />
         <button
           type="button"
           disabled={isFull || !keyword || isTooLong}
           onClick={() => addTag(draft)}
-          className="shrink-0 rounded-xl border border-brand px-4 text-sm font-semibold text-brand transition hover:bg-brand-ink disabled:cursor-not-allowed disabled:opacity-40"
+          className={`${buttonClassName("secondary")} shrink-0 disabled:cursor-not-allowed disabled:border-transparent disabled:bg-state-disabled-bg disabled:text-state-disabled-text`}
         >
           新增
         </button>
       </div>
-      {shownError && <p className="text-xs text-red-600">{shownError}</p>}
+      {shownError && <p className="text-caption text-state-error-text">{shownError}</p>}
 
       {!isFull && suggestionGroups.length > 0 && (
-        <div className="mt-1 flex flex-col gap-2 rounded-xl border border-neutral-200 p-3">
+        <div className="mt-1 flex flex-col gap-2 rounded-md bg-brand-light p-3">
           {suggestionGroups.map((group) => (
             <div key={group.label} className="flex flex-wrap items-center gap-1.5">
-              <span className="w-16 shrink-0 text-xs text-neutral-500">{group.label}</span>
+              <span className="text-caption w-16 shrink-0 text-text-secondary">{group.label}</span>
               {group.tags.map((tag) => (
                 <button
                   key={tag}
                   type="button"
                   onClick={() => addTag(tag)}
-                  className="rounded-full border border-neutral-200 px-3 py-1 text-xs text-neutral-700 transition hover:border-brand hover:text-brand"
+                  className="text-caption rounded-pill border border-border-default bg-brand-white px-3 py-1 text-text-primary transition hover:border-brand-blue"
                 >
                   {tag}
                 </button>

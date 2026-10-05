@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
 import { LICENSE_SUGGESTIONS } from "@/lib/coach-application/constants";
 import { contactInfoWarning } from "@/lib/coach-application/validation";
@@ -36,45 +37,43 @@ export function LicenseList({ value, onChange, errors }: LicenseListProps) {
   return (
     <div className="flex flex-col gap-4">
       {value.map((license, index) => (
-        <div
-          key={license.key}
-          className="flex flex-col gap-4 rounded-xl border border-neutral-200 p-4"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-neutral-800">
-              證照 {index + 1}
-            </span>
+        <div key={license.key} className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+            <div className="sm:w-1/2">
+              <TextField
+                label="證照名稱"
+                id={`license-name-${license.key}`}
+                name={`licenseName-${license.key}`}
+                list="license-suggestions"
+                placeholder="例：ACE-CPT"
+                value={license.name}
+                onChange={(event) => update(license.key, { name: event.target.value })}
+                error={contactInfoWarning(license.name)}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <FileField
+                label="檔案"
+                name={`licenseFile-${license.key}`}
+                kind="document"
+                layout="inline"
+                file={license.file}
+                onChange={(file) => update(license.key, { file })}
+              />
+            </div>
             <button
               type="button"
+              aria-label={`移除證照 ${index + 1}`}
               onClick={() => onChange(value.filter((item) => item.key !== license.key))}
-              className="text-sm font-semibold text-brand hover:underline"
+              className="text-label shrink-0 self-end py-3 text-brand-deep underline underline-offset-4 sm:self-start sm:pt-10"
             >
               移除
             </button>
           </div>
 
-          <TextField
-            label="證照名稱＊"
-            id={`license-name-${license.key}`}
-            name={`licenseName-${license.key}`}
-            list="license-suggestions"
-            placeholder="例：ACE-CPT（可輸入或從建議選擇）"
-            value={license.name}
-            onChange={(event) => update(license.key, { name: event.target.value })}
-            error={contactInfoWarning(license.name)}
-          />
-
-          <FileField
-            label="證照檔案＊"
-            name={`licenseFile-${license.key}`}
-            kind="document"
-            file={license.file}
-            onChange={(file) => update(license.key, { file })}
-          />
-
           {/* 名稱含聯絡資訊的警示已經顯示在名稱欄位下方，這裡不重複 */}
           {errors?.[index] && !contactInfoWarning(license.name) && (
-            <p className="text-xs text-red-600">{errors[index]}</p>
+            <p className="text-caption text-state-error-text">{errors[index]}</p>
           )}
         </div>
       ))}
@@ -85,13 +84,9 @@ export function LicenseList({ value, onChange, errors }: LicenseListProps) {
         ))}
       </datalist>
 
-      <button
-        type="button"
-        onClick={add}
-        className="self-start rounded-xl border border-brand px-4 py-2 text-sm font-semibold text-brand transition hover:bg-brand-ink"
-      >
+      <Button type="button" variant="ghost" onClick={add} className="self-start">
         ＋ 新增證照
-      </button>
+      </Button>
     </div>
   );
 }
