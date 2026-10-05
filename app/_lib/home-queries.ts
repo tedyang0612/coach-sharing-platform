@@ -1,6 +1,7 @@
 // 首頁（PRD 14.0）資料讀取，Server Component 用。全部是未登入也讀得到的公開資料。
 // 不放在 "use server" 檔案裡（理由同 app/courses/_lib/queries.ts）。
 
+import { HOME_SPORTS } from "@/app/_lib/home-config";
 import { resolveCoverUrl } from "@/app/courses/_lib/cover-image";
 import type { ClassCardData } from "@/components/course/class-card";
 import type { CoachCardData } from "@/components/coach/coach-card";
@@ -135,76 +136,46 @@ export async function getRecommendedClasses(limit = 4): Promise<ClassCardData[]>
   );
 }
 
-/** 台灣時間的「本月」範圍（含起、不含迄），回傳 ISO 字串 */
-function currentMonthRangeInTaipei(): { from: string; to: string } {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: TAIPEI, year: "numeric", month: "2-digit" }).format(new Date());
-  const [year, month] = parts.split("-").map(Number);
-  const next = month === 12 ? { y: year + 1, m: 1 } : { y: year, m: month + 1 };
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return {
-    from: `${year}-${pad(month)}-01T00:00:00+08:00`,
-    to: `${next.y}-${pad(next.m)}-01T00:00:00+08:00`,
-  };
+type RecommendedCoachRow = {
+  id: string;
+  display_name: string;
+  photo_url: string;
+  lifestyle_photo_url: string | null;
+  sport_categories: string[];
+  tags: string[];
+  avg_rating: number | null;
+  review_count: number;
+  open_course_count: number;
+  month_completed_sessions: number;
+};
+
+/** 教練「生活／運動照片」還沒上傳時的預設：用該教練第一個運動項目的運動照片；都沒有就回傳 null（卡片只顯示淡藍底） */
+function defaultCoachPhoto(sports: string[]): string | null {
+  for (const name of sports) {
+    const found = HOME_SPORTS.find((s) => s.name === name);
+    if (found) return found.image;
+  }
+  return null;
 }
 
 /**
- * 推薦教練：只列「已認證」（至少一張證照通過）的教練，依當月（台灣時間）完成場次數由多到少，
- * 同數時依招生中場次數、再依名稱排，確保結果固定。取前 5 位。
+ * 推薦教練（PRD 14.0）：呼叫資料庫函式 get_recommended_coaches(p_limit)，
+ * 不直接 select coach_profiles（未登入會被權限擋下，區塊會是空的）。
+ * 函式只回傳「已認證」的教練，依當月完成場次數由多到少排序；卡片用「生活／運動照片」（lifestyle_photo_url），
+ * 大頭貼（photo_url）只用在頭像，不放在卡片上。
  */
 export async function getRecommendedCoaches(limit = 5): Promise<CoachCardData[]> {
   const supabase = await createClient();
-  const { data: coaches } = await supabase
-    .from("coach_profiles")
-    .select("id, display_name, photo_url, sport_categories, tags, avg_rating")
-    .eq("application_status", "approved");
-  if (!coaches || coaches.length === 0) return [];
+  const { data, error } = await supabase.rpc("get_recommended_coaches", { p_limit: limit });
+  if (error || !data) return [];
 
-  const verifiedFlags = await Promise.all(coaches.map((c) => isVerifiedCoach(supabase, c.id)));
-  const verified = coaches.filter((_, i) => verifiedFlags[i]);
-  if (verified.length === 0) return [];
-  const verifiedIds = new Set(verified.map((c) => c.id));
-
-  const { from, to } = currentMonthRangeInTaipei();
-  const [{ data: completed }, { data: open }] = await Promise.all([
-    supabase
-      .from("sessions")
-      .select("courses!inner(coach_id)")
-      .eq("status", "completed")
-      .gte("start_at", from)
-      .lt("start_at", to)
-      .overrideTypes<{ courses: { coach_id: string } }[], { merge: false }>(),
-    supabase
-      .from("sessions")
-      .select("courses!inner(coach_id)")
-      .eq("status", "open")
-      .gt("registration_deadline_at", new Date().toISOString())
-      .eq("courses.status", "published")
-      .eq("courses.is_template", false)
-      .overrideTypes<{ courses: { coach_id: string } }[], { merge: false }>(),
-  ]);
-
-  const tally = (rows: { courses: { coach_id: string } }[] | null) => {
-    const map = new Map<string, number>();
-    for (const r of rows ?? []) {
-      const id = r.courses.coach_id;
-      if (verifiedIds.has(id)) map.set(id, (map.get(id) ?? 0) + 1);
-    }
-    return map;
-  };
-  const completedBy = tally(completed);
-  const openBy = tally(open);
-
-  return verified
-    .map((c) => ({ c, done: completedBy.get(c.id) ?? 0, open: openBy.get(c.id) ?? 0 }))
-    .sort((a, b) => b.done - a.done || b.open - a.open || a.c.display_name.localeCompare(b.c.display_name, "zh-TW"))
-    .slice(0, limit)
-    .map(({ c, open }) => ({
-      href: coachHref(c.id),
-      photoUrl: c.photo_url,
-      name: c.display_name,
-      rating: c.avg_rating,
-      sports: c.sport_categories,
-      tags: c.tags,
-      openCourseCount: open,
-    }));
+  return (data as RecommendedCoachRow[]).map((c) => ({
+    href: coachHref(c.id),
+    photoUrl: c.lifestyle_photo_url ?? defaultCoachPhoto(c.sport_categories),
+    name: c.display_name,
+    rating: c.avg_rating,
+    sports: c.sport_categories,
+    tags: c.tags,
+    openCourseCount: c.open_course_count,
+  }));
 }
