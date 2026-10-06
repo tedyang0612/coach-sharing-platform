@@ -28,14 +28,14 @@ export function LegalDocument({ title, content }: LegalDocumentProps) {
     <main className="flex-1 px-4 py-8 sm:px-6 sm:py-12">
       <article className="mx-auto w-full max-w-3xl">
         <nav aria-label="條款與聲明" className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
-          {DOCUMENTS.map((document) =>
-            document.label === title ? (
-              <span key={document.href} className="font-semibold text-text-primary">
-                {document.label}
+          {DOCUMENTS.map((doc) =>
+            doc.label === title ? (
+              <span key={doc.href} className="font-semibold text-text-primary">
+                {doc.label}
               </span>
             ) : (
-              <Link key={document.href} href={document.href} className="text-brand-deep underline underline-offset-4 hover:no-underline">
-                {document.label}
+              <Link key={doc.href} href={doc.href} className="text-brand-deep underline underline-offset-4 hover:no-underline">
+                {doc.label}
               </Link>
             )
           )}
