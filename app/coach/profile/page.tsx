@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CoachLocalNav } from "@/components/coach/coach-local-nav";
 import ShareButton from "@/components/share/ShareButton";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
   title: "編輯個人檔案｜夠練 GoLand",
 };
 
-// 教練工作台底下的「編輯個人檔案」（PRD 9.0 規格 4）
+// 教練工作台底下的「教練資料管理」（PRD 9.0 規格 4；設計稿 C08）。上方外框用 Ted 的 CoachLocalNav（PR #63）
 export default async function CoachProfileEditPage() {
   const supabase = await createClient();
   const {
@@ -41,14 +42,13 @@ export default async function CoachProfileEditPage() {
   const isVerified = approvedLicenses.length > 0;
 
   return (
-    <main className="flex-1 px-4 pb-8 pt-5 sm:px-6 lg:px-20 lg:pb-20 lg:pt-10">
-      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-4">
-        <header className="flex flex-col gap-1">
-          <h1 className="text-h1 text-text-primary">教練資料管理</h1>
-          <p className="text-body-small text-text-secondary">
-            修改公開資料、聯絡方式，或追加專業證照。
-          </p>
-        </header>
+    <main className="flex flex-1 flex-col gap-6 px-[var(--spacing-screen-padding)] pb-20 pt-6 md:pt-8">
+      <CoachLocalNav active="profile" />
+
+      <div className="flex w-full flex-col gap-4">
+        <p className="text-body-small text-text-secondary">
+          修改公開資料、聯絡方式，或追加專業證照。
+        </p>
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6">
           {/* 右欄（手機排在最上面）：身分審核狀態、已認證的專業證照 */}
