@@ -1,6 +1,5 @@
 import {
   FILTER_LEVELS,
-  PRICE_RANGES,
   SPORTS,
   TIME_SLOT_LABELS,
   TIME_SLOT_RANGES,
@@ -22,7 +21,8 @@ export interface CourseFilters {
   timeTo?: string; // 指定時間的結束，"HH:MM"
   level?: Level;
   sport?: string;
-  priceRange?: string; // PRICE_RANGES 的 id
+  priceMin?: number; // 每人費用下限（NT$，含），自己輸入
+  priceMax?: number; // 每人費用上限（NT$，含）
 }
 
 type RawSearchParams = { [key: string]: string | string[] | undefined };
@@ -88,6 +88,26 @@ export function isDateRangeInvalid(filters: CourseFilters) {
   return Boolean(filters.date && filters.dateTo && filters.date > filters.dateTo);
 }
 
+// 價格上限的預設值：只填最低價時，條件是 最低價 ~ 9,999,999（QA 規格）
+export const PRICE_MAX_DEFAULT = 9999999;
+
+// 價格區間：只填最低價＝x～9,999,999；只填最高價＝0～x；
+// 最高價小於最低價時自動對調（最高 1,000、最低 2,000 → 1,000～2,000），不再提示錯誤。
+export function normalizedPriceRange(
+  filters: CourseFilters,
+): { min: number; max: number } | null {
+  if (filters.priceMin === undefined && filters.priceMax === undefined) return null;
+  const a = filters.priceMin ?? 0;
+  const b = filters.priceMax ?? PRICE_MAX_DEFAULT;
+  return a <= b ? { min: a, max: b } : { min: b, max: a };
+}
+
+// 價格只收 0 以上的整數；其他（空白、負數、小數、文字）當成沒填
+function parsePrice(value: string | string[] | undefined) {
+  const raw = first(value);
+  return raw && /^\d{1,7}$/.test(raw) ? Number(raw) : undefined;
+}
+
 // 指定時間的開始晚於結束時（例如 22:00–19:00）不套用，畫面上會提示
 export function isTimeRangeInvalid(filters: CourseFilters) {
   return Boolean(
@@ -112,7 +132,6 @@ export function parseFilters(params: RawSearchParams): CourseFilters {
   const timeTo = parseTime(first(params.to));
   const level = first(params.level);
   const sport = first(params.sport);
-  const price = first(params.price);
 
   return {
     city: city || undefined,
@@ -135,15 +154,22 @@ export function parseFilters(params: RawSearchParams): CourseFilters {
         : undefined,
     sport:
       sport && (SPORTS as readonly string[]).includes(sport) ? sport : undefined,
-    priceRange:
-      price && PRICE_RANGES.some((range) => range.id === price)
-        ? price
-        : undefined,
+    priceMin: parsePrice(params.priceMin),
+    priceMax: parsePrice(params.priceMax),
   };
 }
 
+// 選初階／中階／進階時，程度為「不限」的課一併列出（初學者也能參加）；
+// 選「不限」只列程度為「不限」的課；沒選＝不篩選。
+function matchesLevel(courseLevel: Level, selected: Level) {
+  return (
+    courseLevel === selected ||
+    (selected !== "unlimited" && courseLevel === "unlimited")
+  );
+}
+
 export function filterCourses(courses: Course[], filters: CourseFilters) {
-  const range = PRICE_RANGES.find((r) => r.id === filters.priceRange);
+  const priceRange = normalizedPriceRange(filters);
 
   const useCustomTime =
     (filters.timeFrom || filters.timeTo) && !isTimeRangeInvalid(filters);
@@ -172,11 +198,10 @@ export function filterCourses(courses: Course[], filters: CourseFilters) {
       (!useCustomTime ||
         ((!filters.timeFrom || start!.minutes >= toMinutes(filters.timeFrom)) &&
           (!filters.timeTo || start!.minutes <= toMinutes(filters.timeTo)))) &&
-      (!filters.level || course.level === filters.level) &&
+      (!filters.level || matchesLevel(course.level, filters.level)) &&
       (!filters.sport || course.sport === filters.sport) &&
-      (!range ||
-        ((range.min === undefined || course.price >= range.min) &&
-          (range.max === undefined || course.price <= range.max)))
+      (!priceRange ||
+        (course.price >= priceRange.min && course.price <= priceRange.max))
     );
   });
 }
@@ -194,7 +219,8 @@ export function filtersToQuery(filters: CourseFilters, sort: SortMode) {
   if (filters.timeTo) params.set("to", filters.timeTo);
   if (filters.level) params.set("level", filters.level);
   if (filters.sport) params.set("sport", filters.sport);
-  if (filters.priceRange) params.set("price", filters.priceRange);
+  if (filters.priceMin !== undefined) params.set("priceMin", String(filters.priceMin));
+  if (filters.priceMax !== undefined) params.set("priceMax", String(filters.priceMax));
   if (sort !== DEFAULT_SORT) params.set("sort", sort);
   return params.toString();
 }
@@ -211,6 +237,7 @@ export function hasActiveFilters(filters: CourseFilters) {
       filters.timeTo ||
       filters.level ||
       filters.sport ||
-      filters.priceRange,
+      filters.priceMin !== undefined ||
+      filters.priceMax !== undefined,
   );
 }

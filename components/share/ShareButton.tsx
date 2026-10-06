@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { CheckIcon, ShareIcon } from "@/components/goland/icons";
 import { buildShareUrl } from "@/lib/share/shareUrl";
 
 interface Props {
@@ -9,6 +10,8 @@ interface Props {
   // 系統分享選單用的標題與說明
   title?: string;
   text?: string;
+  // 設計稿 S05 的分享鈕是 44px 圓形、只有圖示；成功時旁邊才出現「連結已複製」
+  iconOnly?: boolean;
 }
 
 type Status = "idle" | "copied" | "failed";
@@ -39,8 +42,8 @@ function legacyCopy(text: string) {
   }
 }
 
-// TODO: 等 PR #1 合併後，樣式改用共用 Button 與品牌色 token（bg-brand 等）
-export default function ShareButton({ path, title, text }: Props) {
+// 樣式用全站的設計 token（app/tokens.css 的 --color-*）。
+export default function ShareButton({ path, title, text, iconOnly = false }: Props) {
   const [status, setStatus] = useState<Status>("idle");
   const [url, setUrl] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -96,18 +99,37 @@ export default function ShareButton({ path, title, text }: Props) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={copyLink}
-          className="rounded-full border border-neutral-800 px-4 py-1.5 text-sm font-medium text-neutral-900 hover:bg-neutral-100"
-        >
-          {status === "copied" ? "✅ 連結已複製" : "🔗 分享"}
-        </button>
+        {iconOnly ? (
+          <>
+            <button
+              type="button"
+              onClick={copyLink}
+              aria-label="分享連結"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-(--color-border-default) bg-(--color-surface-default) text-(--color-text-primary) hover:bg-(--color-tint-blue-100)"
+            >
+              {status === "copied" ? <CheckIcon size={20} /> : <ShareIcon size={20} />}
+            </button>
+            {status === "copied" && (
+              <span role="status" className="text-body-small text-(--color-text-secondary)">
+                連結已複製
+              </span>
+            )}
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={copyLink}
+            className="text-button inline-flex items-center gap-2 rounded-full border border-(--color-brand-blue) bg-(--color-surface-default) px-4 py-2 text-(--color-text-primary) hover:bg-(--color-tint-blue-100)"
+          >
+            {status === "copied" ? <CheckIcon size={16} /> : <ShareIcon size={16} />}
+            {status === "copied" ? "連結已複製" : "分享"}
+          </button>
+        )}
         {canNativeShare && (
           <button
             type="button"
             onClick={nativeShare}
-            className="rounded-full border border-neutral-300 px-4 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100"
+            className="text-body-small rounded-full border border-(--color-border-default) bg-(--color-surface-default) px-4 py-2 text-(--color-text-primary) hover:bg-(--color-tint-blue-100)"
           >
             用其他 App 分享
           </button>
@@ -116,13 +138,13 @@ export default function ShareButton({ path, title, text }: Props) {
 
       <div aria-live="polite">
         {status === "failed" && (
-          <label className="block text-sm text-neutral-700">
+          <label className="text-body-small block text-(--color-text-primary)">
             無法自動複製，請手動複製下方連結：
             <input
               readOnly
               value={url}
               onFocus={(e) => e.currentTarget.select()}
-              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-(--radius-md) border border-(--color-border-default) bg-(--color-surface-default) px-3 py-2"
             />
           </label>
         )}
