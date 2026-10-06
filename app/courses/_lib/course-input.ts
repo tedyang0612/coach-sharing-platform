@@ -5,9 +5,9 @@ import { SPORT_TYPES, type Course, type CourseLevel, type CourseQaItem } from "@
 import { CONTACT_INFO_MESSAGE, containsContactInfo } from "./contact-filter";
 import { COVER_URL_ERROR, isAllowedCoverUrl } from "./cover-image";
 
-// 畫面文案（10/3 組員討論）；DB 的值不變，2.0 篩選請用同一份 label
+// 畫面文案：不限／初階／中階／進階（10/4 定案，取代 10/3 的「全程度」）；DB 的值不變，2.0 篩選請用同一份 label
 export const COURSE_LEVELS: { value: CourseLevel; label: string }[] = [
-  { value: "unlimited", label: "全程度" },
+  { value: "unlimited", label: "不限" },
   { value: "beginner", label: "初階" },
   { value: "intermediate", label: "中階" },
   { value: "advanced", label: "進階" },
@@ -53,7 +53,14 @@ export const QA_TEMPLATE_QUESTIONS = [
 export const COURSE_TZ_OFFSET = "+08:00";
 
 /** 一堂課的時間（台灣時間 HH:MM） */
-export type SessionSlotInput = { start: string; end: string };
+export type SessionSlotInput = {
+  start: string;
+  end: string;
+  /** 編輯已發布的課程時，這一堂對應的場次 id（新增的一堂沒有）；用來逐場次比對更新、刪除、新增 */
+  sessionId?: string;
+  /** 這一堂已有人報名（或場次已不是招生中），時間不能改、不能刪除；只是畫面用，server 一律以資料庫為準 */
+  locked?: boolean;
+};
 
 export const COURSE_FIELDS = [
   "title",
@@ -96,6 +103,10 @@ export const REQUIRED_FIELDS: CourseField[] = [
 
 // 有人報名後鎖住的欄位以外，還能改的欄位：課程須知、課程 QA，以及封面圖（PRD 1.0 規格8 調整後確認可換圖）
 export const ALWAYS_EDITABLE_FIELDS: CourseField[] = ["notes", "qa", "cover_image_url"];
+
+// 有人報名後（PRD v4.8 1.0 規格 4）：課程共用資料全部鎖定，仍可改的有公告、QA、封面圖；
+// 場次時間依各場次判斷：沒有人報名的場次仍可調整時間、刪除或新增，所以場次時間表也算可編輯（有人報名的那一堂在畫面與 server 各自擋）
+export const LOCKED_EDITABLE_FIELDS: CourseField[] = [...ALWAYS_EDITABLE_FIELDS, "session_slots"];
 
 // 改到這些欄位就要重建場次
 export const SCHEDULE_FIELDS: CourseField[] = ["session_date", "session_slots", "registration_deadline_hours"];
@@ -176,15 +187,23 @@ export function parseSlots(raw: string): SessionSlotInput[] | null {
   try {
     const value: unknown = JSON.parse(raw);
     if (!Array.isArray(value)) return null;
-    const slots = value.map((s) =>
-      s && typeof s === "object"
-        ? { start: String((s as SessionSlotInput).start ?? ""), end: String((s as SessionSlotInput).end ?? "") }
-        : null
-    );
+    const slots = value.map((s) => {
+      if (!s || typeof s !== "object") return null;
+      const raw = s as SessionSlotInput;
+      const slot: SessionSlotInput = { start: String(raw.start ?? ""), end: String(raw.end ?? "") };
+      if (typeof raw.sessionId === "string" && raw.sessionId) slot.sessionId = raw.sessionId;
+      if (raw.locked === true) slot.locked = true;
+      return slot;
+    });
     return slots.every(Boolean) ? (slots as SessionSlotInput[]) : null;
   } catch {
     return null;
   }
+}
+
+/** 只留開始與結束時間（寫進資料庫的 courses.session_slots 與場次計算都不需要 sessionId／locked） */
+export function cleanSlots(slots: SessionSlotInput[]): { start: string; end: string }[] {
+  return slots.map(({ start, end }) => ({ start, end }));
 }
 
 /**
@@ -490,7 +509,7 @@ export function validateCourseValues(
     location_address: locationAddress,
     district_id: districtId!,
     session_date: values.session_date,
-    session_slots: slots,
+    session_slots: cleanSlots(slots),
     time_range_start: first.start,
     time_range_end: slots.at(-1)!.end,
     session_duration_minutes: minutesOf(first.end) - minutesOf(first.start),

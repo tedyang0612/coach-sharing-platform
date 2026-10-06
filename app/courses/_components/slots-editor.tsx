@@ -9,6 +9,7 @@
 // - 「＋ 新增一堂」接續上一堂的結束時間、沿用上一堂的時長
 // - 第 2 堂以後的開始時間只列出「上一堂結束之後」的選項；結束時間只列出晚於開始的選項
 // - 堂與堂之間可以有空檔，但不能重疊（驗證在 validateSlots）
+// - 編輯已發布的課程（PRD v4.8）：有人報名的那一堂（slot.locked）時間不能改、不能刪除；其他堂仍可調整、刪除，也可以新增
 
 import {
   DEFAULT_DURATION_MINUTES,
@@ -134,7 +135,7 @@ export function SlotsEditor({ slots, onChange, disabled = false, error }: Props)
   function update(index: number, patch: Partial<SessionSlotInput>) {
     onChange(
       slots.map((slot, i) => {
-        if (i !== index) return slot;
+        if (i !== index || slot.locked) return slot;
         const updated = { ...slot, ...patch };
         // 改開始時間時，結束時間跟著平移、保持原本的時長（還沒有時長就用預設 60 分鐘），
         // 例：14:00–15:00 把分鐘改成 30 → 14:30–15:30。超過當天最晚時間時保留原本的結束時間，交給驗證提示
@@ -166,7 +167,7 @@ export function SlotsEditor({ slots, onChange, disabled = false, error }: Props)
                   value={slot.start}
                   min={prevEnd || undefined}
                   onChange={(start) => update(i, { start })}
-                  disabled={disabled}
+                  disabled={disabled || slot.locked === true}
                 />
                 <span className="text-neutral-400">–</span>
                 <TimeSelect
@@ -174,25 +175,17 @@ export function SlotsEditor({ slots, onChange, disabled = false, error }: Props)
                   value={slot.end}
                   min={slot.start ? addMinutes(slot.start, TIME_STEP_MINUTES) ?? toHHMM(LATEST_TIME) : undefined}
                   onChange={(end) => update(i, { end })}
-                  disabled={disabled}
+                  disabled={disabled || slot.locked === true}
                   allowMidnight
                 />
               </div>
 
               <div className="order-2 ml-auto shrink-0 sm:order-3 sm:ml-0">
-                {i === 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => next && onChange([...slots, next])}
-                    disabled={!canAdd}
-                    aria-label="新增一堂"
-                    title={addBlockedReason ?? "新增一堂"}
-                    className="h-10 rounded-xl border border-brand px-3 text-xs font-bold text-brand transition hover:bg-brand-ink disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-400 disabled:hover:bg-transparent"
-                  >
-                    ＋ 新增一堂
-                  </button>
+                {slot.locked ? (
+                  <span className="text-xs font-semibold text-amber-700">有人報名，時間已鎖定</span>
                 ) : (
-                  !disabled && (
+                  !disabled &&
+                  slots.length > 1 && (
                     <button
                       type="button"
                       onClick={() => onChange(slots.filter((_, j) => j !== i))}
@@ -208,6 +201,18 @@ export function SlotsEditor({ slots, onChange, disabled = false, error }: Props)
           );
         })}
       </ol>
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => next && onChange([...slots, next])}
+          disabled={!canAdd}
+          title={addBlockedReason ?? "新增一堂"}
+          className="h-10 rounded-xl border border-brand px-3 text-xs font-bold text-brand transition hover:bg-brand-ink disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-400 disabled:hover:bg-transparent"
+        >
+          ＋ 新增一堂
+        </button>
+      </div>
 
       {addBlockedReason && <p className="text-xs text-amber-700">{addBlockedReason}</p>}
 

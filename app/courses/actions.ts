@@ -10,6 +10,7 @@ import { CONTACT_INFO_MESSAGE, containsContactInfo } from "./_lib/contact-filter
 import { COVER_URL_ERROR, isAllowedCoverUrl } from "./_lib/cover-image";
 import {
   COURSE_FIELDS,
+  cleanSlots,
   computeSessionSlots,
   filledQaItems,
   formDataToCourseValues,
@@ -31,6 +32,7 @@ import {
   type CoachContext,
 } from "./_lib/queries";
 import { canCoachCancelSession, isActiveRegistration } from "./_lib/session-rules";
+import { courseSlotColumns, planSlotSync } from "./_lib/slot-sync";
 import type { RegistrationStatus } from "@/types/database";
 
 export type CourseFormState = {
@@ -187,23 +189,75 @@ export async function updateCourse(_prev: CourseFormState, formData: FormData): 
       userId: ctx.userId,
     });
     if (!coverOk) return { errors: { cover_image_url: COVER_URL_ERROR } };
-    // 有人報名後只能改這三欄（資料庫的鎖定 trigger 也是同一份白名單）
+    // 場次時間（PRD v4.8 1.0 規格 4）：逐場次判斷，有人報名的場次不能改時間、不能刪除；
+    // 沒有人報名的場次可以調整時間、刪除，也可以新增。「有沒有人報名」一律以資料庫為準，不信任前端送來的 locked 標記
+    const slots = parseSlots(values.session_slots);
+    if (!slots) return { errors: { session_slots: "場次時間格式不正確" } };
+    const synced = planSlotSync({
+      date: course.session_date,
+      deadlineHours: course.registration_deadline_hours,
+      existing: course.sessions.map((sess) => ({
+        id: sess.id,
+        status: sess.status,
+        start_at: sess.start_at,
+        end_at: sess.end_at,
+        registrationCount: sess.roster.length,
+      })),
+      slots,
+    });
+    if (!synced.ok) return { errors: { session_slots: synced.error } };
+    const { plan } = synced;
+    const slotsChanged = plan.inserts.length + plan.updates.length + plan.deletes.length > 0;
+
+    // 順序：先新增、再更新、最後刪除；任何一步失敗就停下（沒有交易可以包）
+    const failMessage = "儲存失敗，請稍後再試。";
+    if (plan.inserts.length > 0) {
+      const { error } = await ctx.supabase.from("sessions").insert(
+        plan.inserts.map((row) => ({
+          course_id: course.id,
+          start_at: row.startAt.toISOString(),
+          end_at: row.endAt.toISOString(),
+          registration_deadline_at: row.registrationDeadlineAt.toISOString(),
+        }))
+      );
+      if (error) return { errors: { form: failMessage } };
+    }
+    for (const row of plan.updates) {
+      const { error } = await ctx.supabase
+        .from("sessions")
+        .update({
+          start_at: row.startAt.toISOString(),
+          end_at: row.endAt.toISOString(),
+          registration_deadline_at: row.registrationDeadlineAt.toISOString(),
+        })
+        .eq("id", row.sessionId)
+        .eq("course_id", course.id);
+      if (error) return { errors: { form: failMessage } };
+    }
+    if (plan.deletes.length > 0) {
+      const { error } = await ctx.supabase.from("sessions").delete().in("id", plan.deletes).eq("course_id", course.id);
+      if (error) return { errors: { form: failMessage } };
+    }
+
+    // 課程層只能改這幾欄（資料庫的鎖定 trigger 也是同一份白名單）：課程須知、QA、封面圖，
+    // 以及場次時間表（courses.session_slots 與 time_range_*，是各場次時間的彙整，場次有異動時一併更新）
     const { error } = await ctx.supabase
       .from("courses")
       .update({
         notes: values.notes || null,
         qa: filledQaItems(qaItems),
         cover_image_url: values.cover_image_url || null,
+        ...(slotsChanged ? courseSlotColumns(slots) : {}),
       })
       .eq("id", course.id);
-    if (error) return { errors: { form: "儲存失敗，請稍後再試。" } };
+    if (error) return { errors: { form: failMessage } };
     revalidateCourse(course.id);
     redirect(`/coach/courses/${course.id}`);
   }
 
   const scheduleChanged =
     course.session_date !== values.session_date ||
-    serializeSlots(slotsFromCourse(course)) !== serializeSlots(parseSlots(values.session_slots) ?? []) ||
+    serializeSlots(slotsFromCourse(course)) !== serializeSlots(cleanSlots(parseSlots(values.session_slots) ?? [])) ||
     String(course.registration_deadline_hours) !== (values.registration_deadline_hours || "24");
   const needsRegenerate = !course.is_template && course.status === "published" && scheduleChanged;
 
