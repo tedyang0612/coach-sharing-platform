@@ -1,7 +1,8 @@
 import type { MyRegistrationItem } from "../_lib/my-registrations";
 
-// 狀態列：圓點加文字，文字依設計稿 S09。設計稿沒有畫的狀態（部分退款、教練取消場次）
-// 沿用 Ted 的 detailLabel，等設計師補畫再對。
+// 狀態列：圓點加文字，文字依設計稿 S09。設計稿沒有畫的狀態（部分退款）沿用 Ted 的 detailLabel。
+// 場次被取消不再有「未達人數取消」這種狀態（PRD v4.8 最新版），一律顯示「已取消」加取消原因：
+// 未達人數／教練取消（平台取消目前資料庫沒有對應的場次狀態）。
 function statusText(item: MyRegistrationItem) {
   const amount = `NT$${item.amount.toLocaleString()}`;
   switch (item.status) {
@@ -12,13 +13,12 @@ function statusText(item: MyRegistrationItem) {
     case "completed":
       return "課程完成";
     case "cancelled":
-      return item.session.status === "cancelled_by_coach" ||
-        item.session.status === "cancelled_unmatched"
-        ? item.detailLabel
-        : "已取消（未扣款）";
+      if (item.session.status === "cancelled_unmatched") return "已取消（未達人數）・未扣款";
+      if (item.session.status === "cancelled_by_coach") return "已取消（教練取消）・未扣款";
+      return "已取消（未扣款）";
     case "refunded":
       return item.session.status === "cancelled_by_coach"
-        ? item.detailLabel
+        ? "已取消（教練取消）・已全額退款"
         : `已退款 ${amount}`;
     case "partial_refunded":
       return item.detailLabel;

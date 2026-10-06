@@ -1,5 +1,6 @@
 // 「我的課程」畫面用的文字。資料層（my-registrations.ts，Ted 維護）的用語已改成
-// 「待確認開課／確定開課／未達人數取消」（Ted 的 13.0 更新），不用再轉換。
+// 「待確認開課／確定開課」等（Ted 的 13.0 更新），不用再轉換。取消的場次不再有獨立的
+// 「未達人數取消」狀態，StatusLine 顯示「已取消」加原因。
 import type { MyRegistrationCategory } from "./my-registrations";
 
 export const TAB_LABELS: Record<MyRegistrationCategory, string> = {
