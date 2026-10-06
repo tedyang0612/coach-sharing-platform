@@ -52,3 +52,25 @@ body {
   color: var(--color-text-primary);
   font-family: var(--font-cjk);
 }
+
+/* 響應式字級：tokens.css 的 .text-hero／.text-hero-mobile 是各自獨立的 class，沒辦法直接加 md: 前綴，
+   所以在這裡合成「手機 38／桌機 60」。數值完全照 tokens.css，不是新字級。 */
+.text-hero-responsive {
+  font: 700 38px/48px var(--font-cjk);
+}
+@media (min-width: 768px) {
+  .text-hero-responsive {
+    font: 700 60px/72px var(--font-cjk);
+  }
+}
+
+/* 主視覺副標：Figma 桌機為 24px／32px Bold（手機沿用 Body Large 17px／26px Bold）。
+   tokens.css 沒有 24px Bold 的字級，已列入待設計師確認。 */
+.text-hero-lead {
+  font: 700 17px/26px var(--font-cjk);
+}
+@media (min-width: 768px) {
+  .text-hero-lead {
+    font: 700 24px/32px var(--font-cjk);
+  }
+}

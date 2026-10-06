@@ -10,9 +10,14 @@ export type AuthFormState = {
     displayName?: string;
     email?: string;
     password?: string;
+    terms?: string;
     form?: string;
   };
 };
+
+// PRD v4.8 8.0：註冊時要勾選「我已閱讀並同意服務條款與隱私權政策」才能送出。
+// 前端按鈕在未勾選時是 disabled，這裡是繞過前端時的第二道防線。
+const TERMS_REQUIRED_MESSAGE = "請勾選「我已閱讀並同意服務條款與隱私權政策」才能註冊。";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -64,6 +69,7 @@ export async function signup(
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const redirectTo = safeRedirectTarget(formData.get("redirectTo"));
+  const agreedToTerms = formData.get("agreeTerms") === "on";
 
   const errors: NonNullable<AuthFormState["errors"]> = {};
   // 8.0 QA 決議（2026-10-03）：暱稱統一長度限制 2-20 字，中文字／英數都算一個字元。
@@ -80,6 +86,7 @@ export async function signup(
   if (!password || password.trim().length < 6) {
     errors.password = "密碼至少需要 6 個字元（不能全部是空白）";
   }
+  if (!agreedToTerms) errors.terms = TERMS_REQUIRED_MESSAGE;
   if (Object.keys(errors).length > 0) return { errors };
 
   const supabase = await createClient();

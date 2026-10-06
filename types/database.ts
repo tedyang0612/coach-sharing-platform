@@ -6,7 +6,7 @@
 export type CoachApplicationStatus = "pending" | "approved" | "needs_more_info" | "rejected";
 export type LicenseStatus = "pending" | "approved" | "rejected";
 
-export type CourseLevel = "unlimited" | "beginner" | "intermediate" | "advanced"; // 不限／初級／中級／進階
+export type CourseLevel = "unlimited" | "beginner" | "intermediate" | "advanced"; // 不限／初階／中階／進階
 export type CourseStatus = "draft" | "published" | "cancelled";
 
 export type SessionStatus =
@@ -17,16 +17,17 @@ export type SessionStatus =
   | "completed"; // 已結束
 
 export type RegistrationStatus =
-  | "pending_match" // 已報名（待成團）
+  | "pending_match" // 已報名（待確認開課）
   | "confirmed" // 訂單成立
   | "cancelled" // 已取消（未扣款）
   | "refunded" // 已退款（全額）
-  | "partial_refunded" // 部分退款（扣30%手續費）
+  | "partial_refunded" // 部分退款（24 小時內退 50%，手續費 50%：教練 25%、平台 25%）
   | "completed"; // 課程完成
 
 // MVP 運動種類（PRD v4.2：共八種，開課運動項目與學員篩選皆以此為限）
 // sport_type 欄位本身是自由文字，不是資料庫層級 enum，之後要加新類型不用跑 migration
-export const SPORT_TYPES = ["重訓", "瑜珈", "跑酷", "抱石", "衝浪", "羽球", "匹克球", "排球"] as const;
+// 順序依 PRD v4.7（畫面選單、篩選晶片都用這個順序）
+export const SPORT_TYPES = ["重訓", "瑜珈", "羽球", "排球", "匹克球", "衝浪", "抱石", "跑酷"] as const;
 export type SportType = (typeof SPORT_TYPES)[number] | (string & {});
 
 export interface Profile {
@@ -116,10 +117,16 @@ export interface Course {
   session_slots: { start: string; end: string }[] | null;
   // 縣市／行政區（20261003000034）：參照 districts.id，縣市由 districts.city 反查；草稿可為 null，發布時必填
   district_id: number | null;
+  // 課程 QA（20261005000039）：只存問題與回答都有填的項目，公開內容
+  qa: CourseQaItem[];
+  // 範本名稱（20261005000039）：只有範本會用，null 時畫面沿用課程名稱
+  template_name: string | null;
 
   created_at: string;
   updated_at: string;
 }
+
+export type CourseQaItem = { q: string; a: string };
 
 // 縣市／行政區參照表（20261003000033，內政部資料，全部用「台」）；只讀
 export interface District {
@@ -127,6 +134,7 @@ export interface District {
   towncode: string; // 內政部鄉鎮市區代碼（8 碼）
   city: string; // 縣市
   district: string; // 鄉鎮市區
+  sort_order: number; // 顯示排序（20261005000039）：縣市由北到南，縣市內依官方代碼
 }
 
 export interface Session {
@@ -154,6 +162,7 @@ export interface Registration {
   cancelled_at: string | null;
   refund_amount: number | null;
   refund_fee_amount: number | null;
+  coach_compensation_amount: number | null; // 24 小時內取消時教練分得的 25%（20261005000040）
   payout_id: string | null;
   created_at: string;
 }
@@ -195,6 +204,7 @@ export interface Payout {
   period_end: string;
   gross_amount: number;
   platform_fee_amount: number;
+  compensation_amount: number; // 取消補償合計（20261005000040）；net = gross − fee + compensation
   net_amount: number;
   payout_date: string;
   created_at: string;
