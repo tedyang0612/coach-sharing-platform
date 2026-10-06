@@ -1,0 +1,12 @@
+# 共用檔案：改動這些路徑的 PR 需要 @tedyang0612 核准才能合併
+/types/ @tedyang0612
+/lib/supabase/ @tedyang0612
+/app/layout.tsx @tedyang0612
+/app/globals.css @tedyang0612
+/package.json @tedyang0612
+/package-lock.json @tedyang0612
+/proxy.ts @tedyang0612
+/next.config.ts @tedyang0612
+/supabase/migrations/ @tedyang0612
+/.github/ @tedyang0612
+/CLAUDE.md @tedyang0612
