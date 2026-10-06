@@ -16,13 +16,13 @@ export function CoachTags({ tags, max }: CoachTagsProps) {
       {shown.map((tag) => (
         <li
           key={tag}
-          className="rounded-full border border-neutral-200 bg-white px-2.5 py-0.5 text-xs text-neutral-600"
+          className="text-caption rounded-pill bg-tint-blue-100 px-2 py-1 text-text-primary"
         >
           {tag}
         </li>
       ))}
       {hiddenCount > 0 && (
-        <li className="rounded-full px-1 py-0.5 text-xs text-neutral-400">
+        <li className="text-caption rounded-pill px-1 py-1 text-text-secondary">
           <span aria-hidden>+{hiddenCount}</span>
           <span className="sr-only">另外還有 {hiddenCount} 個</span>
         </li>
