@@ -16,7 +16,7 @@ export type SessionDisplayStatus = "recruiting" | "matched" | "ended" | "cancell
 
 export const SESSION_DISPLAY_LABELS: Record<SessionDisplayStatus, string> = {
   recruiting: "招生中",
-  matched: "已成團",
+  matched: "確定開課",
   ended: "已結束",
   cancelled: "已取消",
 };
@@ -46,8 +46,8 @@ export function sessionDisplayStatus(
 export type CancelEligibility = { ok: true } | { ok: false; reason: string };
 
 /**
- * PRD 1.0 規格7：開課前 48hr 以上且尚未成團，教練才能取消場次。
- * 「尚未成團」在 3.0 做完前先用「有效報名人數 < 人數下限」簡化判斷（見 task 文件 corner case）；
+ * PRD 1.0 規格7：開課前 48hr 以上且尚未確定開課，教練才能取消場次。
+ * 「尚未確定開課」在 3.0 做完前先用「有效報名人數 < 人數下限」簡化判斷（見 task 文件 corner case）；
  * DB 的 coach_cancel_session() 只檢查 status=open 跟 48hr，所以人數這條要在應用層擋。
  */
 export function canCoachCancelSession(
@@ -68,3 +68,13 @@ export function canCoachCancelSession(
   }
   return { ok: true };
 }
+
+// 學員名單上的報名狀態文案（PRD 第六章 5.3）
+export const REGISTRATION_STATUS_LABELS: Record<RegistrationStatus, string> = {
+  pending_match: "已報名（待確認開課）",
+  confirmed: "訂單成立",
+  cancelled: "已取消（未扣款）",
+  refunded: "已退款",
+  partial_refunded: "部分退款",
+  completed: "課程完成",
+};
