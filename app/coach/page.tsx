@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 /**
  * 教練總覽（設計稿 C02｜P17）：四張數字卡＋近期場次。
  * 收益數字來自 11.0 的 buildEarnings()，場次來自 1.0 的 listMyCourses()，這一頁只負責顯示。
- * 工作台上方的四個分頁（總覽／課程管理／教練資料管理／收益與撥款）由 Ted 的共用外框提供。
+ * 工作台上方的標題、建立課程鈕與四個分頁用 Ted 的共用外框 CoachLocalNav（PR #63）。
  */
 export default async function CoachOverviewPage() {
   const ctx = await getCoachContext();

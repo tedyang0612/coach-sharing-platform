@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatPrice, formatSessionTime } from "@/app/courses/_lib/format";
+import { CoachLocalNav } from "@/components/coach/coach-local-nav";
 import { buttonClassName } from "@/components/ui/button";
 import type { UpcomingSession } from "../_lib/overview";
 
@@ -17,15 +18,10 @@ export function CoachOverviewView({
   upcoming: UpcomingSession[];
 }) {
   return (
-    <main className="flex-1 px-4 pb-8 pt-5 sm:px-6 lg:px-20 lg:pb-20 lg:pt-10">
-      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-h1 text-text-primary">教練工作台</h1>
-          <Link href="/coach/courses/new" className={buttonClassName("primary")}>
-            ＋ 建立課程
-          </Link>
-        </header>
+    <main className="flex flex-1 flex-col gap-6 px-[var(--spacing-screen-padding)] pb-20 pt-6 md:pt-8">
+      <CoachLocalNav active="overview" />
 
+      <div className="flex w-full flex-col gap-6">
         <section aria-label="收益與場次摘要" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {stats.map((stat) => (
             <div
