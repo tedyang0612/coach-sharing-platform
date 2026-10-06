@@ -71,6 +71,9 @@ export type MyRegistrationRow = {
   id: string;
   status: RegistrationStatus;
   amount: number;
+  /** 部分退款（開課 24 小時內由教練協助）才有值：學員實際拿回的金額與取消手續費 */
+  refund_amount: number | null;
+  refund_fee_amount: number | null;
   created_at: string;
   session: {
     id: string;
@@ -104,6 +107,9 @@ export type MyRegistrationItem = {
   /** 狀態的完整說明，例如「教練取消場次，已全額退款」 */
   detailLabel: string;
   amount: number;
+  /** 部分退款的實際金額；沒有（或不是部分退款）時為 null */
+  refundAmount: number | null;
+  refundFeeAmount: number | null;
   createdAt: string;
   /** 場次或課程讀不到（例如課程已下架）時為 true，標題會是「（課程已下架）」 */
   unavailable: boolean;
@@ -157,6 +163,8 @@ export function buildMyRegistrationItem(
     category,
     detailLabel: registrationDetailLabel(row.status, session?.status ?? null),
     amount: Number(row.amount),
+    refundAmount: row.refund_amount === null ? null : Number(row.refund_amount),
+    refundFeeAmount: row.refund_fee_amount === null ? null : Number(row.refund_fee_amount),
     createdAt: row.created_at,
     unavailable: !session || !course,
     session: {
