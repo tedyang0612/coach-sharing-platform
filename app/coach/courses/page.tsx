@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { NotCoachNotice, PageShell } from "@/app/courses/_components/page-shell";
+import { buttonClassName } from "@/components/ui/button";
 import { SessionStatusBadge } from "@/app/courses/_components/status-badge";
 import { resolveCoverUrl } from "@/app/courses/_lib/cover-image";
 import { COURSE_LEVELS, slotsFromCourse } from "@/app/courses/_lib/course-input";
@@ -69,7 +70,15 @@ export default async function MyCoursesPage({ searchParams }: PageProps<"/coach/
   ];
 
   return (
-    <PageShell title="我的課程" description="依場次狀態查看報名人數與學員名單；點場次進入課程管理。">
+    <PageShell
+      title="我的課程"
+      description="依場次狀態查看報名人數與學員名單；點場次進入課程管理。"
+      actions={
+        <Link href="/coach/courses/new" className={buttonClassName("primary")}>
+          ＋ 建立課程
+        </Link>
+      }
+    >
       <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1" aria-label="課程狀態">
         {tabs.map((t) => (
           <Link
