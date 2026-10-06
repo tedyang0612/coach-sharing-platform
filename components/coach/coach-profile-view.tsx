@@ -1,7 +1,8 @@
-import Link from "next/link";
 import type { EducationEntry } from "@/lib/coach-application/education";
+import type { Course } from "@/lib/courses/types";
 import ShareButton from "@/components/share/ShareButton";
 import { Badge } from "@/components/ui/badge";
+import { CoachCourseList } from "./coach-course-list";
 import { StarRating } from "./star-rating";
 import { VerifiedBadge } from "./verified-badge";
 
@@ -33,14 +34,8 @@ export type CoachProfileData = {
     reviewerName: string;
     createdAt: string;
   }[];
-  // 目前招生中的課程
-  courses: {
-    id: string;
-    title: string;
-    whenLabel: string;
-    locationName: string;
-    pricePerPerson: number;
-  }[];
+  // 還能報名的場次（招生中、已確定開課且尚未開始），一筆是一個場次
+  courses: Course[];
 };
 
 // 時間一律指定台灣時區顯示（CLAUDE.md 時間與時區慣例）；用 formatToParts 自己組字串，
@@ -262,24 +257,7 @@ function CourseList({ courses }: { courses: CoachProfileData["courses"] }) {
       {courses.length === 0 ? (
         <p className="text-body-small text-text-secondary">目前沒有招生中的課程</p>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {courses.map((course) => (
-            <li key={course.id}>
-              <Link
-                href={`/courses/${course.id}`}
-                className="flex flex-col gap-1.5 rounded-md border border-border-default p-4 transition hover:border-brand-blue"
-              >
-                <span className="text-body font-medium text-text-primary">{course.title}</span>
-                <span className="text-body-small text-text-secondary">
-                  {course.whenLabel}・{course.locationName}
-                </span>
-                <span className="text-body text-text-primary">
-                  NT$ {course.pricePerPerson.toLocaleString("zh-TW")} / 人
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <CoachCourseList courses={courses} />
       )}
     </Card>
   );

@@ -5,26 +5,13 @@ import {
   type CoachProfileData,
 } from "@/components/coach/coach-profile-view";
 import { parseEducation } from "@/lib/coach-application/education";
+import { listCourseCards } from "@/lib/courses/queries";
 import { parseReviewComment } from "@/lib/reviews/review-tags";
 import { topReviewTags } from "@/lib/reviews/top-review-tags";
 import { createClient } from "@/lib/supabase/server";
 
 // 評價先顯示最近 20 則；MVP 階段評價量不大，之後有需要再做分頁
 const REVIEW_LIMIT = 20;
-
-const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
-
-// 課程的日期與時間是教練填的台灣當地時間（date／time 欄位，不含時區），直接照字面顯示
-function formatCourseWhen(date: string, start: string, end: string): string {
-  const [year, month, day] = date.split("-").map(Number);
-  const weekday = WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
-  return `${month}/${day}（${weekday}）${start.slice(0, 5)}–${end.slice(0, 5)}`;
-}
-
-function todayInTaipei(): string {
-  // en-CA 的日期格式剛好是 YYYY-MM-DD
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei" }).format(new Date());
-}
 
 async function loadCoachProfile(coachId: string): Promise<CoachProfileData | null> {
   const supabase = await createClient();
@@ -51,14 +38,9 @@ async function loadCoachProfile(coachId: string): Promise<CoachProfileData | nul
       .limit(REVIEW_LIMIT),
     // 統計最常被選的評價 Tag 要看全部評價，不只畫面上顯示的那幾則
     supabase.from("reviews").select("comment").eq("coach_id", coachId),
-    supabase
-      .from("courses")
-      .select("id, title, session_date, time_range_start, time_range_end, location_name, price_per_person")
-      .eq("coach_id", coachId)
-      .eq("status", "published")
-      .eq("is_template", false)
-      .gte("session_date", todayInTaipei())
-      .order("session_date", { ascending: true }),
+    // 場次清單沿用學員端課程列表的查詢（2.0，小柔）：只含招生中、已確定開課且尚未開始的場次，
+    // 再挑出這位教練的。全站場次量變大時，再請小柔提供依教練查詢的版本
+    listCourseCards(),
   ]);
 
   // 評價者的暱稱另外查一次，對照回每則評價
@@ -99,17 +81,7 @@ async function loadCoachProfile(coachId: string): Promise<CoachProfileData | nul
         createdAt: review.created_at,
       };
     }),
-    courses: (courses.data ?? []).map((course) => ({
-      id: course.id,
-      title: course.title,
-      whenLabel: formatCourseWhen(
-        course.session_date,
-        course.time_range_start,
-        course.time_range_end
-      ),
-      locationName: course.location_name,
-      pricePerPerson: Number(course.price_per_person),
-    })),
+    courses: courses.filter((course) => course.coachId === coachId),
   };
 }
 
