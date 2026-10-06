@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { cancelRegistration } from "@/app/registrations/actions";
-import { COACH_ASSIST_REFUND_FEE_RATE, coachAssistRefundAmounts } from "@/app/registrations/_lib/cancel-rules";
+import {
+  COACH_ASSIST_REFUND_FEE_RATE,
+  LEARNER_CANCEL_WINDOW_HOURS,
+  coachAssistRefundAmounts,
+} from "@/app/registrations/_lib/cancel-rules";
 import { CloseIcon } from "./Icons";
 import type { CANCEL_OUTCOME_TEXT } from "../_lib/display";
 
@@ -83,7 +87,7 @@ export default function CancelRegistrationButton({ registrationId, outcome, amou
           </button>
         </div>
         <p className="text-body mt-3 text-(--color-text-secondary)">
-          取消後名額會釋出。已確定開課並已扣款者，開課 24 小時前取消將全額退款。
+          取消後名額會釋出。已確定開課並已扣款者，開課 {LEARNER_CANCEL_WINDOW_HOURS} 小時前取消將全額退款。
         </p>
         <dl className="text-body-small mt-4 space-y-1.5 rounded-(--radius-md) border border-(--color-border-default) p-3">
           {rows.map(([label, value]) => (
@@ -94,9 +98,9 @@ export default function CancelRegistrationButton({ registrationId, outcome, amou
           ))}
         </dl>
         <div className="text-body-small mt-3 space-y-2 rounded-(--radius-md) bg-(--color-brand-light) p-3">
-          <p>開課前 24 小時以上：可線上取消，已扣款者全額退款</p>
+          <p>開課前 {LEARNER_CANCEL_WINDOW_HOURS} 小時以上：可線上取消，已扣款者全額退款</p>
           <p>
-            開課前 24 小時內：請聯絡教練協助，將收取 {Math.round(COACH_ASSIST_REFUND_FEE_RATE * 100)}% 取消手續費（這筆報名約 {money(lateFee)}）
+            開課前 {LEARNER_CANCEL_WINDOW_HOURS} 小時內：請聯絡教練協助，將收取 {Math.round(COACH_ASSIST_REFUND_FEE_RATE * 100)}% 取消手續費（這筆報名約 {money(lateFee)}）
           </p>
           {/* 條款頁是牛牛的 #53（/terms#refund）；合併前點不開 */}
           <Link href="/terms#refund" className="block font-bold underline">
