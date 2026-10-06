@@ -5,6 +5,7 @@ import {
   formatDeadline,
   formatSessionTime,
 } from "../_lib/display";
+import { progressLabel } from "@/components/ui/status-indicator";
 import type { MyRegistrationItem } from "../_lib/my-registrations";
 import CancelRegistrationButton from "./CancelRegistrationButton";
 import StatusLine from "./StatusLine";
@@ -15,6 +16,39 @@ const PRIMARY_BUTTON =
   "text-button flex items-center justify-center rounded-full bg-(--color-brand-blue) px-5 py-2.5 text-(--color-text-inverse) hover:bg-(--color-brand-blue-pressed)";
 const TEXT_BUTTON =
   "text-button flex items-center justify-center rounded-full px-5 py-2.5 text-(--color-text-primary) hover:bg-(--color-tint-blue-100)";
+
+// 設計稿 S09 待確認開課：左「差 N 人開課」、右「報名人數 / 最低開課人數」，下面一條進度條。
+// 進度條填色以最低開課人數為 100%，達標後填滿。
+function GroupProgressBar({ item }: { item: MyRegistrationItem }) {
+  const gp = item.groupProgress;
+  if (!gp) return null;
+  const percent = Math.min(100, Math.round((gp.enrolled / gp.minParticipants) * 100));
+  return (
+    <div className="space-y-2">
+      <div className="text-body-small flex items-baseline justify-between font-bold!">
+        <span className="text-(--color-text-primary)">{progressLabel(gp.progress)}</span>
+        <span className="text-(--color-text-secondary)">
+          {gp.enrolled} / {gp.minParticipants} 人
+        </span>
+      </div>
+      <div
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={gp.minParticipants}
+        aria-valuenow={Math.min(gp.enrolled, gp.minParticipants)}
+        aria-label={`已報名 ${gp.enrolled} 人，最低開課人數 ${gp.minParticipants} 人`}
+        className="relative h-2 rounded-full bg-(--color-tint-blue-200)"
+      >
+        <div className="h-full rounded-full bg-(--color-brand-blue)" style={{ width: `${percent}%` }} />
+        <span
+          aria-hidden
+          className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border border-(--color-border-default) bg-(--color-surface-default) shadow-sm"
+          style={{ left: `${percent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 function Note({ children, tone = "plain" }: { children: React.ReactNode; tone?: "plain" | "info" }) {
   return (
@@ -32,7 +66,6 @@ function Note({ children, tone = "plain" }: { children: React.ReactNode; tone?: 
 
 // 版型依設計稿 S09：左邊縮圖、右邊標題與時間地點，下面狀態列、說明框、按鈕。
 // 狀態、取消與評價的判斷都來自資料層（item 已整理好），這裡不再自己判斷。
-// 待確認開課的「差 N 人開課」進度條需要場次報名人數與上下限，資料層沒帶，下一輪補。
 export default function MyCourseCard({ item }: { item: MyRegistrationItem }) {
   const { course, session } = item;
   const courseHref = item.unavailable
@@ -138,6 +171,7 @@ export default function MyCourseCard({ item }: { item: MyRegistrationItem }) {
       </div>
 
       <StatusLine item={item} />
+      <GroupProgressBar item={item} />
       {note}
 
       {item.category === "completed" && item.review ? (

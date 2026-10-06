@@ -4,6 +4,7 @@
 
 import { getLearnerCancelEligibility, type LearnerCancelEligibility } from "@/app/registrations/_lib/cancel-rules";
 import { formatOrderNumber } from "@/app/registrations/_lib/registration-rules";
+import { getSessionProgress, type SessionProgress } from "@/components/ui/status-indicator";
 import type { RegistrationStatus, SessionStatus } from "@/types/database";
 
 /** 畫面分成四類（13.0 AC）：待確認開課／確定開課／已取消／已完成，順序就是頁籤順序 */
@@ -85,6 +86,8 @@ export type MyRegistrationRow = {
       location_address: string;
       cover_image_url: string | null;
       coach_id: string;
+      min_participants: number;
+      max_participants: number;
     } | null;
   } | null;
 };
@@ -124,13 +127,19 @@ export type MyRegistrationItem = {
   canReview: boolean;
   /** 評價頁網址（牛牛的 5.0 頁面） */
   reviewHref: string;
+  /** 待確認開課卡片的「差 N 人開課」進度；其他分類或讀不到人數時為 null */
+  groupProgress: { enrolled: number; minParticipants: number; progress: SessionProgress } | null;
 };
+
+/** 場次目前報名人數與課程的人數上下限（待確認開課進度條用） */
+export type SessionHeadcount = { enrolled: number; minParticipants: number; maxParticipants: number };
 
 export function buildMyRegistrationItem(
   row: MyRegistrationRow,
   announcements: MyAnnouncement[],
   review: MyReview | null,
-  now: Date = new Date()
+  now: Date = new Date(),
+  headcount: SessionHeadcount | null = null
 ): MyRegistrationItem {
   const session = row.session;
   const course = session?.course ?? null;
@@ -172,6 +181,10 @@ export function buildMyRegistrationItem(
     review,
     canReview: row.status === "completed" && !review && !!course,
     reviewHref: course ? `/courses/${course.id}/review` : "",
+    groupProgress:
+      category === "pending" && headcount
+        ? { enrolled: headcount.enrolled, minParticipants: headcount.minParticipants, progress: getSessionProgress(headcount) }
+        : null,
   };
 }
 
