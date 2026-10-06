@@ -51,7 +51,7 @@ export function CoverPicker({ value, sportType, onChange, onUploadingChange, err
       <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100">
         <img src={preview} alt="課程封面預覽" className="h-full w-full object-cover" />
         <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold text-white">
-          {value === "" ? "預設圖" : isUploaded ? "自行上傳" : "圖庫"}
+          {value === "" ? "系統預設" : isUploaded ? "自行上傳" : "圖庫圖片"}
         </span>
       </div>
 
