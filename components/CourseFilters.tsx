@@ -1,19 +1,19 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import DateField from "@/components/DateField";
 import FilterPill from "@/components/FilterPill";
 import {
   filtersToQuery,
   hasActiveFilters,
   isDateRangeInvalid,
-  isTimeRangeInvalid,
   type CourseFilters as Filters,
 } from "@/lib/courses/filterCourses";
 import type { SortMode } from "@/lib/courses/sort";
 import {
   FILTER_LEVELS,
   LEVEL_LABELS,
-  PRICE_RANGES,
   SPORT_CHIP_ORDER,
   TIME_SLOT_LABELS,
   type TimeSlot,
@@ -29,30 +29,6 @@ interface Props {
   sort: SortMode;
 }
 
-// 星期與快速時段的顯示文字（下拉按鈕和「已套用條件」標籤共用）
-function weekdaysLabel(weekdays: number[] | undefined) {
-  if (!weekdays?.length) return undefined;
-  const [first, ...rest] = weekdays;
-  return `星期${WEEKDAY_LABELS[first]}${rest.map((day) => `＋${WEEKDAY_LABELS[day]}`).join("")}`;
-}
-
-function slotsLabel(slots: TimeSlot[] | undefined) {
-  if (!slots?.length) return undefined;
-  return slots.map((slot) => TIME_SLOT_LABELS[slot].split("（")[0]).join("＋");
-}
-
-// 指定時間的下拉選項：每 30 分鐘一個；網址帶了不在清單內的時間時，補進去才不會顯示成空白
-function timeOptions(current: string | undefined) {
-  const options = Array.from({ length: 48 }, (_, i) => {
-    const h = String(Math.floor(i / 2)).padStart(2, "0");
-    return `${h}:${i % 2 ? "30" : "00"}`;
-  });
-  if (current && !options.includes(current)) {
-    options.push(current);
-    options.sort();
-  }
-  return options;
-}
 
 // 面板裡的一個選項（單選用 radio、複選用 checkbox）
 function PanelOption({
@@ -69,45 +45,95 @@ function PanelOption({
   children: React.ReactNode;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-normal text-neutral-800 hover:bg-neutral-50">
+    <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-normal text-(--color-text-primary) hover:bg-(--color-surface-subtle)">
       <input
         type={type}
         name={name}
         checked={checked}
         onChange={onChange}
-        className="h-4 w-4 accent-teal-600"
+        className="h-4 w-4 accent-(--color-brand-blue)"
       />
       {children}
     </label>
   );
 }
 
-// 「2026-10-20」→「10/20」
-function shortDate(date: string) {
-  return `${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}`;
+// 最低、最高價輸入框。打字時只改本地的草稿，離開輸入框或按 Enter 才更新網址，
+// 否則每打一個字就會重新查詢、輸入框也會失去焦點。
+// 草稿存純數字，顯示時超過 3 位數自動加千分位（1000 → 1,000，QA）；最多 7 位（9,999,999）。
+function formatThousands(digits: string) {
+  return digits === "" ? "" : Number(digits).toLocaleString("en-US");
 }
 
-// 點「已套用條件」的標籤時，打開對應的膠囊面板並把焦點放上去
-function openPill(id: string) {
-  const summary = document.getElementById(id);
-  const details = summary?.closest("details");
-  if (details) details.open = true;
-  summary?.scrollIntoView({ block: "center", behavior: "smooth" });
-  summary?.focus({ preventScroll: true });
+function PriceInputs({
+  min,
+  max,
+  onCommit,
+}: {
+  min: number | undefined;
+  max: number | undefined;
+  onCommit: (min: number | undefined, max: number | undefined) => void;
+}) {
+  const [draftMin, setDraftMin] = useState(min?.toString() ?? "");
+  const [draftMax, setDraftMax] = useState(max?.toString() ?? "");
+
+  // 只收數字；空白代表不設限
+  function toPrice(text: string) {
+    return /^\d+$/.test(text) ? Number(text) : undefined;
+  }
+  function commit() {
+    const nextMin = toPrice(draftMin);
+    const nextMax = toPrice(draftMax);
+    if (nextMin !== min || nextMax !== max) onCommit(nextMin, nextMax);
+  }
+  function commitOnEnter(e: React.KeyboardEvent) {
+    if (e.key === "Enter") commit();
+  }
+  const digitsOf = (text: string) => text.replace(/\D/g, "").slice(0, 7);
+  const inputClass =
+    "mt-1 w-full rounded-xl border border-(--color-border-default) bg-(--color-surface-default) px-3 py-1.5 font-normal placeholder:text-(--color-text-secondary)";
+
+  // 版面參考日期面板（QA）：由上到下 最低價（標題）→ 輸入欄（提示字「最低價」）→ 最高價（標題）→ 輸入欄（提示字「最高價」），
+  // 不放最上層的「價格區間（NT$）」標題
+  return (
+    <div className="space-y-2 text-sm">
+      <label className="block font-medium">
+        最低價
+        <input
+          id="filter-price-min"
+          type="text"
+          inputMode="numeric"
+          placeholder="最低價"
+          value={formatThousands(draftMin)}
+          onChange={(e) => setDraftMin(digitsOf(e.target.value))}
+          onBlur={commit}
+          onKeyDown={commitOnEnter}
+          className={inputClass}
+        />
+      </label>
+      <label className="block font-medium">
+        最高價
+        <input
+          id="filter-price-max"
+          type="text"
+          inputMode="numeric"
+          placeholder="最高價"
+          value={formatThousands(draftMax)}
+          onChange={(e) => setDraftMax(digitsOf(e.target.value))}
+          onBlur={commit}
+          onKeyDown={commitOnEnter}
+          className={inputClass}
+        />
+      </label>
+    </div>
+  );
 }
 
-interface AppliedTag {
-  key: string;
-  label: string;
-  jumpTo: () => void;
-  remove: () => void;
-}
-
-// 點「已套用條件」的標籤時，捲到對應的篩選器並把焦點放上去
-function focusControl(selector: string) {
-  const el = document.querySelector<HTMLElement>(selector);
-  el?.scrollIntoView({ block: "center", behavior: "smooth" });
-  el?.focus({ preventScroll: true });
+// 日期欄位鎖住今天以前的日子（QA）；用台灣時區的今天，格式 YYYY-MM-DD
+function todayTaipei() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei" }).format(
+    new Date(),
+  );
 }
 
 // 篩選用的 Chip：原生 radio／checkbox 加樣式，單選、複選與鍵盤操作都不用另外寫。
@@ -119,6 +145,7 @@ function Chip({
   checked,
   onChange,
   title,
+  large,
   children,
 }: {
   type: "radio" | "checkbox";
@@ -127,10 +154,15 @@ function Chip({
   checked: boolean;
   onChange: () => void;
   title?: string;
+  // 桌面版字放大並平均撐滿整排（運動種類晶片用）；手機維持原尺寸
+  large?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <label className="relative shrink-0 cursor-pointer" title={title}>
+    <label
+      className={`relative shrink-0 cursor-pointer${large ? " md:flex-1" : ""}`}
+      title={title}
+    >
       <input
         type={type}
         name={name}
@@ -139,7 +171,7 @@ function Chip({
         onChange={onChange}
         className="peer sr-only"
       />
-      <span className="block whitespace-nowrap rounded-full border border-neutral-300 bg-white px-4 py-1.5 text-sm font-medium text-neutral-700 transition peer-checked:border-teal-600 peer-checked:bg-teal-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-teal-600 peer-focus-visible:ring-offset-2 hover:border-teal-400">
+      <span className={`block whitespace-nowrap rounded-full border border-(--color-border-default) bg-(--color-surface-default) px-4 py-1.5 text-sm font-medium${large ? " md:px-4 md:py-1.5 md:text-center md:text-base" : ""} text-(--color-text-primary) transition peer-checked:border-(--color-brand-blue) peer-checked:bg-(--color-tint-blue-100) peer-checked:font-bold peer-focus-visible:ring-2 peer-focus-visible:ring-(--color-brand-blue) peer-focus-visible:ring-offset-2 hover:border-(--color-brand-blue)`}>
         {children}
       </span>
     </label>
@@ -168,101 +200,14 @@ export default function CourseFilters({
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   }
 
-  // 已套用條件：每個條件一個標籤，點標籤跳到對應的篩選器修改，點 ✕ 移除。
-  // 地點標籤移除時先清行政區，再按一次才清縣市。
-  const appliedTags: AppliedTag[] = [];
-  if (value.sport) {
-    appliedTags.push({
-      key: "sport",
-      label: value.sport,
-      jumpTo: () => focusControl('input[name="sport"]:checked'),
-      remove: () => navigate({ ...value, sport: undefined }),
-    });
-  }
-  if (value.city) {
-    appliedTags.push({
-      key: "city",
-      label: value.district ? `${value.city}・${value.district}` : value.city,
-      jumpTo: () => openPill("filter-region"),
-      remove: () =>
-        navigate(
-          value.district
-            ? { ...value, district: undefined }
-            : { ...value, city: undefined },
-        ),
-    });
-  }
-  const dateApplied = (value.date || value.dateTo) && !isDateRangeInvalid(value);
-  if (dateApplied) {
-    appliedTags.push({
-      key: "date",
-      label:
-        value.date && value.dateTo
-          ? `${shortDate(value.date)}–${shortDate(value.dateTo)}`
-          : value.date
-            ? shortDate(value.date)
-            : `${shortDate(value.dateTo!)} 之前`,
-      jumpTo: () => openPill("filter-date"),
-      remove: () => navigate({ ...value, date: undefined, dateTo: undefined }),
-    });
-  }
-  if (value.weekdays?.length) {
-    appliedTags.push({
-      key: "weekdays",
-      label: weekdaysLabel(value.weekdays) ?? "",
-      jumpTo: () => openPill("filter-weekdays"),
-      remove: () => navigate({ ...value, weekdays: undefined }),
-    });
-  }
-  const customTimeApplied =
-    (value.timeFrom || value.timeTo) && !isTimeRangeInvalid(value);
-  if (value.timeSlots?.length) {
-    appliedTags.push({
-      key: "slots",
-      label: slotsLabel(value.timeSlots) ?? "",
-      jumpTo: () => openPill("filter-slots"),
-      remove: () => navigate({ ...value, timeSlots: undefined }),
-    });
-  } else if (customTimeApplied) {
-    appliedTags.push({
-      key: "time",
-      label:
-        value.timeFrom && value.timeTo
-          ? `${value.timeFrom}–${value.timeTo}`
-          : value.timeFrom
-            ? `${value.timeFrom} 之後`
-            : `${value.timeTo} 之前`,
-      jumpTo: () => openPill("filter-time"),
-      remove: () =>
-        navigate({ ...value, timeFrom: undefined, timeTo: undefined }),
-    });
-  }
-  if (value.priceRange) {
-    const range = PRICE_RANGES.find((r) => r.id === value.priceRange);
-    if (range) {
-      appliedTags.push({
-        key: "price",
-        label: range.label,
-        jumpTo: () => openPill("filter-price"),
-        remove: () => navigate({ ...value, priceRange: undefined }),
-      });
-    }
-  }
-  if (value.level) {
-    appliedTags.push({
-      key: "level",
-      label: LEVEL_LABELS[value.level],
-      jumpTo: () => openPill("filter-level"),
-      remove: () => navigate({ ...value, level: undefined }),
-    });
-  }
   return (
-    <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-4">
+    <div className="space-y-3 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-4">
       {/* 運動種類是最高層級的搜尋條件：單選 Chips 放在其他篩選上面。
           桌面直接展開；手機單列橫向捲動，不縮小字級。用原生 radio，單選與方向鍵切換都不用自己寫 */}
       {/* fieldset 預設的最小寬度是內容寬度，不加 min-w-0 的話手機上整頁會被晶片列撐寬 */}
       <fieldset className="min-w-0">
-        <legend className="mb-2 text-sm font-medium">運動種類</legend>
+        {/* 畫面上不顯示標題（QA），保留給螢幕報讀器 */}
+        <legend className="sr-only">運動種類</legend>
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0">
           {[
             { value: "", label: "全部" },
@@ -272,6 +217,7 @@ export default function CourseFilters({
               key={chip.value || "all"}
               type="radio"
               name="sport"
+              large
               value={chip.value}
               checked={(value.sport ?? "") === chip.value}
               onChange={() =>
@@ -284,8 +230,14 @@ export default function CourseFilters({
         </div>
       </fieldset>
 
-      {/* 第二排：膠囊下拉（地區、日期、星期、時段、程度、指定時段、價格區間），點開是面板 */}
-      <div className="flex flex-wrap gap-2" role="group" aria-label="篩選條件">
+      {/* 第二排：膠囊下拉（地區、日期、星期、時段、程度、價格），點開是面板 */}
+      {/* 手機單列橫向捲動（和運動晶片一致）。面板在手機是 fixed 定位，不會被捲動容器裁掉；
+          sm 以上面板是 absolute，所以桌面維持換行 */}
+      <div
+        className="flex gap-2 max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4 max-sm:pb-1 sm:flex-wrap"
+        role="group"
+        aria-label="篩選條件"
+      >
         <FilterPill
           id="filter-region"
           label="地區"
@@ -298,7 +250,7 @@ export default function CourseFilters({
           {/* 縣市有 22 個、行政區最多將近 30 個，各欄自己捲動，面板不會變得很長 */}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="max-h-64 overflow-y-auto">
-              <p className="px-2 pb-1 text-xs font-semibold text-neutral-500">縣市</p>
+              <p className="px-2 pb-1 text-xs font-semibold text-(--color-text-secondary)">縣市</p>
               <PanelOption
                 type="radio"
                 name="region-city"
@@ -325,7 +277,7 @@ export default function CourseFilters({
               ))}
             </div>
             <div className="max-h-64 overflow-y-auto">
-              <p className="px-2 pb-1 text-xs font-semibold text-neutral-500">行政區</p>
+              <p className="px-2 pb-1 text-xs font-semibold text-(--color-text-secondary)">行政區</p>
               {value.city ? (
                 <>
                   <PanelOption
@@ -349,7 +301,7 @@ export default function CourseFilters({
                   ))}
                 </>
               ) : (
-                <p className="px-2 py-1.5 text-sm text-neutral-400">請先選縣市</p>
+                <p className="px-2 py-1.5 text-sm text-(--color-text-secondary)">請先選縣市</p>
               )}
             </div>
           </div>
@@ -363,29 +315,27 @@ export default function CourseFilters({
         >
           <div className="space-y-2 text-sm">
             <label className="block font-medium">
-              日期
-              <input
-                type="date"
-                value={value.date ?? ""}
-                onChange={(e) =>
-                  navigate({ ...value, date: e.target.value || undefined })
-                }
-                className="mt-1 w-full rounded-xl border border-neutral-300 bg-white px-3 py-1.5 font-normal"
+              開始日期
+              <DateField
+                key={`from-${value.date ?? ""}`}
+                id="filter-date-from"
+                value={value.date}
+                min={todayTaipei()}
+                onCommit={(date) => navigate({ ...value, date })}
               />
             </label>
             <label className="block font-medium">
-              到（選填，填了就是日期區間）
-              <input
-                type="date"
-                value={value.dateTo ?? ""}
-                onChange={(e) =>
-                  navigate({ ...value, dateTo: e.target.value || undefined })
-                }
-                className="mt-1 w-full rounded-xl border border-neutral-300 bg-white px-3 py-1.5 font-normal"
+              結束日期（選填）
+              <DateField
+                key={`to-${value.dateTo ?? ""}`}
+                id="filter-date-to"
+                value={value.dateTo}
+                min={value.date || todayTaipei()}
+                onCommit={(dateTo) => navigate({ ...value, dateTo })}
               />
             </label>
             {isDateRangeInvalid(value) && (
-              <p className="text-xs text-orange-600">
+              <p className="text-xs text-(--color-state-error-text)">
                 結束日期要晚於開始日期，目前沒有套用日期。
               </p>
             )}
@@ -413,7 +363,8 @@ export default function CourseFilters({
           ))}
         </FilterPill>
 
-        {/* 時段有兩種方式，擇一使用：這裡的快速時段（可複選，OR），或「指定時段」的開始／結束時間 */}
+        {/* 快速時段（可複選，OR）。「指定時段」依 QA 回饋先拿掉（和快速時段擇一、互相清除，操作很怪）；
+            篩選邏輯與網址參數（from／to）仍保留在 lib，之後要補回來只需加回這個面板 */}
         <FilterPill
           id="filter-slots"
           label="時段"
@@ -460,124 +411,33 @@ export default function CourseFilters({
         </FilterPill>
 
         <FilterPill
-          id="filter-time"
-          label="指定時段"
-          active={Boolean(value.timeFrom || value.timeTo)}
+          id="filter-price"
+          label="價格"
+          doneLabel="套用"
+          active={value.priceMin !== undefined || value.priceMax !== undefined}
           onClear={() =>
-            navigate({ ...value, timeFrom: undefined, timeTo: undefined })
+            navigate({ ...value, priceMin: undefined, priceMax: undefined })
           }
         >
-          <div className="space-y-2 text-sm">
-            <label className="block font-medium">
-              開始時間
-              <select
-                id="filter-time-from"
-                value={value.timeFrom ?? ""}
-                onChange={(e) =>
-                  navigate({
-                    ...value,
-                    timeFrom: e.target.value || undefined,
-                    timeSlots: undefined,
-                  })
-                }
-                className="mt-1 w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 font-normal"
-              >
-                <option value="">不限</option>
-                {timeOptions(value.timeFrom).map((time) => (
-                  <option key={time} value={time}>
-                    {time}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block font-medium">
-              結束時間
-              <select
-                id="filter-time-to"
-                value={value.timeTo ?? ""}
-                onChange={(e) =>
-                  navigate({
-                    ...value,
-                    timeTo: e.target.value || undefined,
-                    timeSlots: undefined,
-                  })
-                }
-                className="mt-1 w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 font-normal"
-              >
-                <option value="">不限</option>
-                {timeOptions(value.timeTo).map((time) => (
-                  <option key={time} value={time}>
-                    {time}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {isTimeRangeInvalid(value) && (
-              <p className="text-xs text-orange-600">
-                結束時間要晚於開始時間，目前沒有套用指定時段。
-              </p>
-            )}
-          </div>
-        </FilterPill>
-
-        <FilterPill
-          id="filter-price"
-          label="價格區間"
-          active={Boolean(value.priceRange)}
-          onClear={() => navigate({ ...value, priceRange: undefined })}
-        >
-          {PRICE_RANGES.map((range) => (
-            <PanelOption
-              key={range.id}
-              type="radio"
-              name="price"
-              checked={value.priceRange === range.id}
-              onChange={() => navigate({ ...value, priceRange: range.id })}
-            >
-              {range.label}
-            </PanelOption>
-          ))}
+          {/* 換條件或清除後網址的值會變，用 key 讓輸入框跟著重設 */}
+          <PriceInputs
+            key={`${value.priceMin ?? ""}-${value.priceMax ?? ""}`}
+            min={value.priceMin}
+            max={value.priceMax}
+            onCommit={(priceMin, priceMax) =>
+              navigate({ ...value, priceMin, priceMax })
+            }
+          />
         </FilterPill>
       </div>
 
-      {appliedTags.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3 text-sm">
-          <span className="font-medium text-neutral-700">已套用條件</span>
-          <ul className="flex flex-wrap gap-2">
-            {appliedTags.map((tag) => (
-              <li
-                key={tag.key}
-                className="inline-flex items-center rounded-full border border-teal-200 bg-teal-50 text-teal-800"
-              >
-                <button
-                  type="button"
-                  onClick={tag.jumpTo}
-                  aria-label={`修改條件：${tag.label}`}
-                  className="rounded-l-full py-1 pl-3 pr-1.5 hover:underline"
-                >
-                  {tag.label}
-                </button>
-                <button
-                  type="button"
-                  onClick={tag.remove}
-                  aria-label={`移除條件：${tag.label}`}
-                  className="rounded-r-full py-1 pl-1 pr-2.5 text-teal-600 hover:text-teal-900"
-                >
-                  <span aria-hidden="true">✕</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {/* 程度的面板裡沒有一次清掉全部的按鈕，所以有任何條件時都要能一次清掉 */}
       {hasActiveFilters(value) && (
-        <div className="flex border-t border-neutral-100 pt-3 text-sm">
+        <div className="flex border-t border-(--color-border-default) pt-3 text-sm">
           <button
             type="button"
             onClick={() => router.replace(pathname, { scroll: false })}
-            className="ml-auto text-neutral-500 underline hover:text-neutral-800"
+            className="ml-auto text-(--color-text-secondary) underline hover:text-(--color-text-primary)"
           >
             清除所有篩選
           </button>
