@@ -1,5 +1,5 @@
 import Link from "next/link";
-import CourseCard from "@/components/CourseCard";
+import CourseGrid from "@/components/CourseGrid";
 import CourseFilters from "@/components/CourseFilters";
 import SortSelect from "@/components/SortSelect";
 import { filterCourses, parseFilters } from "@/lib/courses/filterCourses";
@@ -37,11 +37,8 @@ export default async function CoursesPage({
   const courses = sortCourses(filterCourses(allCourses, filters), sort);
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
-      <h1 className="text-2xl font-semibold">搜尋與篩選課程</h1>
-      <p className="mt-1 text-sm text-neutral-500">
-        根據你的時間、地點與運動程度找到適合的課程
-      </p>
+    <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
+      <h1 className="text-h1">課程搜尋結果</h1>
 
       <div className="mt-6">
         <CourseFilters
@@ -53,27 +50,24 @@ export default async function CoursesPage({
       </div>
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-neutral-500">共找到 {courses.length} 個課程</p>
+        <p className="text-sm text-(--color-text-secondary)">共 {courses.length} 堂課程</p>
         <SortSelect filters={filters} sort={sort} />
       </div>
       {courses.length === 0 ? (
-        <div className="mt-3 flex flex-col items-center gap-4 rounded-2xl border border-dashed border-neutral-300 px-4 py-16 text-center">
+        <div className="mt-3 flex flex-col items-center gap-4 rounded-(--radius-lg) border border-dashed border-(--color-border-default) px-4 py-16 text-center">
           <p className="text-lg font-medium">
-            附近目前暫無符合課程，試試擴大搜尋範圍或切換時段
+            目前沒有符合條件的課程，試試其他日期或地區
           </p>
           <Link
             href="/courses"
-            className="rounded-full bg-teal-600 px-5 py-2 text-sm font-medium text-white hover:bg-teal-700"
+            className="rounded-full bg-(--color-brand-blue) px-5 py-2 text-sm font-bold text-(--color-text-inverse) hover:bg-(--color-brand-blue-pressed)"
           >
             清除所有篩選
           </Link>
         </div>
       ) : (
-        <div className="mt-3 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {courses.map((course) => (
-            <CourseCard key={course.id} course={course} />
-          ))}
-        </div>
+        // 篩選或排序改變就換 key，「載入更多」回到第一批
+        <CourseGrid key={JSON.stringify(params)} courses={courses} />
       )}
     </main>
   );

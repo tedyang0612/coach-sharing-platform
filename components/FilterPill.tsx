@@ -9,6 +9,8 @@ interface Props {
   active: boolean;
   // 面板寬一點（例如「地區」要放兩欄）
   wide?: boolean;
+  // 右下角主按鈕的文字（價格面板依設計稿是「套用」，其他面板是「完成」）
+  doneLabel?: string;
   onClear?: () => void;
   children: React.ReactNode;
 }
@@ -21,6 +23,7 @@ export default function FilterPill({
   label,
   active,
   wide = false,
+  doneLabel = "完成",
   onClear,
   children,
 }: Props) {
@@ -48,13 +51,13 @@ export default function FilterPill({
   }, []);
 
   return (
-    <details ref={ref} className="relative">
+    <details ref={ref} className="relative shrink-0">
       <summary
         id={id}
         className={`flex cursor-pointer list-none items-center gap-2 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium transition [&::-webkit-details-marker]:hidden ${
           active
-            ? "border-teal-600 bg-teal-50 text-teal-800"
-            : "border-neutral-300 bg-white text-neutral-700 hover:border-teal-400"
+            ? "border-(--color-brand-blue) bg-(--color-tint-blue-100) text-(--color-text-primary) font-bold"
+            : "border-(--color-border-default) bg-(--color-surface-default) text-(--color-text-primary) hover:border-(--color-brand-blue)"
         }`}
       >
         {label}
@@ -76,17 +79,17 @@ export default function FilterPill({
         </svg>
       </summary>
       <div
-        className={`z-30 rounded-2xl border border-neutral-200 bg-white p-3 shadow-lg max-sm:fixed max-sm:inset-x-3 max-sm:bottom-3 max-sm:max-h-[70vh] max-sm:overflow-y-auto sm:absolute sm:left-0 sm:top-full sm:mt-2 ${
+        className={`z-30 rounded-2xl border border-(--color-border-default) bg-(--color-surface-default) p-3 shadow-lg max-sm:fixed max-sm:inset-x-3 max-sm:bottom-3 max-sm:max-h-[70vh] max-sm:overflow-y-auto sm:absolute sm:left-0 sm:top-full sm:mt-2 ${
           wide ? "sm:w-[26rem]" : "sm:w-64"
         }`}
       >
         {children}
-        <div className="mt-2 flex items-center justify-between border-t border-neutral-100 pt-2 text-sm">
+        <div className="mt-2 flex items-center justify-between border-t border-(--color-border-default) pt-2 text-sm">
           {onClear ? (
             <button
               type="button"
               onClick={onClear}
-              className="text-neutral-500 underline hover:text-neutral-800"
+              className="text-(--color-text-secondary) underline hover:text-(--color-text-primary)"
             >
               清除
             </button>
@@ -98,9 +101,9 @@ export default function FilterPill({
             onClick={() => {
               if (ref.current) ref.current.open = false;
             }}
-            className="rounded-full bg-teal-600 px-4 py-1 font-medium text-white hover:bg-teal-700"
+            className="rounded-full bg-(--color-brand-blue) px-4 py-1 font-bold text-(--color-text-inverse) hover:bg-(--color-brand-blue-pressed)"
           >
-            完成
+            {doneLabel}
           </button>
         </div>
       </div>
