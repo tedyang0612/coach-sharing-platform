@@ -91,6 +91,13 @@ export default async function CourseDetailPage({
   });
 
   const dateText = formatSession(chosen.startsAt, chosen.endsAt);
+  // 場次已取消時顯示取消原因（「未達人數取消」不再當成一種狀態，而是「已取消」加原因）
+  const cancelReason =
+    chosen.rawStatus === "cancelled_unmatched"
+      ? "未達人數"
+      : chosen.rawStatus === "cancelled_by_coach"
+        ? "教練取消"
+        : undefined;
 
   return (
     <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-6 px-(--spacing-screen-padding) pb-32 pt-4 lg:pb-12 lg:pt-8">
@@ -105,6 +112,7 @@ export default async function CourseDetailPage({
       <CourseStatusNotice
         availability={availability}
         coachProfileHref={`/coaches/${course.coachId}`}
+        cancelReason={cancelReason}
       />
 
       {/* 英雄區：桌機左邊封面（約 63%）右邊資訊卡；手機封面滿版、資訊在下面 */}

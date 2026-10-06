@@ -22,6 +22,8 @@ const MESSAGES: Record<
 interface Props {
   availability: CourseAvailability;
   coachProfileHref?: string;
+  // 已取消時的原因（PRD v4.8（最新版）：未達人數取消併入「已取消」，用取消原因區分：未達人數／教練取消／平台取消）
+  cancelReason?: string;
 }
 
 // 招生中不顯示任何東西；其他狀態顯示提示，並引導到教練檔案。
@@ -29,6 +31,7 @@ interface Props {
 export default function CourseStatusNotice({
   availability,
   coachProfileHref,
+  cancelReason,
 }: Props) {
   if (availability === "open") return null;
   const { title, detail } = MESSAGES[availability];
@@ -40,6 +43,11 @@ export default function CourseStatusNotice({
     >
       <p className="text-h3">{title}</p>
       <p className="mt-1 text-body-small text-(--color-text-secondary)">{detail}</p>
+      {availability === "cancelled" && cancelReason && (
+        <p className="mt-1 text-body-small font-bold! text-(--color-text-primary)">
+          取消原因：{cancelReason}
+        </p>
+      )}
       {coachProfileHref && (
         <Link
           href={coachProfileHref}
