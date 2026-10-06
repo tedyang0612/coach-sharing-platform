@@ -21,7 +21,7 @@ export type RegistrationStatus =
   | "confirmed" // 訂單成立
   | "cancelled" // 已取消（未扣款）
   | "refunded" // 已退款（全額）
-  | "partial_refunded" // 部分退款（扣30%手續費）
+  | "partial_refunded" // 部分退款（24 小時內退 50%，手續費 50%：教練 25%、平台 25%）
   | "completed"; // 課程完成
 
 // MVP 運動種類（PRD v4.2：共八種，開課運動項目與學員篩選皆以此為限）
@@ -162,6 +162,7 @@ export interface Registration {
   cancelled_at: string | null;
   refund_amount: number | null;
   refund_fee_amount: number | null;
+  coach_compensation_amount: number | null; // 24 小時內取消時教練分得的 25%（20261005000040）
   payout_id: string | null;
   created_at: string;
 }
@@ -203,6 +204,7 @@ export interface Payout {
   period_end: string;
   gross_amount: number;
   platform_fee_amount: number;
+  compensation_amount: number; // 取消補償合計（20261005000040）；net = gross − fee + compensation
   net_amount: number;
   payout_date: string;
   created_at: string;
