@@ -72,7 +72,8 @@
 
 - 分支命名：`feat/<姓名縮寫>-<任務編號>-<簡短說明>`，例如 `feat/ted-00-schema-auth`。
 - **每個模組請開獨立分支與獨立 PR**，不要像 8.0 模組一樣因為忘記切分支而併進別的任務分支（這是已知的一次性疏失，不要重複發生）。
-- `main` 只有 Ted 有寫入權限，其他人透過 PR + Vercel Preview Deployment 驗證。
+- `main` 受分支保護：合併需要 1 位核准，且動到共用檔案（見 `.github/CODEOWNERS`）的 PR 還需要 Ted 的 code owner 核准。合併前請先在群組貼「我要合併 #X」，由 Ted 確認。其他人透過 PR + Vercel Preview Deployment 驗證。
+- **疊層 PR（上層分支建在別的 PR 上）**：下層 PR 合併後，上層 PR 要先把 base 改成 `main`（`gh pr edit <N> --base main`）再合併，避免把整串分支一起帶進 main。
 - **共用檔案要先在群組說一聲再動**：`types/`、`lib/supabase/`、`app/layout.tsx`、`app/globals.css`、`package.json`、`.env`、lock 檔。這些檔案每個人的分支都可能碰到，各自改很容易衝突。不在自己模組路徑（例如 Ted 的 `app/courses/`、`app/coach/courses/`）內的檔案，也請先問。
 - Repo 目前是 Public（Vercel Hobby 方案的多人協作在 Private repo 會被擋，所以設為 Public），寫 code 時留意不要把任何密鑰（`service_role` key 等）寫進程式碼或 commit 訊息。
 
