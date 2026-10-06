@@ -4,8 +4,8 @@ import {
   REGISTRATION_BUTTON_LABELS,
   type RegistrationState,
 } from "@/app/registrations/_lib/registration-rules";
+import { registerHref } from "@/app/registrations/_lib/routes";
 import { loginHref } from "@/lib/courses/loginHref";
-import { registerHref } from "@/lib/courses/registerHref";
 
 const BUTTON_CLASS =
   "text-button rounded-full bg-(--color-brand-blue) px-5 py-2 text-(--color-text-inverse) transition hover:bg-(--color-brand-blue-pressed) disabled:cursor-not-allowed disabled:bg-(--color-state-disabled-bg) disabled:text-(--color-state-disabled-text)";
@@ -45,19 +45,11 @@ export default function SessionRegisterButton({
   }
 
   if (state.kind === "can_register") {
-    const href = registerHref(courseId, sessionId);
-    if (href) {
-      return (
-        <Link href={href} className={buttonClass}>
-          {REGISTRATION_BUTTON_LABELS.can_register}
-        </Link>
-      );
-    }
-    // 報名流程畫面還沒有，先保持可按的樣子、沒有動作
+    // 報名流程（健康聲明 → 結帳 → 成功頁）的入口由 Ted 的 routes.ts 提供，不自己組網址
     return (
-      <button type="button" className={buttonClass}>
+      <Link href={registerHref(sessionId)} className={buttonClass}>
         {REGISTRATION_BUTTON_LABELS.can_register}
-      </button>
+      </Link>
     );
   }
 
