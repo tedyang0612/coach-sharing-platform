@@ -176,7 +176,8 @@ export function buildMyRegistrationItem(
       coachId: course?.coach_id ?? null,
     },
     cancel,
-    cancelButton: cancelButtonMode(cancel),
+    // 課程已經結束就不再引導「聯絡教練協助」（教練協助退款只限課程還沒結束，見 getCoachAssistRefundEligibility）
+    cancelButton: session && cancelButtonMode(cancel) === "contact_coach" && new Date(session.end_at) <= now ? "hide" : cancelButtonMode(cancel),
     announcements: category === "cancelled" ? [] : [...announcements].sort((a, b) => b.sent_at.localeCompare(a.sent_at)),
     review,
     canReview: row.status === "completed" && !review && !!course,

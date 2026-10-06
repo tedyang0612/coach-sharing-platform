@@ -107,6 +107,7 @@ export default function MyCourseCard({ item }: { item: MyRegistrationItem }) {
         key="cancel"
         registrationId={item.registrationId}
         outcome={item.cancel.outcome}
+        amount={item.amount}
         className={OUTLINE_BUTTON}
       />,
     );
