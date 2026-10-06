@@ -1,51 +1,62 @@
-const ICON_SIZES = {
+const ICON_HEIGHTS = {
   // sm：課程卡片上、教練名字旁；md：教練個人檔案標題旁
-  sm: 20,
-  md: 26,
+  sm: 22,
+  md: 30,
 } as const;
-
-// 獎章外圈的花邊：12 個小圓繞一圈
-const PETALS = Array.from({ length: 12 }, (_, index) => {
-  const angle = (index * Math.PI) / 6;
-  return {
-    cx: (12 + 7.2 * Math.cos(angle)).toFixed(2),
-    cy: (9.5 + 7.2 * Math.sin(angle)).toFixed(2),
-  };
-});
 
 /**
  * 「已認證」徽章（PRD 4.0 規格 4）：教練只要有一張證照審核通過就顯示。
- * 依 UI 討論只顯示獎章圖示、不放文字；滑鼠停在上面會顯示「認證教練」，
- * 螢幕報讀器會讀出「已認證教練」。圖示是自行繪製的 SVG，沒有使用外部圖庫素材。
+ * 圖形是設計稿的認證勳章（design/assets/icons/verified-badge.svg，44×54）：
+ * 天空藍星形＋白描邊＋螢光綠勾與絲帶；顏色用品牌色 token，不隨文字色改變。
+ * 依 UI 討論只顯示圖示、不放文字；滑鼠停在上面會顯示「認證教練」，螢幕報讀器會讀出「已認證教練」。
  * 要不要顯示由呼叫端決定，例如：{coach.is_verified && <VerifiedBadge />}
  */
-export function VerifiedBadge({ size = "sm" }: { size?: keyof typeof ICON_SIZES }) {
-  const iconSize = ICON_SIZES[size];
+export function VerifiedBadge({ size = "sm" }: { size?: keyof typeof ICON_HEIGHTS }) {
+  const height = ICON_HEIGHTS[size];
+  const width = Math.round((height * 44) / 54);
   return (
     <span title="認證教練" className="inline-flex shrink-0 items-center">
-      <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" role="img" aria-label="已認證教練">
-        {/* 緞帶 */}
-        <path d="M8.2 13.5 4.6 21.6l3.1-.5 1.6 2.6 3-7.2z" className="fill-sky-500" />
-        <path d="m15.8 13.5 3.6 8.1-3.1-.5-1.6 2.6-3-7.2z" className="fill-sky-500" />
-        {/* 花邊與獎章 */}
-        {PETALS.map((petal) => (
-          <circle
-            key={`${petal.cx}-${petal.cy}`}
-            cx={petal.cx}
-            cy={petal.cy}
-            r="2.1"
-            className="fill-amber-400"
-          />
-        ))}
-        <circle cx="12" cy="9.5" r="7.4" className="fill-amber-400" />
-        <circle cx="12" cy="9.5" r="5.4" className="fill-amber-300" />
+      <svg
+        width={width}
+        height={height}
+        viewBox="0 0 44 54"
+        fill="none"
+        role="img"
+        aria-label="已認證教練"
+      >
+        {/* 絲帶 */}
+        <line
+          x1="14.9095"
+          y1="35.5158"
+          x2="11.5158"
+          y2="49.0905"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          className="stroke-brand-lime"
+        />
+        <line
+          x1="31.5158"
+          y1="34.9095"
+          x2="34.9095"
+          y2="48.4842"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          className="stroke-brand-lime"
+        />
+        {/* 星形勳章 */}
         <path
-          d="m9.4 9.7 1.9 1.9 3.4-3.7"
-          fill="none"
-          strokeWidth="1.9"
+          d="M26.5791 4.8125C26.7627 4.95479 26.9904 5.02865 27.2227 5.02148L33.0117 4.84277L34.6309 10.4043C34.6958 10.6274 34.8372 10.8215 35.0293 10.9521L39.8174 14.21L37.8594 19.6621C37.7809 19.8807 37.7809 20.1193 37.8594 20.3379L39.8174 25.7891L35.0293 29.0479C34.8854 29.1458 34.7703 29.2792 34.6943 29.4336L34.6309 29.5957L33.0117 35.1562L27.2227 34.9785C27.0485 34.9731 26.8769 35.0133 26.7246 35.0938L26.5791 35.1875L22 38.7354L17.4209 35.1875C17.2831 35.0808 17.1208 35.0127 16.9502 34.9883L16.7773 34.9785L10.9873 35.1562L9.36816 29.5957C9.30322 29.3726 9.16277 29.1785 8.9707 29.0479L4.18164 25.7891L6.14062 20.3379C6.21913 20.1193 6.21913 19.8807 6.14062 19.6621L4.18164 14.21L8.9707 10.9521C9.16277 10.8215 9.30322 10.6274 9.36816 10.4043L10.9873 4.84277L16.7773 5.02148C17.0096 5.02865 17.2373 4.95479 17.4209 4.8125L22 1.26367L26.5791 4.8125Z"
+          strokeWidth="2"
+          strokeLinejoin="round"
+          className="fill-brand-blue stroke-brand-white"
+        />
+        {/* 勾 */}
+        <path
+          d="M29.3333 14.5L19.25 24.5833L14.6666 20"
+          strokeWidth="3"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="stroke-white"
+          className="stroke-brand-lime"
         />
       </svg>
     </span>
