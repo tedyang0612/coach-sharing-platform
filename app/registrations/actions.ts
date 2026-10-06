@@ -7,6 +7,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import type { SessionStatus } from "@/types/database";
+import {
+  cancelErrorMessage,
+  getCoachAssistRefundEligibility,
+  getLearnerCancelEligibility,
+} from "./_lib/cancel-rules";
 import { getRegistrationContext, getRegistrationViewer } from "./_lib/queries";
 import {
   getRegistrationState,
@@ -81,4 +87,88 @@ export async function createRegistration(
   revalidatePath(`/courses/${context.course.id}`);
   revalidatePath("/my-courses");
   return { ok: true, registrationId: data.id };
+}
+
+export type CancelActionState = {
+  ok?: true;
+  error?: string;
+};
+
+/**
+ * 學員在「我的課程」取消自己的報名（PRD 6.0）。開課前 24 小時以上才能取消：
+ * 尚未扣款（待成團）→ 已取消、不扣款；已扣款（訂單成立）→ 已退款、全額退回，名額即時釋出。
+ * 狀態變更與通知由資料庫函式 learner_cancel_registration() 一次完成，這裡先判斷一次給明確的錯誤訊息。
+ */
+export async function cancelRegistration(registrationId: string): Promise<CancelActionState> {
+  if (!registrationId) return { error: "找不到這筆報名" };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "請先登入" };
+
+  // learner_id 條件不依賴 RLS，確保只處理自己的報名
+  const { data: registration } = await supabase
+    .from("registrations")
+    .select("id, status, session:sessions(start_at, course_id)")
+    .eq("id", registrationId)
+    .eq("learner_id", user.id)
+    .maybeSingle();
+  if (!registration) return { error: "找不到這筆報名" };
+
+  const session = registration.session as unknown as { start_at: string; course_id: string } | null;
+  if (!session) return { error: "找不到這筆報名的場次" };
+
+  const eligibility = getLearnerCancelEligibility(registration, session);
+  if (!eligibility.ok) return { error: eligibility.message };
+
+  const { error } = await supabase.rpc("learner_cancel_registration", { p_registration_id: registrationId });
+  if (error) return { error: cancelErrorMessage(error.message) };
+
+  revalidatePath("/my-courses");
+  revalidatePath(`/courses/${session.course_id}`);
+  revalidatePath(`/coach/courses/${session.course_id}`);
+  return { ok: true };
+}
+
+/**
+ * 教練協助退款（PRD 6.0）：開課前 24 小時內學員不能自己取消，由該場次的教練在課程管理頁操作，
+ * 退 50%，另外 50% 是取消手續費：25% 給教練（取消補償，列入待撥款）、25% 歸平台。資料庫函式 coach_assist_refund() 會檢查「是該場次的教練」與
+ * 「報名已扣款」，這裡先判斷課程是否還沒結束，並給明確的錯誤訊息。
+ */
+export async function coachAssistRefund(registrationId: string): Promise<CancelActionState> {
+  if (!registrationId) return { error: "找不到這筆報名" };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "請先登入" };
+
+  // 教練只讀得到自己場次的報名（RLS）；再比對課程的教練，不只靠 RLS
+  const { data: registration } = await supabase
+    .from("registrations")
+    .select("id, status, session:sessions(end_at, status, course_id, course:courses(coach_id))")
+    .eq("id", registrationId)
+    .maybeSingle();
+  if (!registration) return { error: "找不到這筆報名" };
+
+  const session = registration.session as unknown as {
+    end_at: string;
+    status: SessionStatus;
+    course_id: string;
+    course: { coach_id: string } | null;
+  } | null;
+  if (!session || session.course?.coach_id !== user.id) return { error: "只有該場次的教練可以協助退款" };
+
+  const eligibility = getCoachAssistRefundEligibility(registration, session);
+  if (!eligibility.ok) return { error: eligibility.message };
+
+  const { error } = await supabase.rpc("coach_assist_refund", { p_registration_id: registrationId });
+  if (error) return { error: cancelErrorMessage(error.message) };
+
+  revalidatePath("/my-courses");
+  revalidatePath(`/coach/courses/${session.course_id}`);
+  return { ok: true };
 }
