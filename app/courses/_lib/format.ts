@@ -37,9 +37,13 @@ export function formatDate(d: DateLike): string {
   return `${get("month")}/${get("day")}（${get("weekday")}）`;
 }
 
-/** 「14:00–15:00」 */
+const dayKeyFmt = new Intl.DateTimeFormat("en-CA", { timeZone: TZ });
+
+/** 「14:00–15:00」；結束時間剛好是隔天 00:00（排到午夜的場次）顯示成 24:00 */
 export function formatTimeRange(start: DateLike, end: DateLike): string {
-  return `${timeFmt.format(toDate(start))}–${timeFmt.format(toDate(end))}`;
+  const endText = timeFmt.format(toDate(end));
+  const endsAtMidnight = endText === "00:00" && dayKeyFmt.format(toDate(end)) !== dayKeyFmt.format(toDate(start));
+  return `${timeFmt.format(toDate(start))}–${endsAtMidnight ? "24:00" : endText}`;
 }
 
 /** 「11/1（週六）14:00–15:00」 */
