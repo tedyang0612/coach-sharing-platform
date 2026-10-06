@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { buttonClassName } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "成為教練｜夠練 GoLand",
   description: "申請成為夠練 GoLand 教練，上架小班課、由平台處理報名與收款。",
 };
 
-// 版面參考 docs/reference 的 P14；文案以 PRD v4.6 為準（確定開課才扣款、媒合費 5%、每週三撥款）。
+// 設計稿沒有這一頁（設計上直接進表單）；PM 決定保留，給還沒登入的人看好處與準備清單。
+// 「為什麼需要良民證」的說明在申請表單的「身分文件」卡片（設計稿 C01），這裡不重複。
+// 文案以 PRD v4.6 為準（確定開課才扣款、媒合費 5%、每週三撥款）。
 const BENEFITS = [
   {
     title: "自訂價格與開課人數",
@@ -33,12 +37,26 @@ const CHECKLIST = [
   "大頭貼",
   "生活／運動照片",
   "學歷與簡述",
-  "良民證（必填）",
+  "良民證（必填；用途、申請方式與保管方式在申請表單裡有說明）",
   "專業證照（選填）",
   "聯絡方式：電話、LINE 或社群帳號至少一項（除學員必要課務聯繫外，不作行銷用途，亦不提供給其他無關第三方。）",
 ];
 
-export default function BecomeCoachPage() {
+export default async function BecomeCoachPage() {
+  // 已經送過申請的人不用再看一次說明，直接帶去申請狀態頁；沒登入或還沒申請的人照常看說明
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    const { data: application } = await supabase
+      .from("coach_profiles")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (application) redirect("/coach/application");
+  }
+
   return (
     <main className="flex-1 px-4 pb-8 pt-5 sm:px-6 sm:pb-20 sm:pt-10">
       <div className="mx-auto flex w-full max-w-[800px] flex-col gap-4">
@@ -92,32 +110,6 @@ export default function BecomeCoachPage() {
           <p className="text-caption mt-4 text-text-secondary">
             聯絡方式不會公開，只在場次確定開課後透過行前公告提供給該場次學員。
           </p>
-        </section>
-
-        <section className="rounded-lg border border-border-default bg-brand-white p-6">
-          <h2 className="text-h3 text-text-primary">為什麼需要良民證？</h2>
-          <dl className="mt-4 flex flex-col gap-4">
-            <div>
-              <dt className="text-body font-medium text-text-primary">讓學員安心報名</dt>
-              <dd className="text-body-small mt-1 text-text-secondary">
-                學員會和教練實際見面上課，平台以良民證（警察刑事紀錄證明）作為基本把關。
-              </dd>
-            </div>
-            <div>
-              <dt className="text-body font-medium text-text-primary">怎麼申請</dt>
-              {/* 申請方式與費用依內政部警政署公告（2026/10 查詢），之後若有調整請同步更新 */}
-              <dd className="text-body-small mt-1 text-text-secondary">
-                可在內政部警政署網站線上申請，再攜帶身分證件到警察局領取。規費每份新臺幣 100
-                元，一般約 1–3 個工作天，實際時間以各地警察局為準。
-              </dd>
-            </div>
-            <div>
-              <dt className="text-body font-medium text-text-primary">我們怎麼保管</dt>
-              <dd className="text-body-small mt-1 text-text-secondary">
-                僅用於身分審核，審核完成後 7 日內刪除原檔，只保留審核結果與審核日期。
-              </dd>
-            </div>
-          </dl>
         </section>
 
         <div className="flex justify-end">
