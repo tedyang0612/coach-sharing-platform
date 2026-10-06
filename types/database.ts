@@ -6,7 +6,7 @@
 export type CoachApplicationStatus = "pending" | "approved" | "needs_more_info" | "rejected";
 export type LicenseStatus = "pending" | "approved" | "rejected";
 
-export type CourseLevel = "unlimited" | "beginner" | "intermediate" | "advanced"; // 不限／初級／中級／進階
+export type CourseLevel = "unlimited" | "beginner" | "intermediate" | "advanced"; // 不限／初階／中階／進階
 export type CourseStatus = "draft" | "published" | "cancelled";
 
 export type SessionStatus =

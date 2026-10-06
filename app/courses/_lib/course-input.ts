@@ -5,9 +5,9 @@ import { SPORT_TYPES, type Course, type CourseLevel, type CourseQaItem } from "@
 import { CONTACT_INFO_MESSAGE, containsContactInfo } from "./contact-filter";
 import { COVER_URL_ERROR, isAllowedCoverUrl } from "./cover-image";
 
-// 畫面文案（10/3 組員討論）；DB 的值不變，2.0 篩選請用同一份 label
+// 畫面文案：不限／初階／中階／進階（10/4 定案，取代 10/3 的「全程度」）；DB 的值不變，2.0 篩選請用同一份 label
 export const COURSE_LEVELS: { value: CourseLevel; label: string }[] = [
-  { value: "unlimited", label: "全程度" },
+  { value: "unlimited", label: "不限" },
   { value: "beginner", label: "初階" },
   { value: "intermediate", label: "中階" },
   { value: "advanced", label: "進階" },
