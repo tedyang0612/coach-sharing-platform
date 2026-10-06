@@ -88,14 +88,14 @@ export default function CourseCard({ course }: Props) {
             </Link>
           </h3>
           <p className="mt-2 flex items-center gap-1.5 text-body-small text-(--color-text-secondary)">
+            <CalendarIcon size={14} />
+            <span>{formatSchedule(course.startsAt, course.endsAt)}</span>
+          </p>
+          <p className="mt-1 flex items-center gap-1.5 text-body-small text-(--color-text-secondary)">
             <MapPinIcon size={14} />
             <span>
               {course.city}{course.district} {course.venue}
             </span>
-          </p>
-          <p className="mt-1 flex items-center gap-1.5 text-body-small text-(--color-text-secondary)">
-            <CalendarIcon size={14} />
-            <span>{formatSchedule(course.startsAt, course.endsAt)}</span>
           </p>
         </div>
 
