@@ -21,7 +21,10 @@ function statusText(item: MyRegistrationItem) {
         ? "已取消（教練取消）・已全額退款"
         : `已退款 ${amount}`;
     case "partial_refunded":
-      return item.detailLabel;
+      // 有實際金額就寫出來；舊資料沒帶金額時沿用 Ted 的 detailLabel
+      return item.refundAmount !== null && item.refundFeeAmount !== null
+        ? `已退款 NT$${item.refundAmount.toLocaleString()}（扣 NT$${item.refundFeeAmount.toLocaleString()} 取消手續費）`
+        : item.detailLabel;
   }
 }
 
