@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import CourseCard from "@/components/CourseCard";
+import ScrollToTop from "@/components/ScrollToTop";
 import type { Course } from "@/lib/courses/types";
 
 // 12 剛好整除 4、3、2 欄，每一排都排滿
@@ -30,6 +31,7 @@ export default function CourseGrid({ courses }: { courses: Course[] }) {
           </button>
         </div>
       )}
+      <ScrollToTop />
     </>
   );
 }

@@ -91,12 +91,13 @@ function PriceInputs({
   }
   const digitsOf = (text: string) => text.replace(/\D/g, "").slice(0, 7);
   const inputClass =
-    "w-full rounded-xl border border-(--color-border-default) bg-(--color-surface-default) px-3 py-2 font-normal placeholder:text-(--color-text-secondary)";
+    "mt-1 w-full rounded-xl border border-(--color-border-default) bg-(--color-surface-default) px-3 py-1.5 font-normal placeholder:text-(--color-text-secondary)";
 
-  // 順序：最低價標籤 → 輸入欄 → 最高價標籤 → 輸入欄（QA）；兩欄中間一條「–」（設計稿）
+  // 版面參考日期面板（QA）：由上到下 最低價（標題）→ 輸入欄（提示字「最低價」）→ 最高價（標題）→ 輸入欄（提示字「最高價」），
+  // 不放最上層的「價格區間（NT$）」標題
   return (
-    <div className="flex items-end gap-2">
-      <label className="flex-1 space-y-1 text-xs font-bold text-(--color-text-primary)">
+    <div className="space-y-2 text-sm">
+      <label className="block font-medium">
         最低價
         <input
           id="filter-price-min"
@@ -107,13 +108,10 @@ function PriceInputs({
           onChange={(e) => setDraftMin(digitsOf(e.target.value))}
           onBlur={commit}
           onKeyDown={commitOnEnter}
-          className={`${inputClass} text-sm`}
+          className={inputClass}
         />
       </label>
-      <span aria-hidden="true" className="pb-2.5 text-(--color-text-secondary)">
-        –
-      </span>
-      <label className="flex-1 space-y-1 text-xs font-bold text-(--color-text-primary)">
+      <label className="block font-medium">
         最高價
         <input
           id="filter-price-max"
@@ -124,7 +122,7 @@ function PriceInputs({
           onChange={(e) => setDraftMax(digitsOf(e.target.value))}
           onBlur={commit}
           onKeyDown={commitOnEnter}
-          className={`${inputClass} text-sm`}
+          className={inputClass}
         />
       </label>
     </div>
@@ -415,25 +413,21 @@ export default function CourseFilters({
         <FilterPill
           id="filter-price"
           label="價格"
-          wide
           doneLabel="套用"
           active={value.priceMin !== undefined || value.priceMax !== undefined}
           onClear={() =>
             navigate({ ...value, priceMin: undefined, priceMax: undefined })
           }
         >
-          <div className="space-y-2 text-sm">
-            <p className="font-medium">價格區間（NT$）</p>
-            {/* 換條件或清除後網址的值會變，用 key 讓輸入框跟著重設 */}
-            <PriceInputs
-              key={`${value.priceMin ?? ""}-${value.priceMax ?? ""}`}
-              min={value.priceMin}
-              max={value.priceMax}
-              onCommit={(priceMin, priceMax) =>
-                navigate({ ...value, priceMin, priceMax })
-              }
-            />
-          </div>
+          {/* 換條件或清除後網址的值會變，用 key 讓輸入框跟著重設 */}
+          <PriceInputs
+            key={`${value.priceMin ?? ""}-${value.priceMax ?? ""}`}
+            min={value.priceMin}
+            max={value.priceMax}
+            onCommit={(priceMin, priceMax) =>
+              navigate({ ...value, priceMin, priceMax })
+            }
+          />
         </FilterPill>
       </div>
 
