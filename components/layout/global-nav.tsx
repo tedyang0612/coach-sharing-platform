@@ -8,7 +8,7 @@ import { LogoFull, LogoHorizontal } from "@/components/brand/logo";
 import { buttonClassName } from "@/components/ui/button";
 import { Icon, type IconName } from "@/components/ui/icon";
 
-// 導覽連結目的地：對齊各模組既有路由（小柔 /courses、/my-courses；牛牛 /notifications、/become-coach；Ted /coach/courses）。
+// 導覽連結目的地：對齊各模組既有路由（小柔 /courses、/my-courses；牛牛 /notifications、/become-coach；教練工作台入口是總覽 /coach（再用工作台上方分頁切到課程管理等））。
 // 「我的帳戶」頁面尚未有人負責，先指向牛牛的教練資料頁以外的暫定路徑。
 const ROUTES = {
   explore: "/courses",
@@ -16,7 +16,7 @@ const ROUTES = {
   notifications: "/notifications",
   account: "/account",
   becomeCoach: "/become-coach",
-  coachWorkspace: "/coach/courses",
+  coachWorkspace: "/coach",
   login: "/login",
   register: "/register",
 } as const;
