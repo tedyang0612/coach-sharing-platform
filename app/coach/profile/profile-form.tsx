@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition, type FormEvent } from "react";
+import { useRef, useState, useTransition, type FormEvent } from "react";
 import { updateCoachProfile } from "@/app/actions/coach-profile";
 import {
   EducationList,
@@ -35,6 +35,9 @@ import {
   resolveCoachDisplayName,
   validateCoachProfileEdit,
   type CoachProfileEditErrors,
+  EXPERIENCE_MAX_LENGTH,
+  INTRO_MAX_LENGTH,
+  NAME_MAX_LENGTH,
 } from "@/lib/coach-application/validation";
 
 export type CoachProfileFormValues = {
@@ -142,13 +145,34 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
     })),
   });
   const errors: CoachProfileEditErrors = attempted ? validation : {};
+  // 字數超過上限不用等到按儲存，邊打字就提示（QA 回饋，和申請表單一致）
+  const tooLong = (message?: string) => (message?.includes("最多") ? message : undefined);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // 儲存時有欄位沒過：捲到第一個有錯的地方；是輸入框的話順便把游標放進去
+  function scrollToFirstError() {
+    requestAnimationFrame(() => {
+      const target = formRef.current?.querySelector<HTMLElement>(
+        '[aria-invalid="true"], [data-field-error]'
+      );
+      if (!target) return;
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      const isTextInput =
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLInputElement && target.type !== "file");
+      if (isTextInput) target.focus({ preventScroll: true });
+    });
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAttempted(true);
     setSaveError(undefined);
     setSavedMessage(undefined);
-    if (hasErrors(validation)) return;
+    if (hasErrors(validation)) {
+      scrollToFirstError();
+      return;
+    }
 
     startSave(async () => {
       try {
@@ -209,6 +233,7 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
 
   return (
     <form
+      ref={formRef}
       className="flex flex-col gap-4"
       noValidate
       onSubmit={handleSubmit}
@@ -226,20 +251,21 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
             hint="用於核對良民證，通過審核後無法自行修改；如需更正請聯繫平台。"
           />
           <TextField
-            label="暱稱（選填）"
+            label="暱稱"
             name="nickname"
             placeholder="請輸入暱稱"
-            hint={`公開顯示以暱稱為準，未填沿用真實姓名。學員會看到：${resolveCoachDisplayName(initial.realName, nickname)}`}
+            hint={`公開顯示的名稱，最多 ${NAME_MAX_LENGTH} 個字；未填沿用真實姓名。學員會看到：${resolveCoachDisplayName(initial.realName, nickname)}`}
             value={nickname}
             onChange={(event) => setNickname(event.target.value)}
-            error={contactInfoWarning(nickname) ?? errors.nickname}
+            error={contactInfoWarning(nickname) ?? errors.nickname ?? tooLong(validation.nickname)}
           />
         </div>
       </Section>
 
-      <Section title="個人照片與運動類別">
+      <Section title="個人照片與運動項目">
         <FileField
-          label="大頭貼（必填）"
+          label="大頭貼"
+          required
           name="photo"
           kind="photo"
           hint="教練檔案與評價頁使用。JPG／PNG，5MB 以內"
@@ -252,7 +278,8 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
           error={errors.photo}
         />
         <FileField
-          label="生活／運動照片（必填）"
+          label="生活／運動照片"
+          required
           name="lifestylePhoto"
           kind="photo"
           hint="首頁推薦教練卡片與教練檔案使用。JPG／PNG，5MB 以內"
@@ -291,28 +318,32 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
 
       <Section title="經歷與簡介">
         <TextAreaField
-          label="工作／教學經歷（選填）"
+          label="工作／教學經歷"
+          hint={`最多 ${EXPERIENCE_MAX_LENGTH} 個字`}
           name="workExperience"
           placeholder="例：知名健身房 5 年教練經驗"
           value={workExperience}
           onChange={(event) => setWorkExperience(event.target.value)}
-          error={contactInfoWarning(workExperience)}
+          error={contactInfoWarning(workExperience) ?? tooLong(validation.workExperience)}
         />
         <TextAreaField
-          label="比賽經歷（選填）"
+          label="比賽經歷"
+          hint={`最多 ${EXPERIENCE_MAX_LENGTH} 個字`}
           name="bioCompetition"
           placeholder="例：全國社會組羽球賽 男雙第 4 名"
           value={bioCompetition}
           onChange={(event) => setBioCompetition(event.target.value)}
-          error={contactInfoWarning(bioCompetition)}
+          error={contactInfoWarning(bioCompetition) ?? tooLong(validation.bioCompetition)}
         />
         <TextAreaField
-          label="簡述（必填）"
+          label="簡述"
+          required
+          hint={`最多 ${INTRO_MAX_LENGTH} 個字`}
           name="bioIntro"
           placeholder="請簡述你的教學風格"
           value={bioIntro}
           onChange={(event) => setBioIntro(event.target.value)}
-          error={contactInfoWarning(bioIntro) ?? errors.bioIntro}
+          error={contactInfoWarning(bioIntro) ?? errors.bioIntro ?? tooLong(validation.bioIntro)}
         />
       </Section>
 
@@ -357,7 +388,11 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
           value={contactSocial}
           onChange={(event) => setContactSocial(event.target.value)}
         />
-        {errors.contact && <p className="text-caption text-state-error-text">{errors.contact}</p>}
+        {errors.contact && (
+          <p data-field-error className="text-caption text-state-error-text">
+            {errors.contact}
+          </p>
+        )}
       </Section>
 
       <p className="text-body-small rounded-md border border-brand-blue bg-tint-blue-100 px-4 py-2.5 text-text-primary">
@@ -365,7 +400,7 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
       </p>
 
       {attempted && hasErrors(validation) && (
-        <FormError message="還有欄位需要修正，請往上查看紅字提示。" />
+        <FormError message="還有欄位需要修正，已帶你到第一個需要修正的地方。" />
       )}
       {saveError && <FormError message={saveError} />}
       {savedMessage && (
