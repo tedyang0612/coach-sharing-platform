@@ -108,8 +108,8 @@ export function StatusCard({
   const actions: Action[] =
     status === "approved"
       ? [
-          // 教練工作台的入口是 1.0 的「我的課程」
-          { label: "前往教練工作台", href: "/coach/courses", variant: "primary" },
+          // 教練工作台的入口是總覽 /coach，課程管理、收益等用工作台上方的分頁切換
+          { label: "前往教練工作台", href: "/coach", variant: "primary" },
           ...(coachId
             ? [{ label: "查看公開檔案", href: `/coaches/${coachId}`, variant: "secondary" } as Action]
             : []),
