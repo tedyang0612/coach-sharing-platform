@@ -130,7 +130,7 @@ export function StatusCard({
 
   const summary = [
     { label: "送出時間", value: submittedAt ? formatTaipeiTime(submittedAt) : "" },
-    { label: "運動類別", value: sportCategories.join("、") },
+    { label: "可授課的運動項目", value: sportCategories.join("、") },
     { label: "已上傳文件", value: uploadedDocuments.join("、") },
   ].filter((row) => row.value !== "");
 

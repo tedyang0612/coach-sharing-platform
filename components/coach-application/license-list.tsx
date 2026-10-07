@@ -4,7 +4,11 @@ import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
 import { LICENSE_SUGGESTIONS } from "@/lib/coach-application/constants";
-import { contactInfoWarning } from "@/lib/coach-application/validation";
+import {
+  contactInfoWarning,
+  LICENSE_NAME_MAX_LENGTH,
+  maxLengthError,
+} from "@/lib/coach-application/validation";
 import { FileField } from "./file-field";
 
 export type LicenseDraft = {
@@ -64,7 +68,11 @@ export function LicenseList({ value, onChange, errors }: LicenseListProps) {
               placeholder="例：ACE-CPT"
               value={license.name}
               onChange={(event) => update(license.key, { name: event.target.value })}
-              error={contactInfoWarning(license.name)}
+              hint={`最多 ${LICENSE_NAME_MAX_LENGTH} 個字`}
+              error={
+                contactInfoWarning(license.name) ??
+                maxLengthError(license.name, LICENSE_NAME_MAX_LENGTH, "證照名稱")
+              }
             />
             <div className="min-w-0">
               <FileField
@@ -80,7 +88,9 @@ export function LicenseList({ value, onChange, errors }: LicenseListProps) {
           </div>
 
           {/* 名稱含聯絡資訊的警示已經顯示在名稱欄位下方，這裡不重複 */}
-          {errors?.[index] && !contactInfoWarning(license.name) && (
+          {errors?.[index] &&
+            !contactInfoWarning(license.name) &&
+            !maxLengthError(license.name, LICENSE_NAME_MAX_LENGTH, "證照名稱") && (
             <p data-field-error className="text-caption text-state-error-text">
               {errors[index]}
             </p>

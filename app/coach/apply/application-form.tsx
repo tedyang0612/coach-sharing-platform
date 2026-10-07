@@ -30,7 +30,9 @@ import { DEFAULT_EDUCATION_DEGREE, parseEducation } from "@/lib/coach-applicatio
 import { uploadCoachFile } from "@/lib/coach-application/upload";
 import {
   contactInfoWarning,
+  EXPERIENCE_MAX_LENGTH,
   hasErrors,
+  INTRO_MAX_LENGTH,
   NAME_MAX_LENGTH,
   resolveCoachDisplayName,
   validateCoachApplication,
@@ -336,9 +338,10 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
           required
           name="bioIntro"
           placeholder="請簡述你的教學風格"
+          hint={`最多 ${INTRO_MAX_LENGTH} 個字`}
           value={bioIntro}
           onChange={(event) => setBioIntro(event.target.value)}
-          error={contactInfoWarning(bioIntro) ?? errors.bioIntro}
+          error={contactInfoWarning(bioIntro) ?? errors.bioIntro ?? tooLong(validation.bioIntro)}
         />
       </Section>
 
@@ -362,18 +365,20 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
           label="工作／教學經歷"
           name="workExperience"
           placeholder="例：知名健身房 5 年教練經驗"
+          hint={`最多 ${EXPERIENCE_MAX_LENGTH} 個字`}
           value={workExperience}
           onChange={(event) => setWorkExperience(event.target.value)}
-          error={contactInfoWarning(workExperience)}
+          error={contactInfoWarning(workExperience) ?? tooLong(validation.workExperience)}
         />
 
         <TextAreaField
           label="比賽經歷"
           name="bioCompetition"
           placeholder="例：全國社會組羽球賽 男雙第 4 名"
+          hint={`最多 ${EXPERIENCE_MAX_LENGTH} 個字`}
           value={bioCompetition}
           onChange={(event) => setBioCompetition(event.target.value)}
-          error={contactInfoWarning(bioCompetition)}
+          error={contactInfoWarning(bioCompetition) ?? tooLong(validation.bioCompetition)}
         />
       </Section>
 
