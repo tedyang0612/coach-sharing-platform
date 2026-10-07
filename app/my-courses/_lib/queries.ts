@@ -29,7 +29,7 @@ export async function listMyRegistrations(
   const { data: regs } = await supabase
     .from("registrations")
     .select(
-      "id, status, amount, created_at, session:sessions(id, start_at, end_at, registration_deadline_at, status, course:courses(id, title, sport_type, location_name, location_address, cover_image_url, coach_id))"
+      "id, status, amount, created_at, session:sessions(id, start_at, end_at, registration_deadline_at, status, course:courses(id, title, sport_type, location_name, location_address, cover_image_url, coach_id, min_participants, max_participants))"
     )
     .eq("learner_id", userId)
     .order("created_at", { ascending: false });
@@ -40,7 +40,12 @@ export async function listMyRegistrations(
   const sessionIds = [...new Set(rows.map((r) => r.session?.id).filter((id): id is string => !!id))];
   const registrationIds = rows.map((r) => r.id);
 
-  const [{ data: announcementRows }, { data: reviewRows }] = await Promise.all([
+  // 只有「待確認開課」的卡片要顯示進度，其他不必多查
+  const pendingSessionIds = [
+    ...new Set(rows.filter((r) => r.status === "pending_match" && r.session).map((r) => r.session!.id)),
+  ];
+
+  const [{ data: announcementRows }, { data: reviewRows }, { data: countRows }] = await Promise.all([
     sessionIds.length > 0
       ? supabase.from("announcements").select("id, session_id, content, sent_at").in("session_id", sessionIds)
       : Promise.resolve({ data: [] as { id: string; session_id: string; content: string; sent_at: string }[] }),
@@ -49,7 +54,14 @@ export async function listMyRegistrations(
       .select("registration_id, rating, comment, created_at")
       .eq("reviewer_id", userId)
       .in("registration_id", registrationIds),
+    pendingSessionIds.length > 0
+      ? supabase.rpc("get_session_enrollment_counts", { p_session_ids: pendingSessionIds })
+      : Promise.resolve({ data: [] as { session_id: string; enrolled_count: number }[] }),
   ]);
+
+  const enrolledBySession = new Map<string, number>(
+    (countRows ?? []).map((c: { session_id: string; enrolled_count: number }) => [c.session_id, c.enrolled_count])
+  );
 
   const announcementsBySession = new Map<string, MyAnnouncement[]>();
   for (const a of announcementRows ?? []) {
@@ -68,7 +80,14 @@ export async function listMyRegistrations(
       row,
       row.session ? (announcementsBySession.get(row.session.id) ?? []) : [],
       reviewsByRegistration.get(row.id) ?? null,
-      now
+      now,
+      row.session?.course && enrolledBySession.has(row.session.id)
+        ? {
+            enrolled: enrolledBySession.get(row.session.id)!,
+            minParticipants: row.session.course.min_participants,
+            maxParticipants: row.session.course.max_participants,
+          }
+        : null
     )
   );
 }

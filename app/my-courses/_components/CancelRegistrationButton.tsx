@@ -1,17 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { cancelRegistration } from "@/app/registrations/actions";
-import { CANCEL_OUTCOME_TEXT } from "../_lib/display";
+import { CloseIcon } from "./Icons";
+import type { CANCEL_OUTCOME_TEXT } from "../_lib/display";
 
 interface Props {
   registrationId: string;
+  // 資料層判斷的取消結果（尚未扣款／全額退款）；設計稿的確認視窗兩種情況用同一段說明，所以這裡不再用它換文案
   outcome: keyof typeof CANCEL_OUTCOME_TEXT;
+  // 觸發按鈕的樣式由卡片決定（設計稿是藍框膠囊）
+  className?: string;
 }
 
-// 取消前先跳確認視窗，說明結果（尚未扣款／全額退款）。
+// 取消前先跳確認視窗（設計稿 S09「取消報名確認」）。
 // 取消成功後 server action 會 revalidatePath("/my-courses")，清單會自己更新。
-export default function CancelRegistrationButton({ registrationId, outcome }: Props) {
+export default function CancelRegistrationButton({ registrationId, className }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -36,38 +41,59 @@ export default function CancelRegistrationButton({ registrationId, outcome }: Pr
           setError(null);
           dialog.current?.showModal();
         }}
-        className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+        className={className}
       >
         取消報名
       </button>
 
       <dialog
         ref={dialog}
-        className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl p-6 backdrop:bg-black/40"
+        className="m-auto w-[calc(100%-2rem)] max-w-sm rounded-(--radius-lg) bg-(--color-surface-default) p-6 text-(--color-text-primary) shadow-(--shadow-md) backdrop:bg-black/40"
       >
-        <h2 className="text-base font-bold text-neutral-900">確定要取消報名嗎？</h2>
-        <p className="mt-2 text-sm text-neutral-600">{CANCEL_OUTCOME_TEXT[outcome]}</p>
-        {error && (
-          <p role="alert" className="mt-3 text-sm text-red-600">
-            {error}
-          </p>
-        )}
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-h3">確定要取消報名？</h2>
           <button
             type="button"
             onClick={() => dialog.current?.close()}
             disabled={pending}
-            className="rounded-xl border border-neutral-300 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100 disabled:opacity-40"
+            aria-label="關閉"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-(--color-tint-blue-100) hover:bg-(--color-tint-blue-200) disabled:opacity-40"
           >
-            先不要
+            <CloseIcon size={16} />
+          </button>
+        </div>
+        <p className="text-body mt-3 text-(--color-text-secondary)">
+          取消後名額會釋出。已確定開課並已扣款者，開課 24 小時前取消將全額退款。
+        </p>
+        <div className="text-body-small mt-4 space-y-2 rounded-(--radius-md) bg-(--color-brand-light) p-3">
+          <p>開課前 24 小時以上：可線上取消，已扣款者全額退款</p>
+          <p>開課前 24 小時內：請聯絡教練協助，將收取 50% 取消手續費</p>
+          {/* 條款頁是牛牛的 #53（/terms#refund）；合併前點不開 */}
+          <Link href="/terms#refund" className="block font-bold underline">
+            查看完整取消與退款規定
+          </Link>
+        </div>
+        {error && (
+          <p role="alert" className="text-body-small mt-3 text-(--color-state-error-text)">
+            {error}
+          </p>
+        )}
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => dialog.current?.close()}
+            disabled={pending}
+            className="text-button rounded-full border border-(--color-brand-blue) bg-(--color-surface-default) px-5 py-2.5 hover:bg-(--color-tint-blue-100) disabled:opacity-40"
+          >
+            保留報名
           </button>
           <button
             type="button"
             onClick={confirmCancel}
             disabled={pending}
-            className="rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-40"
+            className="text-button rounded-full bg-(--color-brand-blue) px-5 py-2.5 text-(--color-text-inverse) hover:bg-(--color-brand-blue-pressed) disabled:opacity-40"
           >
-            {pending ? "取消中…" : "確定取消"}
+            {pending ? "取消中…" : "確認取消"}
           </button>
         </div>
       </dialog>
