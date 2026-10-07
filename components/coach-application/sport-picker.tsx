@@ -19,7 +19,9 @@ export function SportPicker({ value, onChange, error }: SportPickerProps) {
 
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="text-label text-text-primary">運動類別（可複選，必填）</legend>
+      <legend className="text-label text-text-primary">
+        運動類別（可複選）<span className="ml-0.5 text-state-error">*</span>
+      </legend>
       <div className="mt-2 flex flex-wrap gap-2">
         {SPORT_CATEGORIES.map((sport) => (
           <Chip key={sport} selected={value.includes(sport)} onClick={() => toggle(sport)}>
@@ -27,7 +29,7 @@ export function SportPicker({ value, onChange, error }: SportPickerProps) {
           </Chip>
         ))}
       </div>
-      {error && <p className="text-caption text-state-error-text">{error}</p>}
+      {error && <p data-field-error className="text-caption text-state-error-text">{error}</p>}
     </fieldset>
   );
 }
