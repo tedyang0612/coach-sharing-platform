@@ -193,14 +193,12 @@ function MenuItem({
   );
 }
 
-function LogoutItem({ className, onSelect }: { className: string; onSelect: () => void }) {
+// 登出按鈕不能在點擊時關閉選單：選單一關，這個 <form> 就被卸載，送出動作還沒開始就沒了（點了沒反應）。
+// 登出後 logout() 會導回首頁，導覽列依登入狀態重新渲染，選單自然消失。
+function LogoutItem({ className }: { className: string }) {
   return (
     <form action={logout}>
-      <button
-        type="submit"
-        onClick={onSelect}
-        className={`flex w-full items-center gap-3 text-text-primary ${className}`}
-      >
+      <button type="submit" className={`flex w-full items-center gap-3 text-text-primary ${className}`}>
         <Icon name="log-out" />
         登出
       </button>
@@ -223,7 +221,7 @@ function AccountMenu({ coach, onSelect }: { coach: boolean; onSelect: () => void
           教練工作台
         </MenuItem>
       )}
-      <LogoutItem className={item} onSelect={onSelect} />
+      <LogoutItem className={item} />
     </div>
   );
 }
@@ -252,7 +250,7 @@ function MobileDrawer({ auth, onSelect }: { auth: NavAuth; onSelect: () => void 
               教練工作台
             </MenuItem>
           )}
-          <LogoutItem className={item} onSelect={onSelect} />
+          <LogoutItem className={item} />
           {auth === "user" && (
             <Link
               href={ROUTES.becomeCoach}
