@@ -56,7 +56,7 @@ export function Hero({
       <div className="relative flex flex-col gap-8 px-[var(--spacing-screen-padding)] pb-32 md:pb-40">
         <div className="flex flex-col gap-3 text-center text-text-inverse md:text-left">
           <h1 className="text-hero-responsive">
-            來 <span className="font-[family-name:var(--font-latin)]">GoLand</span> 找夠練（教練）
+            用 <span className="font-[family-name:var(--font-latin)]">GoLand</span>，一定有夠練
           </h1>
           <p className="text-hero-lead opacity-90">
             用運動、地點與時間找到適合你的小班課，集滿人就開課。
