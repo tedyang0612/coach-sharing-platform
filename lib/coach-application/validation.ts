@@ -136,14 +136,36 @@ export function resolveCoachDisplayName(realName: string, nickname: string): str
   return nickname.trim() || realName.trim();
 }
 
-export function validateCoachApplication(
-  input: CoachApplicationInput
-): CoachApplicationErrors {
-  const errors: CoachApplicationErrors = {};
+// 教練個人檔案的公開欄位：申請表單（4.0）與通過後的編輯個人檔案（9.0）共用同一套規則
+export type CoachPublicProfileInput = Pick<
+  CoachApplicationInput,
+  | "hasPhoto"
+  | "hasLifestylePhoto"
+  | "sportCategories"
+  | "tags"
+  | "education"
+  | "workExperience"
+  | "bioCompetition"
+  | "bioIntro"
+>;
 
-  const nameErrors = validateCoachNames(input);
-  if (nameErrors.realName) errors.realName = nameErrors.realName;
-  if (nameErrors.nickname) errors.nickname = nameErrors.nickname;
+export type CoachPublicProfileErrors = Pick<
+  CoachApplicationErrors,
+  | "photo"
+  | "lifestylePhoto"
+  | "sportCategories"
+  | "tags"
+  | "education"
+  | "educationItems"
+  | "workExperience"
+  | "bioCompetition"
+  | "bioIntro"
+>;
+
+export function validateCoachPublicProfile(
+  input: CoachPublicProfileInput
+): CoachPublicProfileErrors {
+  const errors: CoachPublicProfileErrors = {};
 
   if (!input.hasPhoto) errors.photo = "請上傳大頭貼";
   if (!input.hasLifestylePhoto) errors.lifestylePhoto = "請上傳生活／運動照片";
@@ -198,15 +220,21 @@ export function validateCoachApplication(
     maxLengthError(input.bioCompetition, EXPERIENCE_MAX_LENGTH, "比賽經歷");
   if (competitionError) errors.bioCompetition = competitionError;
 
+  return errors;
+}
+
+function validateContacts(
+  input: Pick<CoachApplicationInput, "contactPhone" | "contactLine" | "contactSocial">
+): string | undefined {
   const contacts = [input.contactPhone, input.contactLine, input.contactSocial];
-  if (contacts.every((value) => !value.trim())) {
-    errors.contact = "聯絡方式請至少填寫一項";
-  }
+  return contacts.every((value) => !value.trim()) ? "聯絡方式請至少填寫一項" : undefined;
+}
 
-  if (!input.hasCriminalRecord) errors.criminalRecord = "請上傳良民證";
-
+function validateLicenses(
+  licenses: CoachApplicationInput["licenses"]
+): Record<number, string> | undefined {
   const licenseErrors: Record<number, string> = {};
-  input.licenses.forEach((license, index) => {
+  licenses.forEach((license, index) => {
     if (!license.name.trim()) {
       licenseErrors[index] = "請填寫證照名稱";
     } else if (!license.hasFile) {
@@ -219,10 +247,55 @@ export function validateCoachApplication(
       if (warning) licenseErrors[index] = warning;
     }
   });
-  if (Object.keys(licenseErrors).length > 0) errors.licenses = licenseErrors;
+  return Object.keys(licenseErrors).length > 0 ? licenseErrors : undefined;
+}
+
+export function validateCoachApplication(
+  input: CoachApplicationInput
+): CoachApplicationErrors {
+  const errors: CoachApplicationErrors = validateCoachPublicProfile(input);
+
+  const nameErrors = validateCoachNames(input);
+  if (nameErrors.realName) errors.realName = nameErrors.realName;
+  if (nameErrors.nickname) errors.nickname = nameErrors.nickname;
+
+  const contactError = validateContacts(input);
+  if (contactError) errors.contact = contactError;
+
+  if (!input.hasCriminalRecord) errors.criminalRecord = "請上傳良民證";
+
+  const licenseErrors = validateLicenses(input.licenses);
+  if (licenseErrors) errors.licenses = licenseErrors;
 
   if (!input.consent) errors.consent = "請勾選同意個資蒐集聲明後再送出";
   if (!input.termsConsent) errors.termsConsent = "請勾選同意教練合作條款後再送出";
+
+  return errors;
+}
+
+// 審核通過後的「編輯個人檔案」（9.0）：公開欄位＋聯絡方式＋證照；良民證與同意聲明不在這裡處理
+// 編輯個人檔案不用再上傳良民證，也不用再勾選同意聲明與教練合作條款（申請時已同意）
+export type CoachProfileEditInput = Omit<
+  CoachApplicationInput,
+  "hasCriminalRecord" | "consent" | "termsConsent"
+>;
+export type CoachProfileEditErrors = Omit<
+  CoachApplicationErrors,
+  "criminalRecord" | "consent" | "termsConsent"
+>;
+
+export function validateCoachProfileEdit(input: CoachProfileEditInput): CoachProfileEditErrors {
+  const errors: CoachProfileEditErrors = validateCoachPublicProfile(input);
+
+  const nameErrors = validateCoachNames(input);
+  if (nameErrors.realName) errors.realName = nameErrors.realName;
+  if (nameErrors.nickname) errors.nickname = nameErrors.nickname;
+
+  const contactError = validateContacts(input);
+  if (contactError) errors.contact = contactError;
+
+  const licenseErrors = validateLicenses(input.licenses);
+  if (licenseErrors) errors.licenses = licenseErrors;
 
   return errors;
 }

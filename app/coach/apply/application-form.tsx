@@ -8,6 +8,7 @@ import {
   useEducationAdder,
   type EducationDraft,
 } from "@/components/coach-application/education-list";
+import { ExistingLicenseList } from "@/components/coach-application/existing-license-list";
 import { FileField } from "@/components/coach-application/file-field";
 import {
   LicenseList,
@@ -59,12 +60,6 @@ export type ExistingApplication = {
   contactLine: string;
   contactSocial: string;
   licenses: { id: string; name: string; status: LicenseStatus }[];
-};
-
-const LICENSE_STATUS_LABELS: Record<LicenseStatus, string> = {
-  pending: "審核中",
-  approved: "已通過",
-  rejected: "未通過",
 };
 
 // 設計稿 C01：每一段是一張白底卡片，標題前面有編號（1　基本資料）
@@ -457,43 +452,12 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
           </p>
         }
       >
-        {existing && existing.licenses.length > 0 && (
-          <ul className="flex flex-col gap-2">
-            {existing.licenses.map((license) => {
-              const removed = removedLicenseIds.includes(license.id);
-              return (
-                <li
-                  key={license.id}
-                  className="flex items-center justify-between gap-3 rounded-md bg-brand-light px-4 py-3"
-                >
-                  <span
-                    className={`text-body min-w-0 truncate ${
-                      removed ? "text-state-disabled-text line-through" : "text-text-primary"
-                    }`}
-                  >
-                    {license.name || "未命名證照"}
-                    <span className="text-caption ml-2 text-text-secondary">
-                      {removed ? "送出後移除" : LICENSE_STATUS_LABELS[license.status]}
-                    </span>
-                  </span>
-                  {/* 已通過的證照關係到「已認證」徽章，不能自己移除 */}
-                  {license.status !== "approved" && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setRemovedLicenseIds((ids) =>
-                          removed ? ids.filter((id) => id !== license.id) : [...ids, license.id]
-                        )
-                      }
-                      className="text-label shrink-0 text-brand-deep underline underline-offset-4"
-                    >
-                      {removed ? "復原" : "移除"}
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+        {existing && (
+          <ExistingLicenseList
+            licenses={existing.licenses}
+            removedIds={removedLicenseIds}
+            onRemovedIdsChange={setRemovedLicenseIds}
+          />
         )}
         <LicenseList value={licenses} onChange={setLicenses} errors={errors.licenses} />
       </Section>
