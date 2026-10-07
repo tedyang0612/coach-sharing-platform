@@ -5,6 +5,7 @@ import {
   formatDeadline,
   formatSessionTime,
 } from "../_lib/display";
+import { AnnouncementHistory } from "@/components/announcements/announcement-history";
 import { progressLabel } from "@/components/ui/status-indicator";
 import type { MyRegistrationItem } from "../_lib/my-registrations";
 import CancelRegistrationButton from "./CancelRegistrationButton";
@@ -173,6 +174,26 @@ export default function MyCourseCard({ item }: { item: MyRegistrationItem }) {
       <StatusLine item={item} />
       <GroupProgressBar item={item} />
       {note}
+
+      {/* 該場次教練發過的所有公告（PRD v4.9：包含自己報名之前發的）。卡片很緊湊，所以預設收合；
+          放在卡片裡，AnnouncementHistory 不要自己的外框 */}
+      {item.announcements.length > 0 && (
+        <details className="group rounded-(--radius-md) border border-(--color-border-default) px-3 py-2.5">
+          <summary className="text-body-small flex cursor-pointer list-none items-center justify-between font-bold!">
+            教練公告（{item.announcements.length}）
+            <span aria-hidden className="text-(--color-text-secondary) transition group-open:rotate-180">
+              ▾
+            </span>
+          </summary>
+          <div className="mt-3">
+            <AnnouncementHistory
+              framed={false}
+              title="已發送的公告"
+              announcements={item.announcements.map((a) => ({ id: a.id, content: a.content, sentAt: a.sent_at }))}
+            />
+          </div>
+        </details>
+      )}
 
       {item.category === "completed" && item.review ? (
         <button
