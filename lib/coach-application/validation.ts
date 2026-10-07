@@ -98,6 +98,16 @@ function validateTags(tags: string[]): string | undefined {
 }
 
 export const NAME_MAX_LENGTH = 20;
+// 其他手動輸入欄位的字數上限（PM 2026-10-07 決定，PRD 原本沒寫）
+export const INTRO_MAX_LENGTH = 500;
+export const EXPERIENCE_MAX_LENGTH = 300;
+export const SCHOOL_MAX_LENGTH = 50;
+export const LICENSE_NAME_MAX_LENGTH = 50;
+
+/** 超過字數上限時回傳錯誤文字。用 Array.from 算字數，emoji 這類字元才不會被算成兩個字。 */
+export function maxLengthError(value: string, max: number, label: string): string | undefined {
+  return Array.from(value.trim()).length > max ? `${label}最多 ${max} 個字` : undefined;
+}
 
 /** 真實姓名必填；暱稱選填，但會公開顯示，所以和其他公開欄位一樣不能含聯絡資訊。 */
 export function validateCoachNames(input: {
@@ -161,13 +171,13 @@ export function validateCoachPublicProfile(
   if (!input.hasLifestylePhoto) errors.lifestylePhoto = "請上傳生活／運動照片";
 
   if (input.sportCategories.length === 0) {
-    errors.sportCategories = "請至少選擇一項運動類別";
+    errors.sportCategories = "請至少選擇一項可授課的運動項目";
   } else if (
     input.sportCategories.some(
       (sport) => !(SPORT_CATEGORIES as readonly string[]).includes(sport)
     )
   ) {
-    errors.sportCategories = "運動類別包含不在清單內的項目";
+    errors.sportCategories = "可授課的運動項目包含不在清單內的項目";
   }
 
   const tagsError = validateTags(input.tags);
@@ -183,7 +193,9 @@ export function validateCoachPublicProfile(
       } else if (!entry.school.trim()) {
         educationItemErrors[index] = "請填寫學校科系";
       } else {
-        const warning = contactInfoWarning(entry.school);
+        const warning =
+          contactInfoWarning(entry.school) ??
+          maxLengthError(entry.school, SCHOOL_MAX_LENGTH, "學校科系");
         if (warning) educationItemErrors[index] = warning;
       }
     });
@@ -192,14 +204,20 @@ export function validateCoachPublicProfile(
     }
   }
 
-  const introError = requiredPublicText(input.bioIntro, "請填寫簡述");
+  const introError =
+    requiredPublicText(input.bioIntro, "請填寫簡述") ??
+    maxLengthError(input.bioIntro, INTRO_MAX_LENGTH, "簡述");
   if (introError) errors.bioIntro = introError;
 
   // 工作／教學經歷、比賽經歷都是選填，但有填就一樣是公開欄位
-  const workExperienceError = contactInfoWarning(input.workExperience);
+  const workExperienceError =
+    contactInfoWarning(input.workExperience) ??
+    maxLengthError(input.workExperience, EXPERIENCE_MAX_LENGTH, "工作／教學經歷");
   if (workExperienceError) errors.workExperience = workExperienceError;
 
-  const competitionError = contactInfoWarning(input.bioCompetition);
+  const competitionError =
+    contactInfoWarning(input.bioCompetition) ??
+    maxLengthError(input.bioCompetition, EXPERIENCE_MAX_LENGTH, "比賽經歷");
   if (competitionError) errors.bioCompetition = competitionError;
 
   return errors;
@@ -222,8 +240,10 @@ function validateLicenses(
     } else if (!license.hasFile) {
       licenseErrors[index] = "請上傳證照檔案";
     } else {
-      // 證照名稱會顯示在教練個人檔案，同樣算公開欄位
-      const warning = contactInfoWarning(license.name);
+      // 證照名稱之後會顯示在教練個人檔案，同樣算公開欄位
+      const warning =
+        contactInfoWarning(license.name) ??
+        maxLengthError(license.name, LICENSE_NAME_MAX_LENGTH, "證照名稱");
       if (warning) licenseErrors[index] = warning;
     }
   });

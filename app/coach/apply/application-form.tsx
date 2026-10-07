@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useRef, useState, useTransition, type FormEvent } from "react";
 import { submitCoachApplication } from "@/app/actions/coach-application";
 import Link from "next/link";
 import {
@@ -22,11 +22,7 @@ import { CheckboxField } from "@/components/ui/checkbox";
 import { FormError } from "@/components/ui/form-error";
 import { TextField } from "@/components/ui/text-field";
 import type { LicenseStatus } from "@/types/database";
-import {
-  CONSENT_CHECKBOX_LABEL,
-  CONSENT_INTRO,
-  CONSENT_ITEMS,
-} from "@/lib/coach-application/consent";
+import { CONSENT_SUMMARY } from "@/lib/coach-application/consent";
 import {
   COACH_DOCUMENT_BUCKET,
   COACH_PHOTO_BUCKET,
@@ -35,7 +31,10 @@ import { DEFAULT_EDUCATION_DEGREE, parseEducation } from "@/lib/coach-applicatio
 import { uploadCoachFile } from "@/lib/coach-application/upload";
 import {
   contactInfoWarning,
+  EXPERIENCE_MAX_LENGTH,
   hasErrors,
+  INTRO_MAX_LENGTH,
+  NAME_MAX_LENGTH,
   resolveCoachDisplayName,
   validateCoachApplication,
   type CoachApplicationErrors,
@@ -166,12 +165,33 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
     termsConsent,
   });
   const errors: CoachApplicationErrors = attempted ? validation : {};
+  // 字數超過上限不用等到按送出，邊打字就提示（QA 回饋）
+  const tooLong = (message?: string) => (message?.includes("最多") ? message : undefined);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // 送出時有欄位沒過：捲到第一個有錯的地方；是輸入框的話順便把游標放進去
+  function scrollToFirstError() {
+    requestAnimationFrame(() => {
+      const target = formRef.current?.querySelector<HTMLElement>(
+        '[aria-invalid="true"], [data-field-error]'
+      );
+      if (!target) return;
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      const isTextInput =
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLInputElement && target.type !== "file");
+      if (isTextInput) target.focus({ preventScroll: true });
+    });
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setAttempted(true);
     setSubmitError(undefined);
-    if (hasErrors(validation)) return;
+    if (hasErrors(validation)) {
+      scrollToFirstError();
+      return;
+    }
 
     startSubmit(async () => {
       try {
@@ -225,7 +245,7 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
   }
 
   return (
-    <form className="flex flex-col gap-4" noValidate onSubmit={handleSubmit}>
+    <form ref={formRef} className="flex flex-col gap-4" noValidate onSubmit={handleSubmit}>
       {existing && (
         <div className="flex flex-col gap-1.5 rounded-md border border-state-error bg-state-error-bg px-4 py-3.5">
           <p className="text-label text-state-error-text">
@@ -243,30 +263,32 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
       <Section number={1} title="基本資料">
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
-            label="真實姓名（必填）"
+            label="真實姓名"
+            required
             name="realName"
             autoComplete="name"
             placeholder="請輸入真實姓名"
-            hint="不公開，僅供管理員核對良民證"
+            hint={`不公開，僅供管理員核對良民證。最多 ${NAME_MAX_LENGTH} 個字`}
             value={realName}
             onChange={(event) => setRealName(event.target.value)}
-            error={errors.realName}
+            error={errors.realName ?? tooLong(validation.realName)}
           />
           <TextField
-            label="暱稱（選填）"
+            label="暱稱"
             name="nickname"
             placeholder="請輸入暱稱"
-            hint={`公開顯示以暱稱為準，未填沿用真實姓名。學員會看到：${
+            hint={`公開顯示的名稱，最多 ${NAME_MAX_LENGTH} 個字；未填沿用真實姓名。學員會看到：${
               resolveCoachDisplayName(realName, nickname) || "（請先填寫真實姓名）"
             }`}
             value={nickname}
             onChange={(event) => setNickname(event.target.value)}
-            error={contactInfoWarning(nickname) ?? errors.nickname}
+            error={contactInfoWarning(nickname) ?? errors.nickname ?? tooLong(validation.nickname)}
           />
         </div>
 
         <FileField
-          label="大頭貼（必填）"
+          label="大頭貼"
+          required
           name="photo"
           kind="photo"
           hint="教練檔案與評價頁使用。JPG／PNG，5MB 以內"
@@ -281,7 +303,8 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
           error={errors.photo}
         />
         <FileField
-          label="生活／運動照片（必填）"
+          label="生活／運動照片"
+          required
           name="lifestylePhoto"
           kind="photo"
           hint="首頁推薦教練卡片與教練檔案使用。JPG／PNG，5MB 以內"
@@ -306,12 +329,14 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
 
         {/* 公開欄位邊打字邊檢查聯絡資訊，偵測到就即時警示（PRD 第六章 7） */}
         <TextAreaField
-          label="簡述（必填）"
+          label="簡述"
+          required
           name="bioIntro"
           placeholder="請簡述你的教學風格"
+          hint={`最多 ${INTRO_MAX_LENGTH} 個字`}
           value={bioIntro}
           onChange={(event) => setBioIntro(event.target.value)}
-          error={contactInfoWarning(bioIntro) ?? errors.bioIntro}
+          error={contactInfoWarning(bioIntro) ?? errors.bioIntro ?? tooLong(validation.bioIntro)}
         />
       </Section>
 
@@ -332,21 +357,23 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
         />
 
         <TextAreaField
-          label="工作／教學經歷（選填）"
+          label="工作／教學經歷"
           name="workExperience"
           placeholder="例：知名健身房 5 年教練經驗"
+          hint={`最多 ${EXPERIENCE_MAX_LENGTH} 個字`}
           value={workExperience}
           onChange={(event) => setWorkExperience(event.target.value)}
-          error={contactInfoWarning(workExperience)}
+          error={contactInfoWarning(workExperience) ?? tooLong(validation.workExperience)}
         />
 
         <TextAreaField
-          label="比賽經歷（選填）"
+          label="比賽經歷"
           name="bioCompetition"
           placeholder="例：全國社會組羽球賽 男雙第 4 名"
+          hint={`最多 ${EXPERIENCE_MAX_LENGTH} 個字`}
           value={bioCompetition}
           onChange={(event) => setBioCompetition(event.target.value)}
-          error={contactInfoWarning(bioCompetition)}
+          error={contactInfoWarning(bioCompetition) ?? tooLong(validation.bioCompetition)}
         />
       </Section>
 
@@ -385,26 +412,28 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
           value={contactSocial}
           onChange={(event) => setContactSocial(event.target.value)}
         />
-        {errors.contact && <p className="text-caption text-state-error-text">{errors.contact}</p>}
+        {errors.contact && (
+          <p data-field-error className="text-caption text-state-error-text">
+            {errors.contact}
+          </p>
+        )}
       </Section>
 
       <Section
         number={4}
         title="身分文件"
         description={
-          <>
-            <p>良民證屬特種個資，僅用於審核；審核完成後 7 日內刪除原檔，只保留審核結果與日期。</p>
-            <p>為什麼需要：學員會與教練實際見面，良民證作為基本把關。</p>
-            {/* 申請方式與費用依內政部警政署公告（2026/10 查詢），之後若有調整請同步更新 */}
-            <p>
-              申請方式與費用：可在內政部警政署網站線上申請，再攜帶身分證件到警察局領取；規費每份新臺幣
-              100 元，一般約 1–3 個工作天。
-            </p>
-          </>
+          // 申請方式與費用依內政部警政署公告（2026/10 查詢），之後若有調整請同步更新
+          <ul className="flex list-disc flex-col gap-1 pl-5">
+            <li>用途：學員會與教練實際見面，良民證作為基本把關。</li>
+            <li>保管：僅用於審核，審核完成後 7 日內刪除原檔。</li>
+            <li>申請：警政署網站線上申請，到警察局領取；每份 100 元，約 1–3 個工作天。</li>
+          </ul>
         }
       >
         <FileField
-          label="上傳良民證（必填）"
+          label="上傳良民證"
+          required
           name="criminalRecord"
           kind="document"
           file={criminalRecord}
@@ -416,9 +445,11 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
 
       <Section
         number={5}
-        title="專業證照（選填）"
+        title="專業證照"
         description={
-          <p>可上傳多張、不限數量；每張需填寫證照名稱，審核通過後顯示「已認證」。</p>
+          <p>
+            可上傳多張，逐張審核。任一張通過後，你的公開檔案與課程卡片的教練名稱旁會顯示「已認證」徽章，公開檔案也會列出證照名稱。
+          </p>
         }
       >
         {existing && (
@@ -431,48 +462,57 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
         <LicenseList value={licenses} onChange={setLicenses} errors={errors.licenses} />
       </Section>
 
-      <Section number={6} title="個資蒐集與條款同意" description={<p>{CONSENT_INTRO}</p>}>
-        <ol className="text-body-small flex list-decimal flex-col gap-2 pl-5 text-text-secondary">
-          {CONSENT_ITEMS.map((item) => (
-            <li key={item.title}>
-              <span className="font-medium text-text-primary">{item.title}：</span>
-              {item.body}
-            </li>
-          ))}
-        </ol>
+      {/* 細節放在條款頁，表單上只留摘要與勾選（QA 回饋）；連結樣式比照註冊頁，開新分頁免得表單被帶走 */}
+      <Section number={6} title="個資蒐集與條款同意" description={<p>{CONSENT_SUMMARY}</p>}>
         <CheckboxField
-          label={CONSENT_CHECKBOX_LABEL}
+          label={
+            <>
+              我已閱讀
+              <Link href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">
+                隱私權政策
+              </Link>
+              ，並同意本平台為審核教練身分，蒐集、處理及利用我提供的個人資料與良民證。
+            </>
+          }
           name="consent"
           checked={consent}
           invalid={Boolean(errors.consent)}
           onChange={(event) => setConsent(event.target.checked)}
         />
-        {errors.consent && <p className="text-caption text-state-error-text">{errors.consent}</p>}
+        {errors.consent && (
+          <p data-field-error className="text-caption text-state-error-text">
+            {errors.consent}
+          </p>
+        )}
 
         <CheckboxField
-          label="我已閱讀並同意《教練合作條款》。"
+          label={
+            <>
+              我已閱讀並同意
+              <Link
+                href="/coach-terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                教練合作條款
+              </Link>
+            </>
+          }
           name="termsConsent"
           checked={termsConsent}
           invalid={Boolean(errors.termsConsent)}
           onChange={(event) => setTermsConsent(event.target.checked)}
         />
-        <p className="text-body-small -mt-2 pl-9 text-text-secondary">
-          <Link
-            href="/coach-terms"
-            target="_blank"
-            className="text-brand-deep underline underline-offset-4"
-          >
-            查看教練合作條款
-          </Link>
-          （另開分頁）
-        </p>
         {errors.termsConsent && (
-          <p className="text-caption text-state-error-text">{errors.termsConsent}</p>
+          <p data-field-error className="text-caption text-state-error-text">
+            {errors.termsConsent}
+          </p>
         )}
       </Section>
 
       {attempted && hasErrors(validation) && (
-        <FormError message="還有欄位需要修正，請往上查看紅字提示。" />
+        <FormError message="還有欄位需要修正，已帶你到第一個需要修正的地方。" />
       )}
       {submitError && <FormError message={submitError} />}
 

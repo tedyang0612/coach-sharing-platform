@@ -29,6 +29,8 @@ type FileFieldProps = {
   layout?: "photo" | "dropzone" | "inline";
   // photo 版面的預覽形狀：大頭貼圓形，生活／運動照片直式
   previewShape?: "circle" | "portrait";
+  // 必填時在標籤後面加紅色 *
+  required?: boolean;
   error?: string;
 };
 
@@ -51,8 +53,11 @@ export function FileField({
   existing,
   layout = kind === "photo" ? "photo" : "dropzone",
   previewShape = "circle",
+  required = false,
   error,
 }: FileFieldProps) {
+  // 必填用紅色 * 標示，和 TextField 一致
+  const requiredMark = required ? <span className="ml-0.5 text-state-error">*</span> : null;
   const [rejectMessage, setRejectMessage] = useState<string>();
   const [preview, setPreview] = useState<{ file: File; url: string }>();
 
@@ -122,10 +127,13 @@ export function FileField({
             {hasFile ? "更換照片" : "選擇照片"}
           </label>
           {shownError ? (
-            <p className="text-caption text-state-error-text">{shownError}</p>
+            <p data-field-error className="text-caption text-state-error-text">
+              {shownError}
+            </p>
           ) : (
             <p className="text-caption text-text-secondary">
-              {label}：{hint ?? formatHint}
+              {label}
+              {requiredMark}：{hint ?? formatHint}
             </p>
           )}
         </div>
@@ -136,7 +144,10 @@ export function FileField({
   if (layout === "inline") {
     return (
       <div className="flex flex-col gap-1.5">
-        <span className="text-label text-text-primary">{label}</span>
+        <span className="text-label text-text-primary">
+          {label}
+          {requiredMark}
+        </span>
         <label
           htmlFor={name}
           className={`text-body flex cursor-pointer items-center justify-between gap-3 rounded-md border bg-brand-white px-4 py-3 focus-within:border-2 focus-within:border-brand-blue focus-within:px-[15px] focus-within:py-[11px] ${
@@ -149,7 +160,10 @@ export function FileField({
           </span>
           <span className="text-label shrink-0 text-brand-deep">{hasFile ? "更換" : "上傳"}</span>
         </label>
-        <p className={`text-caption ${shownError ? "text-state-error-text" : "text-text-secondary"}`}>
+        <p
+          data-field-error={shownError ? true : undefined}
+          className={`text-caption ${shownError ? "text-state-error-text" : "text-text-secondary"}`}
+        >
           {shownError ?? hint ?? formatHint}
         </p>
       </div>
@@ -169,8 +183,14 @@ export function FileField({
       <span aria-hidden="true" className="text-h2 leading-none">
         ＋
       </span>
-      <span className="text-body">{fileText ?? label}</span>
-      <span className={`text-caption ${shownError ? "text-state-error-text" : "text-text-secondary"}`}>
+      <span className="text-body">
+        {fileText ?? label}
+        {!fileText && requiredMark}
+      </span>
+      <span
+        data-field-error={shownError ? true : undefined}
+        className={`text-caption ${shownError ? "text-state-error-text" : "text-text-secondary"}`}
+      >
         {shownError ?? hint ?? formatHint}
       </span>
     </label>

@@ -7,7 +7,11 @@ import {
   DEFAULT_EDUCATION_DEGREE,
   EDUCATION_DEGREES,
 } from "@/lib/coach-application/education";
-import { contactInfoWarning } from "@/lib/coach-application/validation";
+import {
+  contactInfoWarning,
+  maxLengthError,
+  SCHOOL_MAX_LENGTH,
+} from "@/lib/coach-application/validation";
 
 export type EducationDraft = {
   // 只用來當畫面清單的 key，不會存進資料庫
@@ -47,12 +51,16 @@ export function EducationList({ value, onChange, error, itemErrors }: EducationL
     <div className="flex flex-col gap-3">
       {value.map((item, index) => {
         // 學校科系是公開欄位，邊打字邊檢查聯絡資訊
-        const message = contactInfoWarning(item.school) ?? itemErrors?.[index];
+        const message =
+          contactInfoWarning(item.school) ??
+          maxLengthError(item.school, SCHOOL_MAX_LENGTH, "學校科系") ??
+          itemErrors?.[index];
         return (
           <div key={item.key} className="flex flex-col gap-3 sm:flex-row sm:items-start">
             <div className="sm:w-1/2">
               <Select
-                label="學位（必填）"
+                label="學位"
+                required
                 id={`education-degree-${item.key}`}
                 value={item.degree}
                 onChange={(event) => update(item.key, { degree: event.target.value })}
@@ -66,10 +74,12 @@ export function EducationList({ value, onChange, error, itemErrors }: EducationL
             </div>
             <div className="min-w-0 flex-1">
               <TextField
-                label="學校科系（必填）"
+                label="學校科系"
+                required
                 id={`education-school-${item.key}`}
                 value={item.school}
                 placeholder="請輸入學校科系"
+                hint={`最多 ${SCHOOL_MAX_LENGTH} 個字`}
                 onChange={(event) => update(item.key, { school: event.target.value })}
                 error={message}
               />
@@ -87,7 +97,7 @@ export function EducationList({ value, onChange, error, itemErrors }: EducationL
           </div>
         );
       })}
-      {error && <p className="text-caption text-state-error-text">{error}</p>}
+      {error && <p data-field-error className="text-caption text-state-error-text">{error}</p>}
     </div>
   );
 }

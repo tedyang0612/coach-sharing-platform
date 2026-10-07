@@ -63,7 +63,7 @@ export function TagInput({ value, onChange }: TagInputProps) {
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor="tag-input" className="text-label text-text-primary">
-        特色 Tag（選填，最多 {TAG_MAX_COUNT} 個、每個 {TAG_MAX_LENGTH} 字）
+        特色 Tag（最多 {TAG_MAX_COUNT} 個、每個 {TAG_MAX_LENGTH} 字）
         <span className="text-caption ml-2 text-text-secondary">
           已選 {value.length}／{TAG_MAX_COUNT}
         </span>

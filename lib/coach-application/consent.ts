@@ -29,3 +29,8 @@ export const CONSENT_ITEMS = [
 ] as const;
 
 export const CONSENT_CHECKBOX_LABEL = "我已詳閱並同意上述個人資料蒐集聲明。";
+
+// 申請表單上的精簡版（QA 回饋：細節轉到條款頁）。良民證屬特種個資，蒐集需要明確同意，
+// 所以勾選句要直接寫出良民證，不能只寫「同意隱私權政策」。
+export const CONSENT_SUMMARY =
+  "為審核教練身分，本平台會蒐集你填寫的個人資料、聯絡方式、良民證與專業證照。良民證僅用於審核，審核完成後 7 日內刪除原檔。";

@@ -14,16 +14,16 @@ export const metadata: Metadata = {
 // 文案以 PRD v4.6 為準（確定開課才扣款、媒合費 5%、每週三撥款）。
 const BENEFITS = [
   {
-    title: "自訂價格與開課人數",
-    body: "自由設定每人費用與人數上限下限，報名截止預設為開課前 24 小時。",
+    title: "自主彈性排課",
+    body: "時間、地點、人數都由你決定，隨時上架、不受限制。",
   },
   {
-    title: "平台代收、每週三撥款",
-    body: "學員款項由平台代收，課程完成後扣除 5% 媒合費，每週三撥款。",
+    title: "定期透明撥款",
+    body: "收費公開透明，課程完成後每週撥款。",
   },
   {
-    title: "範本快速開課",
-    body: "常開的課存成範本，複製後改個日期就能再次發布。",
+    title: "精準曝光招生",
+    body: "專屬教練頁面展示證照與學員評價，累積個人品牌。",
   },
 ];
 
@@ -60,13 +60,10 @@ export default async function BecomeCoachPage() {
   return (
     <main className="flex-1 px-4 pb-8 pt-5 sm:px-6 sm:pb-20 sm:pt-10">
       <div className="mx-auto flex w-full max-w-[800px] flex-col gap-4">
-        <header className="flex flex-col gap-4">
-          <h1 className="text-h1 text-text-primary">
-            成為夠練
-          </h1>
-          <p className="text-body text-text-secondary">
-            上架你的小班課，報名、收款與開課確認交給平台，你專心教學就好。
-          </p>
+        <header className="flex flex-col items-center gap-4 rounded-lg bg-tint-blue-100 px-6 py-10 text-center sm:py-12">
+          <h1 className="text-h1 text-text-primary">成為教練</h1>
+          <p className="text-body text-text-secondary">把時間留給教學，剩下的交給夠練。</p>
+          <ApplyLink />
         </header>
 
         <section aria-label="成為教練的好處" className="grid gap-4 md:grid-cols-3">
@@ -112,16 +109,22 @@ export default async function BecomeCoachPage() {
           </p>
         </section>
 
-        <div className="flex justify-end">
-          {/* 樣式比照 components/ui/button.tsx；這裡是換頁所以用 Link 而不是 <button> */}
-          <Link
-            href="/coach/apply"
-            className={buttonClassName("primary")}
-          >
-            開始填寫教練申請
-          </Link>
+        <div className="flex justify-center pt-2">
+          <ApplyLink />
         </div>
       </div>
     </main>
+  );
+}
+
+// 樣式比照 components/ui/button.tsx；這裡是換頁所以用 Link 而不是 <button>
+function ApplyLink() {
+  return (
+    <Link
+      href="/coach/apply"
+      className={`${buttonClassName("primary")} w-full justify-center sm:w-1/2`}
+    >
+      開始填寫教練申請
+    </Link>
   );
 }
