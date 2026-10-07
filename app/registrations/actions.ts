@@ -6,6 +6,7 @@
 // guard_registration_insert()（額滿、截止、場次狀態、重複報名、不能報名自己的課）。
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { SessionStatus } from "@/types/database";
 import {
@@ -14,6 +15,7 @@ import {
   getLearnerCancelEligibility,
 } from "./_lib/cancel-rules";
 import { getRegistrationContext, getRegistrationViewer } from "./_lib/queries";
+import { registrationSuccessHref } from "./_lib/routes";
 import {
   getRegistrationState,
   isPaymentMethod,
@@ -86,7 +88,9 @@ export async function createRegistration(
 
   revalidatePath(`/courses/${context.course.id}`);
   revalidatePath("/my-courses");
-  return { ok: true, registrationId: data.id };
+  // 在伺服器端直接導到報名成功頁。不能只回傳 { ok } 讓畫面自己跳轉：報名完成後目前這頁（/registrations/new）會被重新讀取，
+  // 這時學員已經報名了，頁面會換成「已報名」的簡單提示、結帳畫面被卸載，跳轉的程式就沒機會執行（停在 /registrations/new）。
+  redirect(registrationSuccessHref(data.id));
 }
 
 export type CancelActionState = {
