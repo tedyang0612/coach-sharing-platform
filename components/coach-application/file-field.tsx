@@ -170,29 +170,62 @@ export function FileField({
     );
   }
 
-  // dropzone：未選＝虛線、已選＝實線、錯誤＝紅色虛線（共用 Upload 元件的外觀）
+  // dropzone：未選＝虛線＋加號；已選＝實線、底色加深、加號換成打勾並寫明「已選擇檔案」，
+  // 一眼看得出檔案有選到（QA 回饋：原本選完只有檔名，不夠明顯，加號也容易誤會成還沒選）
+  const selected = hasFile && !shownError;
   const boxStyle = shownError
     ? "border-dashed border-state-error bg-state-error-bg"
-    : `border-brand-blue bg-brand-light ${hasFile ? "border-solid" : "border-dashed"}`;
+    : selected
+      ? "border-solid border-brand-deep bg-tint-blue-200"
+      : "border-dashed border-brand-blue bg-brand-light";
   return (
     <label
       htmlFor={name}
       className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-[1.5px] p-6 text-center text-text-primary focus-within:ring-2 focus-within:ring-brand-blue focus-within:ring-offset-2 ${boxStyle}`}
     >
       {input}
-      <span aria-hidden="true" className="text-h2 leading-none">
-        ＋
-      </span>
-      <span className="text-body">
-        {fileText ?? label}
-        {!fileText && requiredMark}
-      </span>
-      <span
-        data-field-error={shownError ? true : undefined}
-        className={`text-caption ${shownError ? "text-state-error-text" : "text-text-secondary"}`}
-      >
-        {shownError ?? hint ?? formatHint}
-      </span>
+      {selected ? (
+        <>
+          <span className="text-label flex items-center gap-2 text-brand-deep">
+            <span
+              aria-hidden="true"
+              className="flex size-6 items-center justify-center rounded-pill bg-brand-deep text-text-inverse"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m5 12.5 4.5 4.5L19 7.5" />
+              </svg>
+            </span>
+            已選擇檔案
+          </span>
+          <span className="text-body max-w-full break-all font-medium">{fileText}</span>
+          <span className="text-caption text-text-secondary">點這裡可以更換檔案</span>
+        </>
+      ) : (
+        <>
+          <span aria-hidden="true" className="text-h2 leading-none">
+            ＋
+          </span>
+          <span className="text-body">
+            {label}
+            {requiredMark}
+          </span>
+          <span
+            data-field-error={shownError ? true : undefined}
+            className={`text-caption ${shownError ? "text-state-error-text" : "text-text-secondary"}`}
+          >
+            {shownError ?? hint ?? formatHint}
+          </span>
+        </>
+      )}
     </label>
   );
 }
