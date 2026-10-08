@@ -64,8 +64,16 @@ export default function CourseCard({ course }: Props) {
         isFull ? "opacity-60" : ""
       }`}
     >
-      {/* 先用漸層佔位；之後有課程圖片欄位再換成圖片 */}
+      {/* 封面可能是站內圖庫（svg）或 Supabase bucket 的網址，用一般 img，不需要設定 next/image 的來源網域；
+          圖還沒載入時露出淡藍底 */}
       <div className="relative h-48 bg-(--color-tint-blue-100)">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={course.coverUrl}
+          alt=""
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
         <div className="absolute left-3 top-3 flex gap-2">
           <span className="rounded-full bg-(--color-surface-default) px-3 py-1 text-caption text-(--color-text-primary)">
             {course.sport}
