@@ -1,13 +1,12 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getRegistrationState } from "@/app/registrations/_lib/registration-rules";
 import { AnnouncementHistory } from "@/components/announcements/announcement-history";
+import BackToResults from "@/components/course/BackToResults";
 import CoachMini from "@/components/course/CoachMini";
 import CourseQa from "@/components/course/CourseQa";
 import GroupProgress from "@/components/course/GroupProgress";
 import KeyInfoStrip from "@/components/course/KeyInfoStrip";
 import RefundRule from "@/components/course/RefundRule";
-import { ArrowLeftIcon } from "@/components/goland/icons";
 import ShareButton from "@/components/share/ShareButton";
 import CourseStatusNotice from "@/components/course/CourseStatusNotice";
 import SessionRegisterButton from "@/components/course/SessionRegisterButton";
@@ -109,13 +108,7 @@ export default async function CourseDetailPage({
 
   return (
     <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-6 px-(--spacing-screen-padding) pb-32 pt-4 lg:pb-12 lg:pt-8">
-      <Link
-        href="/courses"
-        className="text-body-small flex items-center gap-1.5 text-(--color-text-secondary) hover:underline"
-      >
-        <ArrowLeftIcon size={18} />
-        返回搜尋結果
-      </Link>
+      <BackToResults />
 
       <CourseStatusNotice
         availability={availability}

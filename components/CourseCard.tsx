@@ -60,12 +60,20 @@ export default function CourseCard({ course }: Props) {
 
   return (
     <article
-      className={`group flex flex-col overflow-hidden rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) text-(--color-text-primary) shadow-(--shadow-sm) transition-shadow duration-300 hover:shadow-(--shadow-md) ${
+      className={`group relative flex flex-col overflow-hidden rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) text-(--color-text-primary) shadow-(--shadow-sm) transition-shadow duration-300 hover:shadow-(--shadow-md) ${
         isFull ? "opacity-60" : ""
       }`}
     >
-      {/* 先用漸層佔位；之後有課程圖片欄位再換成圖片 */}
+      {/* 封面可能是站內圖庫（svg）或 Supabase bucket 的網址，用一般 img，不需要設定 next/image 的來源網域；
+          圖還沒載入時露出淡藍底 */}
       <div className="relative h-48 bg-(--color-tint-blue-100)">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={course.coverUrl}
+          alt=""
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
         <div className="absolute left-3 top-3 flex gap-2">
           <span className="rounded-full bg-(--color-surface-default) px-3 py-1 text-caption text-(--color-text-primary)">
             {course.sport}
@@ -79,10 +87,11 @@ export default function CourseCard({ course }: Props) {
       <div className="flex flex-1 flex-col justify-between gap-4 p-5">
         <div>
           <h3 className="text-h3 line-clamp-2 text-(--color-text-primary)">
-            {/* 只有標題是連結，整張卡片不是，這樣教練名稱的連結才不會巢狀 */}
+            {/* 整張卡片可以點：標題連結用 after 偽元素鋪滿整張卡片（stretched link），
+                卡片本身不包 <a>，教練名稱的連結才不會巢狀；教練名稱用 relative z-10 浮在上面，仍可單獨點 */}
             <Link
               href={`/courses/${course.courseId}?session=${course.id}`}
-              className="hover:underline"
+              className="after:absolute after:inset-0 after:content-[''] group-hover:underline"
             >
               {course.title}
             </Link>
@@ -102,10 +111,10 @@ export default function CourseCard({ course }: Props) {
         <div className="space-y-3 border-t border-(--color-border-default) pt-3">
           <div className="flex items-center justify-between gap-2 text-body-small text-(--color-text-secondary)">
             <div className="flex min-w-0 items-center gap-2">
-              {/* 卡片本身不是連結，所以教練名稱可以直接放連結（連結不能巢狀） */}
+              {/* 浮在整張卡片的連結上面（relative z-10），點教練名稱去教練頁，不會進課程詳情 */}
               <Link
                 href={`/coaches/${course.coachId}`}
-                className="truncate font-bold text-(--color-text-primary) hover:underline"
+                className="relative z-10 truncate font-bold text-(--color-text-primary) hover:underline"
               >
                 {course.coachName}
               </Link>

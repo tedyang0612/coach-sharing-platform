@@ -106,6 +106,7 @@ function toCourseCard(
     startsAt: s.start_at,
     endsAt: s.end_at,
     level: c.level,
+    coverUrl: resolveCoverUrl({ cover_image_url: c.cover_image_url, sport_type: c.sport_type }),
     coachId: c.coach_id,
     // 教練名稱沒填（或讀不到）時顯示「教練」，避免畫面出現空白
     coachName: coach?.display_name?.trim() || "教練",
@@ -160,8 +161,6 @@ export interface CourseDetail extends Course {
   // TODO: 等 Ted 確認課程 Q&A 的資料來源後，在 getCourseWithSessions 裡帶出；沒有填寫就不顯示
   qa?: CourseQaItem[];
   address: string;
-  // 封面圖：沒設定時依運動項目帶預設圖（Ted 的 resolveCoverUrl）
-  coverUrl: string;
   // 教練大頭貼（授課教練卡用）；沒有就顯示淡藍圓形
   coachPhotoUrl: string | null;
   status: "published";
@@ -200,7 +199,6 @@ export async function getCourseWithSessions(courseId: string): Promise<CourseDet
     description: c.description ?? "",
     notes: c.notes,
     address: c.location_address,
-    coverUrl: resolveCoverUrl({ cover_image_url: c.cover_image_url, sport_type: c.sport_type }),
     coachPhotoUrl: coaches.get(c.coach_id)?.photo_url || null,
     status: "published",
     sessions: sessions.map((s) => ({

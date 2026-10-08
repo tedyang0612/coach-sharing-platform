@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CourseCard from "@/components/CourseCard";
 import ScrollToTop from "@/components/ScrollToTop";
+import { LIST_HREF_KEY } from "@/lib/courses/listHref";
 import type { Course } from "@/lib/courses/types";
 
 // 12 剛好整除 4、3、2 欄，每一排都排滿
@@ -12,6 +13,16 @@ const PAGE_SIZE = 12;
 // 篩選或排序改變時整頁會重新渲染，用 key 讓這裡回到第一批。
 export default function CourseGrid({ courses }: { courses: Course[] }) {
   const [visible, setVisible] = useState(PAGE_SIZE);
+
+  // 記下目前的列表網址（含篩選與排序），詳情頁的「返回搜尋結果」才回得到同一個條件；
+  // 篩選改變時整頁用 key 重新渲染，這裡會重新跑一次
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(LIST_HREF_KEY, `${window.location.pathname}${window.location.search}`);
+    } catch {
+      // 無痕模式或被擋時不記，回上一頁會是沒有條件的列表
+    }
+  }, []);
 
   return (
     <>
