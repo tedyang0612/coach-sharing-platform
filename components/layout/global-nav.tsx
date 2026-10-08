@@ -9,12 +9,13 @@ import { buttonClassName } from "@/components/ui/button";
 import { Icon, type IconName } from "@/components/ui/icon";
 
 // 導覽連結目的地：對齊各模組既有路由（小柔 /courses、/my-courses；牛牛 /notifications、/become-coach；教練工作台入口是總覽 /coach（再用工作台上方分頁切到課程管理等））。
-// 「我的帳戶」頁面尚未有人負責，先指向牛牛的教練資料頁以外的暫定路徑。
+// 「我的帳戶」：學員身分連到 /account（頁面另外做）；教練身分連到教練資料管理 /coach/profile（牛牛的 C08）。
 const ROUTES = {
   explore: "/courses",
   myCourses: "/my-courses",
   notifications: "/notifications",
   account: "/account",
+  coachAccount: "/coach/profile",
   becomeCoach: "/become-coach",
   coachWorkspace: "/coach",
   login: "/login",
@@ -210,7 +211,7 @@ function AccountMenu({ coach, onSelect }: { coach: boolean; onSelect: () => void
   const item = "text-body px-4 py-3";
   return (
     <div className="absolute right-0 top-full z-20 mt-2 flex w-60 flex-col rounded-md border border-border-default bg-brand-white py-2 shadow-md">
-      <MenuItem href={ROUTES.account} icon="user" onSelect={onSelect} className={item}>
+      <MenuItem href={coach ? ROUTES.coachAccount : ROUTES.account} icon="user" onSelect={onSelect} className={item}>
         我的帳戶
       </MenuItem>
       <MenuItem href={ROUTES.myCourses} icon="calendar" onSelect={onSelect} className={item}>
@@ -242,7 +243,12 @@ function MobileDrawer({ auth, onSelect }: { auth: NavAuth; onSelect: () => void 
           <MenuItem href={ROUTES.notifications} icon="bell" onSelect={onSelect} className={item}>
             通知
           </MenuItem>
-          <MenuItem href={ROUTES.account} icon="user" onSelect={onSelect} className={item}>
+          <MenuItem
+            href={auth === "coach" ? ROUTES.coachAccount : ROUTES.account}
+            icon="user"
+            onSelect={onSelect}
+            className={item}
+          >
             我的帳戶
           </MenuItem>
           {auth === "coach" && (
