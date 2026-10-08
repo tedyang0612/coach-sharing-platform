@@ -21,6 +21,8 @@ export interface Course {
   startsAt: string; // 場次開始時間，ISO 8601
   endsAt: string; // 場次結束時間，卡片顯示時間區間用
   level: Level;
+  // 封面圖：課程沒設定時依運動項目帶預設圖（Ted 的 resolveCoverUrl）；列表卡片與詳情頁共用同一份
+  coverUrl: string;
   // 對應 courses.coach_id（= coach_profiles.id），教練名稱連到 /coaches/{coachId}
   coachId: string;
   // 公開顯示的教練名稱：對應 coach_profiles.display_name（有填暱稱是暱稱，沒填是真實姓名）。
