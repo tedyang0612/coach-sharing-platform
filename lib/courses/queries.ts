@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { resolveCoverUrl } from "@/app/courses/_lib/cover-image";
 import type { CourseLevel, SessionStatus } from "@/types/database";
+import type { AnnouncementItem } from "@/components/announcements/announcement-history";
 import type { Course, CourseQaItem } from "./types";
 
 // 學員端讀課程與場次（未登入也讀得到：RLS 只開放已發布的課程）。
@@ -246,4 +247,17 @@ export async function getCourseViewer(sessionIds: string[]): Promise<CourseViewe
     userId: user.id,
     registeredSessionIds: new Set((data ?? []).map((r) => r.session_id as string)),
   };
+}
+
+// 某個場次教練發過的公告，新的在前。
+// 誰讀得到由資料庫 RLS 決定（教練本人，與該場次「待確認開課／確定開課」的報名學員），
+// 所以沒資格的人只會拿到空陣列；呼叫端不必（也不能）靠這裡擋人。
+export async function getSessionAnnouncements(sessionId: string): Promise<AnnouncementItem[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("announcements")
+    .select("id, content, sent_at")
+    .eq("session_id", sessionId)
+    .order("sent_at", { ascending: false });
+  return (data ?? []).map((a) => ({ id: a.id as string, content: a.content as string, sentAt: a.sent_at as string }));
 }

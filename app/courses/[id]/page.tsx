@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getRegistrationState } from "@/app/registrations/_lib/registration-rules";
+import { AnnouncementHistory } from "@/components/announcements/announcement-history";
 import BackToResults from "@/components/course/BackToResults";
 import CoachMini from "@/components/course/CoachMini";
 import CourseQa from "@/components/course/CourseQa";
@@ -12,7 +13,7 @@ import SessionRegisterButton from "@/components/course/SessionRegisterButton";
 import StickyBookingBar from "@/components/course/StickyBookingBar";
 import { getCourseAvailability } from "@/lib/course-status/getCourseAvailability";
 import { getCourseDetail } from "@/lib/courses/getCourseDetail";
-import { getCourseViewer } from "@/lib/courses/queries";
+import { getCourseViewer, getSessionAnnouncements } from "@/lib/courses/queries";
 import { LEVEL_LABELS } from "@/lib/courses/types";
 
 // 台灣時區；日期與時間分開組字串，避免 Node 與瀏覽器的 Intl 空白不同
@@ -88,6 +89,13 @@ export default async function CourseDetailPage({
           },
     now,
   });
+
+  // 已報名這個場次的學員才看得到教練發過的公告（PRD v4.9），包含自己報名之前發的；
+  // 沒公告就不顯示整個區塊，避免對沒權限讀取的人寫出「還沒有發過公告」。
+  const announcements =
+    viewer.kind === "user" && viewer.registeredSessionIds.has(chosen.id)
+      ? await getSessionAnnouncements(chosen.id)
+      : [];
 
   const dateText = formatSession(chosen.startsAt, chosen.endsAt);
   // 場次已取消時顯示取消原因（「未達人數取消」不再當成一種狀態，而是「已取消」加原因）
@@ -175,6 +183,8 @@ export default async function CourseDetailPage({
         minToOpen={course.minToOpen}
         capacity={course.capacity}
       />
+
+      {announcements.length > 0 && <AnnouncementHistory announcements={announcements} title="教練公告" />}
 
       <section className="space-y-6">
         <div className="space-y-2">
