@@ -104,7 +104,9 @@ export default async function CourseDetailPage({
       ? "未達人數"
       : chosen.rawStatus === "cancelled_by_coach"
         ? "教練取消"
-        : undefined;
+        : chosen.rawStatus === "cancelled"
+          ? "平台取消"
+          : undefined;
 
   return (
     <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-6 px-(--spacing-screen-padding) pb-32 pt-4 lg:pb-12 lg:pt-8">

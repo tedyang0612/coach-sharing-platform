@@ -342,8 +342,8 @@ export async function saveCourseAsTemplate(
 }
 
 /**
- * 教練取消場次（PRD 1.0 規格7）。條件先在這裡用 canCoachCancelSession() 檢查一次（含「尚未確定開課」的人數判斷，
- * DB function 沒檢查這條），再呼叫 coach_cancel_session()：它會把場次改成 cancelled_by_coach、
+ * 教練取消場次（PRD v4.10 1.0 規格7）：只有沒有人報名的場次能取消。條件先在這裡用 canCoachCancelSession() 檢查一次，
+ * 再呼叫 coach_cancel_session()（資料庫也會檢查）：它會把場次改成 cancelled_by_coach（取消原因：教練取消）、
  * 報名改成已取消（未扣款）、並發站內＋Email 通知給學員。
  */
 export async function cancelSession(_prev: SessionActionState, formData: FormData): Promise<SessionActionState> {
@@ -365,7 +365,7 @@ export async function cancelSession(_prev: SessionActionState, formData: FormDat
   const activeCount = (session.registrations as { status: RegistrationStatus }[]).filter((r) =>
     isActiveRegistration(r.status)
   ).length;
-  const eligibility = canCoachCancelSession(session, activeCount, course.min_participants);
+  const eligibility = canCoachCancelSession(session, activeCount);
   if (!eligibility.ok) return { error: eligibility.reason };
 
   const { error } = await ctx.supabase.rpc("coach_cancel_session", { p_session_id: sessionId });

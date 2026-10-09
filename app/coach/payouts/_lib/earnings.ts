@@ -1,11 +1,13 @@
 // 教練「預估收益與撥款週期看板」（PRD 11.0、6.0）的計算。純函式、不碰資料庫，頁面與測試共用。
 //
-// 錢怎麼分（PRD v4.7 6.0、第六章 5.4／5.5）：
+// 錢怎麼分（PRD v4.10 6.0、第六章 5.4／5.5）：
 // - 確定開課並扣款、課程還沒上完（registrations.status = confirmed）→ 預估收益，扣 5% 媒合費；待確認開課的報名不計入
 // - 課程完成（completed）且還沒撥款（payout_id 為空）→ 待撥款；每週三撥付「上週一到週日」完成的課程
 // - 課程完成且已有 payout_id → 已撥款
-// - 開課前 24 小時內由教練協助退款（partial_refunded）：學員退 50%，另外 50% 手續費中教練分得 25%（取消補償）。
-//   這 25% 不扣 5% 媒合費，以場次結束日為準算進該週結算、下個週三撥款，所以和課程完成的款項一樣是「待撥款」→「已撥款」
+// - 報名截止後學員取消（partial_refunded）：開課前 72–48 小時手續費 30%（教練 15%／平台 15%）、
+//   48–24 小時手續費 50%（教練 25%／平台 25%）；教練分得的部分是取消補償。
+//   取消補償不扣 5% 媒合費，以場次結束日為準算進該週結算、下個週三撥款，所以和課程完成的款項一樣是「待撥款」→「已撥款」
+// - 開課前 24 小時內不能取消，視同課程完成（教練 95%）；平台取消的場次已全額退款（refunded）、不撥款給教練
 // - 已取消、已退款（全額）→ 不計入任何一項
 // 金額一律用「分」（整數）計算，避免浮點誤差；媒合費四捨五入到分，與資料庫的 round(gross * 0.05, 2) 一致。
 
@@ -31,7 +33,7 @@ export type EarningsInput = {
   amount: number; // 報名當下的每人費用快照
   status: RegistrationStatus;
   payoutId: string | null;
-  /** 24 小時內取消時教練分得的取消補償（registrations.coach_compensation_amount）；其他狀態為 null */
+  /** 報名截止後學員取消時，教練分得的取消補償（registrations.coach_compensation_amount）；其他狀態為 null */
   coachCompensation?: number | null;
 };
 
@@ -52,7 +54,7 @@ export type Money = { gross: number; fee: number; compensation: number; net: num
 
 export type EarningsRowStatus = "estimated" | "pending_payout" | "paid_out";
 
-/** course：一般課程款項；cancel_compensation：24 小時內取消，教練分得的 25% */
+/** course：一般課程款項；cancel_compensation：報名截止後學員取消，教練分得的 15% 或 25% */
 export type EarningsRowKind = "course" | "cancel_compensation";
 
 export type EarningsRow = {
