@@ -1,9 +1,9 @@
 import Link from "next/link";
 
-// 取消與退款規則（Figma S05／S07「Refund rules」）。文案依 PRD v4.8：
-// - 24 小時內取消的取消手續費為 50%（PRD v4.7）
+// 取消與退款規則（Figma S05／S07「Refund rules」）。文案依 PRD v4.10：
+// - 報名截止前免費取消；截止後開課前 72–48 小時收 30%、48–24 小時收 50%，24 小時內不退款但可轉讓名額
 // - 報名與結帳頁提供取消與退款規定的連結（連到服務條款「取消與退款」一章，/terms#refund）
-// - 契約於報名時成立、報名截止時達最低開課人數才生效（PRD v4.8 3.0 規格 2）
+// - 契約於報名時成立、報名截止時達最低開課人數才生效（PRD 3.0 規格 2）
 export function RefundRules({ className = "" }: { className?: string }) {
   const num = "font-[family-name:var(--font-latin)] font-medium";
   return (
@@ -15,12 +15,14 @@ export function RefundRules({ className = "" }: { className?: string }) {
       <p className="text-body-small text-text-secondary">
         完成報名並確認付款方式時，課程契約即成立；報名截止時達最低開課人數才生效，未達人數不收取任何費用。
       </p>
+      <p className="text-body-small text-text-secondary">報名截止前可以在「我的課程」免費取消。</p>
       <p className="text-body-small text-text-secondary">
-        開課前 <span className={num}>24</span> 小時以上可線上取消。
+        報名截止後取消：開課前 <span className={num}>72–48</span> 小時收取 <span className={num}>30</span>%
+        取消手續費、退還 <span className={num}>70</span>%；開課前 <span className={num}>48–24</span> 小時收取{" "}
+        <span className={num}>50</span>% 取消手續費、退還 <span className={num}>50</span>%。
       </p>
       <p className="text-body-small text-text-secondary">
-        開課前 <span className={num}>24</span> 小時內如需取消，請聯絡該堂教練協助處理，將收取 <span className={num}>50</span>%
-        取消手續費；缺席不予退款。
+        開課前 <span className={num}>24</span> 小時內不辦理退款，但可以免費把名額轉讓給親友，請透過行前公告提供的聯絡方式聯繫教練；缺席不予退款。
       </p>
       <Link
         href="/terms#refund"

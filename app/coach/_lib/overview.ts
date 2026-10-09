@@ -66,7 +66,7 @@ export function listUpcomingSessions(courses: CourseWithSessions[], now: Date): 
     for (const session of course.sessions) {
       const status = sessionDisplayStatus(session, now);
       if (status !== "recruiting" && status !== "matched") continue;
-      const cancel = canCoachCancelSession(session, session.active_count, course.min_participants, now);
+      const cancel = canCoachCancelSession(session, session.active_count);
       const base = {
         course,
         session,

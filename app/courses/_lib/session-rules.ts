@@ -9,8 +9,6 @@ export function isActiveRegistration(status: RegistrationStatus): boolean {
   return ACTIVE_REGISTRATION_STATUSES.includes(status);
 }
 
-export const CANCEL_WINDOW_HOURS = 48;
-
 // PRD 1.0 規格4：教練工作台「我的課程」依狀態分組
 export type SessionDisplayStatus = "recruiting" | "matched" | "ended" | "cancelled";
 
@@ -31,6 +29,7 @@ export function sessionDisplayStatus(
   now: Date = new Date()
 ): SessionDisplayStatus {
   switch (session.status) {
+    case "cancelled":
     case "cancelled_by_coach":
     case "cancelled_unmatched":
       return "cancelled";
@@ -46,25 +45,20 @@ export function sessionDisplayStatus(
 export type CancelEligibility = { ok: true } | { ok: false; reason: string };
 
 /**
- * PRD 1.0 規格7：開課前 48hr 以上且尚未確定開課，教練才能取消場次。
- * 「尚未確定開課」在 3.0 做完前先用「有效報名人數 < 人數下限」簡化判斷（見 task 文件 corner case）；
- * DB 的 coach_cancel_session() 只檢查 status=open 跟 48hr，所以人數這條要在應用層擋。
+ * PRD v4.10 1.0 規格7、6.0 規格3：場次還沒有人報名時，教練才能取消；有人報名後系統不提供取消，
+ * 教練確實無法上課要聯絡平台，由平台取消並全額退款。
+ * DB 的 coach_cancel_session() 也檢查「status = open 而且沒有未取消的報名」，這裡先判斷一次讓畫面隱藏按鈕。
+ * activeCount 用有效報名人數（待確認開課、訂單成立、課程完成）。
  */
 export function canCoachCancelSession(
-  session: { status: SessionStatus; start_at: string },
-  activeCount: number,
-  minParticipants: number,
-  now: Date = new Date()
+  session: { status: SessionStatus },
+  activeCount: number
 ): CancelEligibility {
   if (session.status !== "open") {
     return { ok: false, reason: "這個場次目前狀態無法取消" };
   }
-  const hoursUntilStart = (new Date(session.start_at).getTime() - now.getTime()) / (60 * 60 * 1000);
-  if (hoursUntilStart < CANCEL_WINDOW_HOURS) {
-    return { ok: false, reason: `開課前 ${CANCEL_WINDOW_HOURS} 小時內無法取消場次` };
-  }
-  if (activeCount >= minParticipants) {
-    return { ok: false, reason: "這個場次已達開課人數，無法取消" };
+  if (activeCount > 0) {
+    return { ok: false, reason: "場次已有人報名，無法自行取消，如需取消請聯絡平台" };
   }
   return { ok: true };
 }

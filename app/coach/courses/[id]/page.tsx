@@ -149,7 +149,7 @@ function SessionCard({
 }) {
   const status = sessionDisplayStatus(session, now);
   const timeLabel = formatTimeRange(session.start_at, session.end_at);
-  const cancel = canCoachCancelSession(session, session.active_count, minParticipants, now);
+  const cancel = canCoachCancelSession(session, session.active_count);
   // 名單：有效報名在前，已取消／退款的放後面並淡化
   const roster = [...session.roster].sort(
     (a, b) => Number(isActiveRegistration(b.status)) - Number(isActiveRegistration(a.status))
