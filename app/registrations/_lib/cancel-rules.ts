@@ -26,9 +26,9 @@ export const CANCEL_POLICY_LINES = [
   "開課前 24 小時內不能自行取消，如需取消請聯絡該堂教練協助處理，將收取 50% 取消手續費；缺席不予退款。",
 ] as const;
 
-/** 開課前 24 小時內，取消按鈕改顯示的說明（PRD 6.0 AC 2） */
+/** 開課前 24 小時內，取消按鈕改顯示的說明（PRD v4.10 6.0 AC 2、規格 11 名額轉讓） */
 export const CANCEL_TOO_LATE_MESSAGE =
-  "開課前 24 小時內，如需取消，請聯絡該堂教練協助處理，將收取 50% 取消手續費，缺席不予退款";
+  "開課前 24 小時內無法退費，可免費轉讓名額給親友，請透過行前公告提供的聯絡方式聯繫教練";
 
 export type LearnerCancelOutcome = "cancel_unpaid" | "refund_full";
 
@@ -127,4 +127,117 @@ export function cancelErrorMessage(dbMessage: string | undefined): string {
   const message = dbMessage ?? "";
   const known = KNOWN_CANCEL_MESSAGES.find((k) => message.includes(k));
   return known ? message : "操作失敗，請稍後再試。";
+}
+
+// ============================================================
+// 學員取消的級距與金額（PRD v4.10 6.0、5.4）
+// 「我的課程」的取消確認視窗、取消按鈕、server action 都該用 calculateLearnerCancel()，
+// 讓畫面顯示的金額和實際退款是同一個公式（資料庫函式之後用同一套規則與四捨五入）。
+// ============================================================
+
+/** 報名截止後、開課前 72–48 小時取消：手續費 30%（教練、平台各 15%） */
+export const CANCEL_TIER_FAR = { feeRatePercent: 30, coachSharePercent: 15 } as const;
+/** 開課前 48–24 小時取消：手續費 50%（教練、平台各 25%） */
+export const CANCEL_TIER_NEAR = { feeRatePercent: 50, coachSharePercent: 25 } as const;
+/** 級距切點（小時）：>= 48 小時用 30%；24 ≤ 小時 < 48 用 50%；< 24 小時不能取消 */
+export const CANCEL_TIER_NEAR_HOURS = 48;
+export const CANCEL_NO_REFUND_HOURS = 24;
+
+export type LearnerCancelTier = "free" | "fee_30" | "fee_50";
+
+export type LearnerCancelQuote =
+  | {
+      ok: true;
+      /** free：報名截止前、尚未扣款，不收費；fee_30／fee_50：已扣款，部分退款 */
+      tier: LearnerCancelTier;
+      /** cancel_unpaid：訂單改為「已取消」；partial_refund：訂單改為「部分退款」 */
+      outcome: "cancel_unpaid" | "partial_refund";
+      /** 手續費比例（0、0.3、0.5），畫面顯示百分比用 */
+      feeRate: number;
+      /** 以下金額單位與 amount 相同（NT$ 整數），學員＋教練＋平台＝amount（已扣款時） */
+      feeAmount: number;
+      refundAmount: number;
+      coachShareAmount: number;
+      platformShareAmount: number;
+    }
+  | {
+      ok: false;
+      reason: "too_late" | "pending_match" | "not_cancellable";
+      message: string;
+    };
+
+/** 手續費金額：amount × 百分比，四捨五入到整數（整數運算，避免浮點誤差） */
+function percentOf(amount: number, percent: number): number {
+  return Math.round((amount * percent) / 100);
+}
+
+/**
+ * 學員取消這筆報名會怎樣：能不能取消、手續費比例與金額、退款金額、教練與平台各得多少。
+ *
+ * - status 是「待確認開課（pending_match）」且還沒到報名截止：免費取消，不扣款。
+ * - status 是「訂單成立（confirmed）」＝已扣款，依距開課時間分級：
+ *     ≥ 48 小時（72–48）：手續費 30%（教練 15%、平台 15%）、退 70%
+ *     24 ≤ 小時 < 48：手續費 50%（教練 25%、平台 25%）、退 50%
+ *     < 24 小時：不能取消（不退款、視同課程完成，名額可自行轉讓），回傳 too_late
+ *   剛好 48 小時算 30%、剛好 24 小時算 50%（對學員有利的一邊）。
+ * - 已過報名截止但報名還是「待確認開課」：系統正在做開課確認，回傳 pending_match，請稍後再試。
+ * - 其他狀態（已取消、已退款、部分退款、課程完成）：not_cancellable。
+ * 教練分得的手續費不再扣媒合費（PRD v4.10 6.0）；四捨五入：教練份額先算，平台＝手續費－教練份額，保證加總不差。
+ */
+export function calculateLearnerCancel(input: {
+  /** 報名金額（NT$ 整數） */
+  amount: number;
+  status: RegistrationStatus;
+  /** 場次開始時間（ISO 字串或 Date） */
+  sessionStartAt: string | Date;
+  /** 報名截止時間（ISO 字串或 Date） */
+  registrationDeadlineAt: string | Date;
+  now?: Date;
+}): LearnerCancelQuote {
+  const now = input.now ?? new Date();
+  const start = new Date(input.sessionStartAt).getTime();
+  const deadline = new Date(input.registrationDeadlineAt).getTime();
+
+  if (input.status === "pending_match") {
+    if (now.getTime() < deadline) {
+      return {
+        ok: true,
+        tier: "free",
+        outcome: "cancel_unpaid",
+        feeRate: 0,
+        feeAmount: 0,
+        refundAmount: 0,
+        coachShareAmount: 0,
+        platformShareAmount: 0,
+      };
+    }
+    return {
+      ok: false,
+      reason: "pending_match",
+      message: "報名已截止，系統正在確認是否開課，請稍後再試",
+    };
+  }
+
+  if (input.status !== "confirmed") {
+    return { ok: false, reason: "not_cancellable", message: "這筆報名目前狀態無法取消" };
+  }
+
+  const hoursToStart = (start - now.getTime()) / (60 * 60 * 1000);
+  if (hoursToStart < CANCEL_NO_REFUND_HOURS) {
+    return { ok: false, reason: "too_late", message: CANCEL_TOO_LATE_MESSAGE };
+  }
+
+  const tier = hoursToStart >= CANCEL_TIER_NEAR_HOURS ? CANCEL_TIER_FAR : CANCEL_TIER_NEAR;
+  const feeAmount = percentOf(input.amount, tier.feeRatePercent);
+  const coachShareAmount = percentOf(input.amount, tier.coachSharePercent);
+  return {
+    ok: true,
+    tier: tier === CANCEL_TIER_FAR ? "fee_30" : "fee_50",
+    outcome: "partial_refund",
+    feeRate: tier.feeRatePercent / 100,
+    feeAmount,
+    refundAmount: input.amount - feeAmount,
+    coachShareAmount,
+    platformShareAmount: feeAmount - coachShareAmount,
+  };
 }
