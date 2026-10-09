@@ -19,6 +19,7 @@ import {
   serializeSlots,
   slotsFromCourse,
   validateCourseValues,
+  validateNotes,
   validateQa,
   validateTemplateName,
   type CourseFieldErrors,
@@ -181,6 +182,8 @@ export async function updateCourse(_prev: CourseFormState, formData: FormData): 
 
   if (isCourseEditLocked(course)) {
     if (containsContactInfo(values.notes)) return { errors: { notes: CONTACT_INFO_MESSAGE } };
+    const notesError = validateNotes(values.notes);
+    if (notesError) return { errors: { notes: notesError } };
     const qaItems = parseQa(values.qa);
     const qaError = qaItems ? validateQa(qaItems) : "課程 QA 格式不正確";
     if (qaError || !qaItems) return { errors: { qa: qaError ?? "課程 QA 格式不正確" } };

@@ -21,13 +21,16 @@ import {
   DESCRIPTION_MAX,
   DESCRIPTION_MIN,
   LOCATION_NAME_MAX,
+  LOCATION_NAME_MIN,
   LOCKED_EDITABLE_FIELDS,
   MAX_PARTICIPANTS_CAP,
   MIN_PRICE,
+  NOTES_MAX,
   SCHEDULE_FIELDS,
   TEMPLATE_NAME_MAX,
+  TEMPLATE_NAME_MIN,
   TITLE_MAX,
-  charLength,
+  TITLE_MIN,
   composeAddress,
   hasAllRequiredFields,
   parseQa,
@@ -191,15 +194,28 @@ export function CourseForm({
     onChange: (e: { target: { value: string } }) => set(f, e.target.value),
   });
 
-  // 數字欄位只收數字：打不出小數點、負號與 e，貼上的內容也會被濾掉（鯨魚 QA：直接鎖定正整數）
-  const numberProps = (f: CourseField, maxLength: number) => ({
+  // 數字欄位只收數字：打不出小數點、負號與 e，貼上的內容也會被濾掉（鯨魚 QA：直接鎖定正整數）。
+  // 位數只擋到 maxDigits（避免貼上超長數字），超過上限的數值（例如人數 1000）仍可輸入，由錯誤提示說明，不直接擋住
+  const numberProps = (f: CourseField, maxDigits: number) => ({
     ...fieldProps(f),
     type: "text" as const,
     inputMode: "numeric" as const,
     pattern: "[0-9]*",
-    maxLength,
-    onChange: (e: { target: { value: string } }) => set(f, e.target.value.replace(/\D/g, "")),
+    onChange: (e: { target: { value: string } }) => set(f, e.target.value.replace(/\D/g, "").slice(0, maxDigits)),
   });
+
+  // 費用欄位顯示千分位（1000 → 1,000）；送出的 price_per_person 仍是純數字（hidden input）
+  const priceFieldProps = (() => {
+    const base = numberProps("price_per_person", 7);
+    const digits = values.price_per_person;
+    return {
+      ...base,
+      name: undefined,
+      pattern: undefined, // 顯示值含千分位逗號，不能套用 [0-9]* 的原生格式檢查
+      onBlur: () => setTouched((t) => (t.price_per_person ? t : { ...t, price_per_person: true })),
+      value: digits === "" ? "" : Number(digits).toLocaleString("en-US"),
+    };
+  })();
 
   const deadlineOptions = DEADLINE_OPTIONS.includes(Number(values.registration_deadline_hours))
     ? DEADLINE_OPTIONS
@@ -229,9 +245,8 @@ export function CourseForm({
 
       <FormSection title="基本資訊">
         <TextField
-          label="課程名稱 *"
+          label={`課程名稱（${TITLE_MIN}–${TITLE_MAX} 字）*`}
           placeholder="例如：零基礎重訓入門｜深蹲與硬舉"
-          maxLength={TITLE_MAX}
           {...fieldProps("title")}
         />
 
@@ -266,6 +281,12 @@ export function CourseForm({
       </FormSection>
 
       <FormSection title="時間與地點" description="一堂課就是一個場次，學員以場次為單位報名，人數也各場次分開計算。">
+        <TextField
+          label={`場館名稱（${LOCATION_NAME_MIN}–${LOCATION_NAME_MAX} 字）*`}
+          placeholder="例如：XX 運動中心 3F 重訓區"
+          {...fieldProps("location_name")}
+        />
+
         {/* 縣市：行政區：街道 = 1:1:2，地址可以直接對照選單輸入 */}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <SelectField
@@ -325,13 +346,6 @@ export function CourseForm({
         </div>
 
         <TextField
-          label="場館名稱 *"
-          placeholder="例如：XX 運動中心 3F 重訓區"
-          maxLength={LOCATION_NAME_MAX}
-          {...fieldProps("location_name")}
-        />
-
-        <TextField
           label="上課日期 *"
           type="date"
           min={mode === "create" ? todayInTaipei() : undefined}
@@ -361,21 +375,22 @@ export function CourseForm({
 
       <FormSection title="費用與人數" description="人數上下限適用於每一個場次。">
         <div className="grid gap-4 sm:grid-cols-3">
-          <TextField label={`每人費用（NT$，最低 ${MIN_PRICE}）*`} placeholder="800" {...numberProps("price_per_person", 6)} />
-          <TextField label="人數下限 *" placeholder="2" {...numberProps("min_participants", 3)} />
-          <TextField label={`人數上限（最多 ${MAX_PARTICIPANTS_CAP}）*`} placeholder="6" {...numberProps("max_participants", 3)} />
+          <div>
+            <TextField label={`每人費用（NT$，最低 ${MIN_PRICE}）*`} id="price_per_person" {...priceFieldProps} />
+            <input type="hidden" name="price_per_person" value={values.price_per_person} />
+          </div>
+          <TextField label="人數下限（至少 1 人）*" {...numberProps("min_participants", 4)} />
+          <TextField label={`人數上限（最多 ${MAX_PARTICIPANTS_CAP}）*`} {...numberProps("max_participants", 4)} />
         </div>
       </FormSection>
 
       <FormSection title="課程內容" description="為保障雙方交易安全，請勿於公開欄位填寫電話、LINE、Email 或外部連結。">
         <TextAreaField
-          label="課程介紹 *"
+          label={`課程介紹（${DESCRIPTION_MIN}–${DESCRIPTION_MAX} 字）*`}
           placeholder="課程內容、適合對象、教學方式…"
-          maxLength={DESCRIPTION_MAX}
-          hint={`${charLength(values.description.trim())}／${DESCRIPTION_MAX} 字（至少 ${DESCRIPTION_MIN} 字）`}
           {...fieldProps("description")}
         />
-        <TextAreaField label="課程須知" placeholder="穿著、需自備的裝備、集合地點等" {...fieldProps("notes")} />
+        <TextAreaField label={`課程須知（選填，最多 ${NOTES_MAX} 字）`} placeholder="穿著、需自備的裝備、集合地點等" {...fieldProps("notes")} />
       </FormSection>
 
       <FormSection title="課程 QA（選填）" description="預先回答學員常問的問題，會以摺疊方式顯示在課程頁。">
@@ -410,10 +425,9 @@ export function CourseForm({
             </label>
           )}
           <TextField
-            label="範本名稱（選填）"
+            label={`範本名稱（選填，${TEMPLATE_NAME_MIN}–${TEMPLATE_NAME_MAX} 字）`}
             name="template_name"
             placeholder="例如：【台北】周二晚間基礎瑜珈"
-            maxLength={TEMPLATE_NAME_MAX}
             value={templateName}
             error={templateNameServerError ?? templateNameError}
             onChange={(e) => {
