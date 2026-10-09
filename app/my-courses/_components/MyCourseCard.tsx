@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { resolveCoverUrl } from "@/app/courses/_lib/cover-image";
+import { CANCEL_TOO_LATE_MESSAGE } from "@/app/registrations/_lib/cancel-rules";
 import {
   COPY,
   formatDeadline,
@@ -84,7 +85,8 @@ export default function MyCourseCard({ item }: { item: MyRegistrationItem }) {
     );
   } else if (item.category === "confirmed") {
     if (item.cancelButton === "contact_coach") {
-      note = <Note tone="info">{COPY.contactCoach}</Note>;
+      // 文案由 Ted 的 cancel-rules.ts 提供（PRD v4.10：不退費、可轉讓名額），不要自己組字串
+      note = <Note tone="info">{CANCEL_TOO_LATE_MESSAGE}</Note>;
     } else if (item.announcements.length > 0) {
       note = <Note>{COPY.confirmedAnnouncement}</Note>;
     }
@@ -107,7 +109,10 @@ export default function MyCourseCard({ item }: { item: MyRegistrationItem }) {
       <CancelRegistrationButton
         key="cancel"
         registrationId={item.registrationId}
-        outcome={item.cancel.outcome}
+        amount={item.amount}
+        status={item.status}
+        sessionStartAt={session.startAt}
+        registrationDeadlineAt={session.registrationDeadlineAt}
         className={OUTLINE_BUTTON}
       />,
     );

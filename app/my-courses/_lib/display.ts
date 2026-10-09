@@ -24,18 +24,9 @@ export const COPY = {
   emptyAll: "你還沒有報名任何課程，去探索適合你的課吧",
   explore: "探索課程",
   confirmedAnnouncement: "行前公告已送達通知中心，內含教練聯絡方式與集合資訊。",
-  // 文案依 PRD v4.7（開課前 24 小時內取消的手續費由 30% 改為 50%）；設計師的 Figma 還是 30%，等更新
-  contactCoach:
-    "開課前 24 小時內，如需取消，請聯絡該堂教練協助處理，將收取 50% 取消手續費，缺席不予退款。",
   reviewPrompt: "上完課了！留下評價，幫助其他學員選課。",
   cancelledNoCharge: "場次未達開課人數或已取消，不會扣款。",
   refundedFull: "已全額退回你的付款方式（畫面模擬）。",
-} as const;
-
-// 取消確認視窗要說明結果（Ted 的 cancel.outcome）
-export const CANCEL_OUTCOME_TEXT = {
-  cancel_unpaid: "取消後報名會直接取消，尚未扣款。",
-  refund_full: "取消後會全額退款，名額會釋出給其他學員。",
 } as const;
 
 // 日期與時間分開組字串（台灣時區），例如「10/12（日） 14:00–16:00」
