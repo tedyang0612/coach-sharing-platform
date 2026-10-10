@@ -4,7 +4,7 @@
  * 確定開課的行前通知會直接把這個欄位接在「社群：」後面，學員看得到是哪個平台的帳號。
  */
 
-export const SOCIAL_PLATFORMS = ["Instagram", "Facebook", "YouTube"] as const;
+export const SOCIAL_PLATFORMS = ["Instagram", "Facebook", "Threads", "YouTube"] as const;
 export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
 
 export const DEFAULT_SOCIAL_PLATFORM: SocialPlatform = "Instagram";
