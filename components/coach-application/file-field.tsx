@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { buttonClassName } from "@/components/ui/button";
 import {
   DOCUMENT_MIME_TYPES,
@@ -59,6 +59,7 @@ export function FileField({
   // 必填用紅色 * 標示，和 TextField 一致
   const requiredMark = required ? <span className="ml-0.5 text-state-error">*</span> : null;
   const [rejectMessage, setRejectMessage] = useState<string>();
+  const previewDialogRef = useRef<HTMLDialogElement>(null);
   const [preview, setPreview] = useState<{ file: File; url: string }>();
 
   // 圖片才顯示縮圖。用 FileReader 在讀完之後才寫入 state，並記住是哪個檔案的縮圖，
@@ -111,13 +112,21 @@ export function FileField({
       previewShape === "circle" ? "size-[66px] rounded-pill" : "h-20 w-[60px] rounded-md";
     return (
       <div className="flex items-center gap-4">
-        <div className={`${frame} shrink-0 overflow-hidden bg-tint-blue-200`}>
-          {imageUrl && (
-            // 本機預覽（data URL）或已上傳的公開照片，尺寸很小，不經過 next/image 的最佳化
-            // eslint-disable-next-line @next/next/no-img-element
+        {imageUrl ? (
+          // 有照片時縮圖可以點開放大看（本機預覽的 data URL 或已上傳的公開照片，不經過 next/image 的最佳化）
+          <button
+            type="button"
+            aria-label={`放大預覽${label}`}
+            title="點擊放大預覽"
+            onClick={() => previewDialogRef.current?.showModal()}
+            className={`${frame} shrink-0 cursor-zoom-in overflow-hidden bg-tint-blue-200 transition hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={imageUrl} alt="" className="size-full object-cover" />
-          )}
-        </div>
+          </button>
+        ) : (
+          <div className={`${frame} shrink-0 overflow-hidden bg-tint-blue-200`} />
+        )}
         <div className="flex min-w-0 flex-col items-start gap-1.5">
           <label
             htmlFor={name}
@@ -137,6 +146,34 @@ export function FileField({
             </p>
           )}
         </div>
+
+        {imageUrl && (
+          <dialog
+            ref={previewDialogRef}
+            aria-label={`${label}預覽`}
+            // 點到照片以外的暗色區域就關閉
+            onClick={(event) => {
+              if (event.target === event.currentTarget) event.currentTarget.close();
+            }}
+            className="m-auto max-h-[90vh] max-w-[min(90vw,560px)] rounded-lg bg-brand-white p-4 backdrop:bg-black/60"
+          >
+            <div className="flex flex-col items-center gap-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageUrl}
+                alt={`${label}預覽`}
+                className="max-h-[70vh] w-auto max-w-full rounded-md object-contain"
+              />
+              <button
+                type="button"
+                onClick={() => previewDialogRef.current?.close()}
+                className={buttonClassName("secondary")}
+              >
+                關閉
+              </button>
+            </div>
+          </dialog>
+        )}
       </div>
     );
   }
