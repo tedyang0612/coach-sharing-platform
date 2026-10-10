@@ -11,17 +11,22 @@ export type CourseStatus = "draft" | "published" | "cancelled";
 
 export type SessionStatus =
   | "open" // 招生中
-  | "matched" // 已成團
-  | "cancelled_unmatched" // 未成團取消
-  | "cancelled_by_coach" // 教練取消
+  | "matched" // 確定開課
+  | "cancelled" // 已取消（v4.10 起平台取消用這個值；原因看 cancel_reason）
+  | "cancelled_unmatched" // 已取消（舊值，原因：未達人數）
+  | "cancelled_by_coach" // 已取消（舊值，原因：教練取消）
   | "completed"; // 已結束
+
+/** 取消原因（sessions.cancel_reason；registrations.cancel_reason 另外多一個 learner＝學員自己取消） */
+export type SessionCancelReason = "unmatched" | "coach" | "platform";
+export type RegistrationCancelReason = SessionCancelReason | "learner";
 
 export type RegistrationStatus =
   | "pending_match" // 已報名（待確認開課）
   | "confirmed" // 訂單成立
   | "cancelled" // 已取消（未扣款）
   | "refunded" // 已退款（全額）
-  | "partial_refunded" // 部分退款（24 小時內退 50%，手續費 50%：教練 25%、平台 25%）
+  | "partial_refunded" // 部分退款（報名截止後學員取消：手續費 30% 或 50%，教練與平台各一半）
   | "completed"; // 課程完成
 
 // MVP 運動種類（PRD v4.2：共八種，開課運動項目與學員篩選皆以此為限）
@@ -145,6 +150,8 @@ export interface Session {
   registration_deadline_at: string;
   status: SessionStatus;
   reminder_sent_at: string | null;
+  cancel_reason: SessionCancelReason | null; // 20261009000045
+  cancel_note: string | null; // 平台取消的文字說明
   created_at: string;
   updated_at: string;
 }
@@ -162,7 +169,8 @@ export interface Registration {
   cancelled_at: string | null;
   refund_amount: number | null;
   refund_fee_amount: number | null;
-  coach_compensation_amount: number | null; // 24 小時內取消時教練分得的 25%（20261005000040）
+  coach_compensation_amount: number | null; // 報名截止後學員取消時教練分得的 15% 或 25%（20261005000040）
+  cancel_reason: RegistrationCancelReason | null; // 20261009000045
   payout_id: string | null;
   created_at: string;
 }
