@@ -12,7 +12,7 @@ import { getCoachContext, listMyCourses, listMyTemplates } from "@/app/courses/_
 import { SESSION_DISPLAY_LABELS, sessionDisplayStatus, type SessionDisplayStatus } from "@/app/courses/_lib/session-rules";
 import type { Course } from "@/types/database";
 
-// PRD 1.0 規格4：「我的課程」依狀態（招生中／確定開課／已結束／已取消）列出各場次；
+// PRD 1.0 規格4：教練的「課程管理」（原稱「我的課程」，與學員的「我的課程」重名，改名）依狀態（招生中／確定開課／已結束／已取消）列出各場次；
 // 另加「全部」頁籤（鯨魚 QA）與「範本」分頁（規格3）。「報名已截止、尚未開課確認」的場次留在招生中，
 // 開課確認每 5 分鐘執行一次，這段空窗很短，不另外分類。
 const SESSION_TABS: SessionDisplayStatus[] = ["recruiting", "matched", "ended", "cancelled"];
@@ -34,7 +34,7 @@ export default async function MyCoursesPage({ searchParams }: PageProps<"/coach/
   }
   if (!ctx.ok) {
     return (
-      <PageShell title="我的課程">
+      <PageShell title="課程管理">
         <NotCoachNotice />
       </PageShell>
     );
@@ -71,7 +71,7 @@ export default async function MyCoursesPage({ searchParams }: PageProps<"/coach/
 
   return (
     <PageShell
-      title="我的課程"
+      title="課程管理"
       description="依場次狀態查看報名人數與學員名單；點場次進入課程管理。"
       actions={
         <Link href="/coach/courses/new" className={buttonClassName("primary")}>

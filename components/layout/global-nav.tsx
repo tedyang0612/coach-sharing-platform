@@ -18,12 +18,13 @@ const ROUTES = {
   coachAccount: "/coach/profile",
   becomeCoach: "/become-coach",
   coachWorkspace: "/coach",
+  coachCourses: "/coach/courses",
   login: "/login",
   register: "/register",
 } as const;
 
 export type NavAuth = "guest" | "user" | "coach";
-type NavActive = "explore" | "my-courses";
+type NavActive = "explore" | "my-courses" | "coach-courses";
 
 type GlobalNavProps = {
   auth: NavAuth;
@@ -41,7 +42,9 @@ export function GlobalNav({ auth, active }: GlobalNavProps) {
       ? "explore"
       : pathname.startsWith(ROUTES.myCourses)
         ? "my-courses"
-        : undefined);
+        : pathname.startsWith(ROUTES.coachCourses)
+          ? "coach-courses"
+          : undefined);
   const loggedIn = auth !== "guest";
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -61,7 +64,13 @@ export function GlobalNav({ auth, active }: GlobalNavProps) {
         <DesktopNavItem href={ROUTES.explore} active={current === "explore"}>
           探索課程
         </DesktopNavItem>
-        {loggedIn && (
+        {/* 教練第二個連結是「課程管理」（自己開的課）；學員身分的「我的課程」收在帳戶選單，避免兩個「我的課程」混淆 */}
+        {auth === "coach" && (
+          <DesktopNavItem href={ROUTES.coachCourses} active={current === "coach-courses"}>
+            課程管理
+          </DesktopNavItem>
+        )}
+        {auth === "user" && (
           <DesktopNavItem href={ROUTES.myCourses} active={current === "my-courses"}>
             我的課程
           </DesktopNavItem>
@@ -237,6 +246,11 @@ function MobileDrawer({ auth, onSelect }: { auth: NavAuth; onSelect: () => void 
       </Link>
       {loggedIn ? (
         <>
+          {auth === "coach" && (
+            <Link href={ROUTES.coachCourses} onClick={onSelect} className={`${item} text-text-primary`}>
+              課程管理
+            </Link>
+          )}
           <Link href={ROUTES.myCourses} onClick={onSelect} className={`${item} text-text-primary`}>
             我的課程
           </Link>

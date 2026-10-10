@@ -49,7 +49,7 @@ export default async function CoachCoursePage({ params }: PageProps<"/coach/cour
     <PageShell
       title={course.title}
       description={`${course.sport_type}｜${levelLabel}｜${course.location_name}`}
-      back={{ href: course.is_template ? "/coach/courses?view=templates" : "/coach/courses", label: "我的課程" }}
+      back={{ href: course.is_template ? "/coach/courses?view=templates" : "/coach/courses", label: "課程管理" }}
       actions={
         <div className="flex flex-wrap items-start gap-2">
           {course.is_template ? (

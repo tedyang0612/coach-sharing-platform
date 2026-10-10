@@ -33,6 +33,7 @@ export const LOCATION_NAME_MIN = 2;
 export const LOCATION_NAME_MAX = 40;
 export const DESCRIPTION_MIN = 20;
 export const DESCRIPTION_MAX = 600;
+export const NOTES_MAX = 300; // 課程須知：穿著、裝備、集合方式等簡短說明
 export const TEMPLATE_NAME_MIN = 2;
 export const TEMPLATE_NAME_MAX = 40;
 export const MIN_PRICE = 200; // PRD v4.7：每人費用下限 NT$200，不提供 0 元課程
@@ -40,7 +41,7 @@ export const MAX_PARTICIPANTS_CAP = 999; // PRD v4.7：人數上限最多 999
 
 // 課程 QA（PRD v4.7 1.0 規格 9）。數量與字數上限不在 PRD 內，是為了避免畫面被塞爆而加的保守值
 export const MAX_QA_ITEMS = 10;
-export const QA_QUESTION_MAX = 100;
+export const QA_QUESTION_MAX = 50;
 export const QA_ANSWER_MAX = 200;
 export const QA_TEMPLATE_QUESTIONS = [
   "我是完全的初學者，沒有基礎也可以報名嗎？",
@@ -306,6 +307,11 @@ export function filledQaItems(items: CourseQaItem[]): CourseQaItem[] {
     .filter((item) => item.q !== "" && item.a !== "");
 }
 
+/** 課程須知的字數檢查（選填，空白不檢查）；沒問題回傳 null */
+export function validateNotes(notes: string): string | null {
+  return charLength(notes.trim()) > NOTES_MAX ? `課程須知最多 ${NOTES_MAX} 個字` : null;
+}
+
 /** QA 的錯誤訊息；沒問題回傳 null。只檢查有填的項目，空白項目會被略過不存 */
 export function validateQa(items: CourseQaItem[]): string | null {
   const filled = filledQaItems(items);
@@ -437,6 +443,9 @@ export function validateCourseValues(
   if (!errors.description && (charLength(description) < DESCRIPTION_MIN || charLength(description) > DESCRIPTION_MAX)) {
     errors.description = `課程介紹需為 ${DESCRIPTION_MIN}–${DESCRIPTION_MAX} 個字`;
   }
+
+  const notesError = validateNotes(notes);
+  if (!errors.notes && notesError) errors.notes = notesError;
 
   const qaItems = parseQa(values.qa);
   const qaError = qaItems ? validateQa(qaItems) : "課程 QA 格式不正確";

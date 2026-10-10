@@ -6,6 +6,7 @@
 // - 有人報名後仍可編輯（locked 只鎖其他欄位，QA 不受影響）
 
 import type { CourseQaItem } from "@/types/database";
+import { FIELD_CLASSES } from "@/components/ui/field-styles";
 import {
   MAX_QA_ITEMS,
   QA_ANSWER_MAX,
@@ -14,8 +15,7 @@ import {
   serializeQa,
 } from "../_lib/course-input";
 
-const CONTROL_CLASS =
-  "w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand-ink disabled:cursor-not-allowed disabled:opacity-60";
+const QA_NUMBERS = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
 
 type Props = {
   items: CourseQaItem[];
@@ -36,37 +36,35 @@ export function QaEditor({ items, onChange, disabled = false, error }: Props) {
       <ol className="flex flex-col gap-3">
         {items.map((item, i) => (
           <li key={i} className="flex flex-col gap-2 rounded-xl border border-neutral-200 p-3">
-            <div className="flex items-center gap-2">
-              <span className="shrink-0 text-xs font-semibold text-neutral-500">QA {i + 1}</span>
-              <input
-                aria-label={`QA ${i + 1} 問題`}
-                value={item.q}
-                maxLength={QA_QUESTION_MAX}
-                disabled={disabled}
-                placeholder={QA_TEMPLATE_QUESTIONS[i] ?? "輸入學員可能會問的問題"}
-                onChange={(e) => update(i, { q: e.target.value })}
-                className={CONTROL_CLASS}
-              />
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-label text-text-primary">第{QA_NUMBERS[i] ?? i + 1}題</span>
               {!disabled && (
                 <button
                   type="button"
                   onClick={() => onChange(items.filter((_, j) => j !== i))}
-                  aria-label={`刪除 QA ${i + 1}`}
+                  aria-label={`刪除第${QA_NUMBERS[i] ?? i + 1}題`}
                   className="h-10 w-10 shrink-0 rounded-xl text-lg text-neutral-400 transition hover:bg-red-50 hover:text-red-600"
                 >
                   ✕
                 </button>
               )}
             </div>
-            <textarea
-              aria-label={`QA ${i + 1} 回答`}
-              value={item.a}
-              maxLength={QA_ANSWER_MAX}
-              rows={2}
+            <input
+              aria-label={`第${QA_NUMBERS[i] ?? i + 1}題 問題`}
+              value={item.q}
               disabled={disabled}
-              placeholder="輸入回答"
+              placeholder={QA_TEMPLATE_QUESTIONS[i] ?? `問題（最多 ${QA_QUESTION_MAX} 字）`}
+              onChange={(e) => update(i, { q: e.target.value })}
+              className={FIELD_CLASSES}
+            />
+            <textarea
+              aria-label={`第${QA_NUMBERS[i] ?? i + 1}題 回答`}
+              value={item.a}
+              rows={3}
+              disabled={disabled}
+              placeholder={`回答（最多 ${QA_ANSWER_MAX} 字）`}
               onChange={(e) => update(i, { a: e.target.value })}
-              className={`${CONTROL_CLASS} resize-y leading-relaxed`}
+              className={`${FIELD_CLASSES} resize-y leading-relaxed`}
             />
           </li>
         ))}
@@ -88,7 +86,7 @@ export function QaEditor({ items, onChange, disabled = false, error }: Props) {
         <p className="text-xs text-red-600">{error}</p>
       ) : (
         <p className="text-xs text-neutral-500">
-          選填。問題與回答都有填寫的才會儲存並顯示在課程頁；QA 為公開內容，請勿填寫聯絡資訊。
+          選填，最多 {MAX_QA_ITEMS} 則；問題最多 {QA_QUESTION_MAX} 字、回答最多 {QA_ANSWER_MAX} 字。問題與回答都有填寫的才會儲存並顯示在課程頁；QA 為公開內容，請勿填寫聯絡資訊。
         </p>
       )}
 
