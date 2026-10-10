@@ -1,13 +1,8 @@
 // 課程詳情頁「取消與退款規則」的固定文案（設計稿 S05）。
-// 文案照 PRD v4.10 規格表「學員取消」那一列的原文（6.0）：報名截止前免費、報名截止後 72–48 小時 30%、
-// 48–24 小時 50%、24 小時內不退款但可轉讓名額。
-// Ted 的 cancel-rules.ts 之後會把 CANCEL_POLICY_LINES 更新成同一份規則（第二步），到時要改成直接引用，
-// 這裡就不再自己放一份。以後要改只改這一個地方。
+// 文案由 Ted 的 cancel-rules.ts 統一維護（PRD v4.10 6.0），這裡直接引用，不要另寫一份；
+// 規則要改只改 CANCEL_POLICY_LINES。
+import { CANCEL_POLICY_LINES } from "@/app/registrations/_lib/cancel-rules";
+
 export const REFUND_RULE_TITLE = "取消與退款規則";
 
-export const REFUND_RULE_LINES = [
-  "報名時不扣款，報名截止時開課才扣款；未達人數不扣款。",
-  "報名截止前可免費取消。",
-  "報名截止後取消，開課前 72–48 小時收取 30%、48–24 小時收取 50% 手續費。",
-  "開課前 24 小時內不退款，但可免費轉讓名額給親友，請透過行前公告提供的聯絡方式聯繫教練。缺席不予退款。",
-] as const;
+export const REFUND_RULE_LINES = CANCEL_POLICY_LINES;
