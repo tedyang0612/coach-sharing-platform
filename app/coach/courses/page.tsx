@@ -184,7 +184,7 @@ function TemplateList({ templates }: { templates: Course[] }) {
                 {t.sport_type}｜{levelLabel(t.level)}
               </p>
               <p className="text-xs text-neutral-500">
-                {formatPrice(t.price_per_person)}／人｜{t.min_participants}–{t.max_participants} 人
+                {formatPrice(t.price_per_person)}｜{t.min_participants}–{t.max_participants} 人
               </p>
               <p className="text-xs text-neutral-500">
                 {slots.length} 堂：{slots.map((sl) => `${sl.start}–${sl.end}`).join("、")}

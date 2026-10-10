@@ -89,7 +89,7 @@ function SessionCard({ item }: { item: UpcomingSession }) {
             {formatSessionTime(session.start_at, session.end_at)}・{course.location_name}
           </p>
         </div>
-        <p className="text-body shrink-0 text-text-primary">{formatPrice(course.price_per_person)} / 人</p>
+        <p className="text-body shrink-0 text-text-primary">{formatPrice(course.price_per_person)}</p>
       </div>
 
       <p className="text-label flex items-center gap-2 text-text-primary">
