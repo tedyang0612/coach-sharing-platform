@@ -82,8 +82,9 @@ export async function submitReview(payload: ReviewPayload): Promise<ReviewResult
     return { ok: false, error: "評價送出失敗，請稍後再試。" };
   }
 
-  // 評價回流教練個人檔案與評價頁（PRD 5.0 AC 2）
+  // 評價回流教練個人檔案（PRD 5.0 AC 2）。
+  // 評價頁本身不在這裡重新整理：一重新整理，畫面上「評價已送出，謝謝你的回饋！」會立刻被換成「已評價」，
+  // 學員還沒看到送出成功就不見了。之後再進這一頁會重新讀資料，照樣顯示「已評價」。
   revalidatePath(`/coaches/${course.coach_id}`);
-  revalidatePath(`/courses/${session.course_id}/review`);
   return { ok: true };
 }
