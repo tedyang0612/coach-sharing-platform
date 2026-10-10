@@ -16,7 +16,7 @@ type SocialAccountFieldProps = {
 };
 
 /**
- * 社群帳號：左邊用圖示選平台（Instagram／Facebook／LinkedIn／YouTube），右邊填帳號。
+ * 社群帳號：左邊用圖示選平台（Instagram／Facebook／YouTube），右邊填帳號。
  * 原生 <select> 的選項放不了圖示，所以平台選單是自己做的下拉；
  * 選項只顯示圖示，平台名稱放在 aria-label 與 title，螢幕閱讀器與滑鼠停留時仍讀得到。
  */
