@@ -1,10 +1,11 @@
 import Image from "next/image";
-import { type InputHTMLAttributes } from "react";
+import { type InputHTMLAttributes, type ReactNode } from "react";
 import checkMuted from "./icons/check-muted.svg";
 import checkWhite from "./icons/check-white.svg";
 
 type CheckboxFieldProps = InputHTMLAttributes<HTMLInputElement> & {
-  label: string;
+  /** 文字；需要連結（例如「服務條款」）時可以傳 ReactNode */
+  label: ReactNode;
   /** Figma Error 狀態：紅框＋紅字 */
   invalid?: boolean;
 };

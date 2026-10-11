@@ -6,8 +6,11 @@
 // guard_registration_insert()（額滿、截止、場次狀態、重複報名、不能報名自己的課）。
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { calculateLearnerCancel, cancelErrorMessage } from "./_lib/cancel-rules";
 import { getRegistrationContext, getRegistrationViewer } from "./_lib/queries";
+import { registrationSuccessHref } from "./_lib/routes";
 import {
   getRegistrationState,
   isPaymentMethod,
@@ -80,5 +83,60 @@ export async function createRegistration(
 
   revalidatePath(`/courses/${context.course.id}`);
   revalidatePath("/my-courses");
-  return { ok: true, registrationId: data.id };
+  // 在伺服器端直接導到報名成功頁。不能只回傳 { ok } 讓畫面自己跳轉：報名完成後目前這頁（/registrations/new）會被重新讀取，
+  // 這時學員已經報名了，頁面會換成「已報名」的簡單提示、結帳畫面被卸載，跳轉的程式就沒機會執行（停在 /registrations/new）。
+  redirect(registrationSuccessHref(data.id));
+}
+
+export type CancelActionState = {
+  ok?: true;
+  error?: string;
+};
+
+/**
+ * 學員在「我的課程」取消自己的報名（PRD v4.10 6.0）：
+ * 報名截止前（待確認開課）→ 已取消、免費；報名截止後（已扣款）依開課前時間收 30% 或 50% 手續費 → 部分退款；
+ * 開課前 24 小時內不能取消。狀態變更與通知由資料庫函式 learner_cancel_registration() 一次完成，
+ * 這裡先用 calculateLearnerCancel() 判斷一次給明確的錯誤訊息（和資料庫是同一組級距與四捨五入）。
+ */
+export async function cancelRegistration(registrationId: string): Promise<CancelActionState> {
+  if (!registrationId) return { error: "找不到這筆報名" };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "請先登入" };
+
+  // learner_id 條件不依賴 RLS，確保只處理自己的報名
+  const { data: registration } = await supabase
+    .from("registrations")
+    .select("id, status, amount, session:sessions(start_at, registration_deadline_at, course_id)")
+    .eq("id", registrationId)
+    .eq("learner_id", user.id)
+    .maybeSingle();
+  if (!registration) return { error: "找不到這筆報名" };
+
+  const session = registration.session as unknown as {
+    start_at: string;
+    registration_deadline_at: string;
+    course_id: string;
+  } | null;
+  if (!session) return { error: "找不到這筆報名的場次" };
+
+  const quote = calculateLearnerCancel({
+    amount: Number(registration.amount),
+    status: registration.status,
+    sessionStartAt: session.start_at,
+    registrationDeadlineAt: session.registration_deadline_at,
+  });
+  if (!quote.ok) return { error: quote.message };
+
+  const { error } = await supabase.rpc("learner_cancel_registration", { p_registration_id: registrationId });
+  if (error) return { error: cancelErrorMessage(error.message) };
+
+  revalidatePath("/my-courses");
+  revalidatePath(`/courses/${session.course_id}`);
+  revalidatePath(`/coach/courses/${session.course_id}`);
+  return { ok: true };
 }

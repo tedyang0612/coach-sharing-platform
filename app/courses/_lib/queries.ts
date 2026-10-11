@@ -8,9 +8,12 @@ import { isActiveRegistration } from "./session-rules";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
-/** 縣市／行政區清單（開課表單下拉用）；依 id 排序＝內政部縣市代碼順序，id 之外的排序請在前端處理 */
+/** 縣市／行政區清單（開課表單下拉用），依 sort_order 排序（縣市由北到南，縣市內依官方代碼，20261005000039） */
 export async function listDistricts(supabase: SupabaseServerClient): Promise<District[]> {
-  const { data } = await supabase.from("districts").select("id, towncode, city, district").order("id");
+  const { data } = await supabase
+    .from("districts")
+    .select("id, towncode, city, district, sort_order")
+    .order("sort_order");
   return data ?? [];
 }
 

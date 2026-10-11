@@ -63,7 +63,7 @@ export function getRegistrationState({
   if (viewer.kind === "user" && viewer.userId === course.coach_id) return { kind: "own_course" };
   if (viewer.kind === "user" && viewer.hasActiveRegistration) return { kind: "already_registered" };
 
-  if (session.status === "cancelled_by_coach" || session.status === "cancelled_unmatched") {
+  if (session.status === "cancelled" || session.status === "cancelled_by_coach" || session.status === "cancelled_unmatched") {
     return { kind: "unavailable", reason: "cancelled" };
   }
   if (session.status === "completed" || new Date(session.end_at) <= now) {

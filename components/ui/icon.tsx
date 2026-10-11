@@ -7,6 +7,7 @@ import chevronDown from "./icons/line/chevron-down.svg";
 import logOut from "./icons/line/log-out.svg";
 import mapPin from "./icons/line/map-pin.svg";
 import menu from "./icons/line/menu.svg";
+import plus from "./icons/line/plus.svg";
 import star from "./icons/line/star.svg";
 import user from "./icons/line/user.svg";
 
@@ -21,6 +22,7 @@ const ICONS = {
   "log-out": logOut,
   "map-pin": mapPin,
   menu,
+  plus,
   star,
   user,
 };

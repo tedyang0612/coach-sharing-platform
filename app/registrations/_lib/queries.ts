@@ -2,7 +2,7 @@
 // 和 app/courses/_lib/queries.ts 一樣，刻意不放在 "use server" 檔案裡，避免每個 export 都變成公開端點。
 
 import { createClient } from "@/lib/supabase/server";
-import type { Course, Session } from "@/types/database";
+import type { Course, Registration, Session } from "@/types/database";
 import type { RegistrationViewer } from "./registration-rules";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -34,6 +34,33 @@ export async function getRegistrationContext(
   const enrolledCount: number = counts?.[0]?.enrolled_count ?? 0;
 
   return { session: session as Session, course: course as Course, enrolledCount };
+}
+
+export type RegistrationOrder = RegistrationContext & {
+  registration: Registration;
+};
+
+/**
+ * 報名成功頁用：這位學員自己的一筆報名，連同場次、課程與目前報名進度。
+ * registrations 的 RLS 只讓本人讀，再加上 learner_id 條件是為了不依賴 RLS 才安全。
+ */
+export async function getMyRegistrationOrder(
+  supabase: SupabaseServerClient,
+  registrationId: string,
+  userId: string
+): Promise<RegistrationOrder | null> {
+  const { data: registration } = await supabase
+    .from("registrations")
+    .select("*")
+    .eq("id", registrationId)
+    .eq("learner_id", userId)
+    .maybeSingle();
+  if (!registration) return null;
+
+  const context = await getRegistrationContext(supabase, registration.session_id);
+  if (!context) return null;
+
+  return { ...context, registration: registration as Registration };
 }
 
 /**

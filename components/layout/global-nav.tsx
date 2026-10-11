@@ -8,15 +8,16 @@ import { LogoFull, LogoHorizontal } from "@/components/brand/logo";
 import { buttonClassName } from "@/components/ui/button";
 import { Icon, type IconName } from "@/components/ui/icon";
 
-// 導覽連結目的地：對齊各模組既有路由（小柔 /courses、/my-courses；牛牛 /notifications、/become-coach；Ted /coach/courses）。
-// 「我的帳戶」頁面尚未有人負責，先指向牛牛的教練資料頁以外的暫定路徑。
+// 導覽連結目的地：對齊各模組既有路由（小柔 /courses、/my-courses；牛牛 /notifications、/become-coach；教練工作台入口是總覽 /coach（再用工作台上方分頁切到課程管理等））。
+// 「我的帳戶」：學員身分連到 /account（頁面另外做）；教練身分連到教練資料管理 /coach/profile（牛牛的 C08）。
 const ROUTES = {
   explore: "/courses",
   myCourses: "/my-courses",
   notifications: "/notifications",
   account: "/account",
+  coachAccount: "/coach/profile",
   becomeCoach: "/become-coach",
-  coachWorkspace: "/coach/courses",
+  coachWorkspace: "/coach",
   login: "/login",
   register: "/register",
 } as const;
@@ -193,14 +194,12 @@ function MenuItem({
   );
 }
 
-function LogoutItem({ className, onSelect }: { className: string; onSelect: () => void }) {
+// 登出按鈕不能在點擊時關閉選單：選單一關，這個 <form> 就被卸載，送出動作還沒開始就沒了（點了沒反應）。
+// 登出後 logout() 會導回首頁，導覽列依登入狀態重新渲染，選單自然消失。
+function LogoutItem({ className }: { className: string }) {
   return (
     <form action={logout}>
-      <button
-        type="submit"
-        onClick={onSelect}
-        className={`flex w-full items-center gap-3 text-text-primary ${className}`}
-      >
+      <button type="submit" className={`flex w-full items-center gap-3 text-text-primary ${className}`}>
         <Icon name="log-out" />
         登出
       </button>
@@ -212,7 +211,7 @@ function AccountMenu({ coach, onSelect }: { coach: boolean; onSelect: () => void
   const item = "text-body px-4 py-3";
   return (
     <div className="absolute right-0 top-full z-20 mt-2 flex w-60 flex-col rounded-md border border-border-default bg-brand-white py-2 shadow-md">
-      <MenuItem href={ROUTES.account} icon="user" onSelect={onSelect} className={item}>
+      <MenuItem href={coach ? ROUTES.coachAccount : ROUTES.account} icon="user" onSelect={onSelect} className={item}>
         我的帳戶
       </MenuItem>
       <MenuItem href={ROUTES.myCourses} icon="calendar" onSelect={onSelect} className={item}>
@@ -223,7 +222,7 @@ function AccountMenu({ coach, onSelect }: { coach: boolean; onSelect: () => void
           教練工作台
         </MenuItem>
       )}
-      <LogoutItem className={item} onSelect={onSelect} />
+      <LogoutItem className={item} />
     </div>
   );
 }
@@ -244,7 +243,12 @@ function MobileDrawer({ auth, onSelect }: { auth: NavAuth; onSelect: () => void 
           <MenuItem href={ROUTES.notifications} icon="bell" onSelect={onSelect} className={item}>
             通知
           </MenuItem>
-          <MenuItem href={ROUTES.account} icon="user" onSelect={onSelect} className={item}>
+          <MenuItem
+            href={auth === "coach" ? ROUTES.coachAccount : ROUTES.account}
+            icon="user"
+            onSelect={onSelect}
+            className={item}
+          >
             我的帳戶
           </MenuItem>
           {auth === "coach" && (
@@ -252,7 +256,7 @@ function MobileDrawer({ auth, onSelect }: { auth: NavAuth; onSelect: () => void 
               教練工作台
             </MenuItem>
           )}
-          <LogoutItem className={item} onSelect={onSelect} />
+          <LogoutItem className={item} />
           {auth === "user" && (
             <Link
               href={ROUTES.becomeCoach}

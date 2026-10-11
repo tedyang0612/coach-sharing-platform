@@ -62,8 +62,6 @@ export default async function Home() {
           <SectionHeader
             title="推薦教練"
             subtitle="認證教練、真實評價，找到適合你的人"
-            moreHref="/coaches"
-            moreLabel="查看更多教練"
           />
           <div className="-mx-[var(--spacing-screen-padding)] mt-5 flex gap-3 overflow-x-auto px-[var(--spacing-screen-padding)] pb-1 md:mx-0 md:grid md:grid-cols-5 md:gap-4 md:overflow-visible md:px-0 md:pb-0">
             {coaches.map((coach) => (

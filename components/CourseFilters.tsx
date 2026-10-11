@@ -1,0 +1,448 @@
+"use client";
+
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import DateField from "@/components/DateField";
+import FilterPill from "@/components/FilterPill";
+import {
+  filtersToQuery,
+  hasActiveFilters,
+  isDateRangeInvalid,
+  type CourseFilters as Filters,
+} from "@/lib/courses/filterCourses";
+import type { SortMode } from "@/lib/courses/sort";
+import {
+  FILTER_LEVELS,
+  LEVEL_LABELS,
+  SPORT_CHIP_ORDER,
+  TIME_SLOT_LABELS,
+  type TimeSlot,
+  WEEKDAYS,
+  WEEKDAY_LABELS,
+} from "@/lib/courses/types";
+
+interface Props {
+  cities: string[];
+  districtsByCity: Record<string, string[]>;
+  value: Filters;
+  // 排序方式（切換條件時要保留在網址裡）
+  sort: SortMode;
+}
+
+
+// 面板裡的一個選項（單選用 radio、複選用 checkbox）
+function PanelOption({
+  type,
+  name,
+  checked,
+  onChange,
+  children,
+}: {
+  type: "radio" | "checkbox";
+  name: string;
+  checked: boolean;
+  onChange: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-normal text-(--color-text-primary) hover:bg-(--color-surface-subtle)">
+      <input
+        type={type}
+        name={name}
+        checked={checked}
+        onChange={onChange}
+        className="h-4 w-4 accent-(--color-brand-blue)"
+      />
+      {children}
+    </label>
+  );
+}
+
+// 最低、最高價輸入框。打字時只改本地的草稿，離開輸入框或按 Enter 才更新網址，
+// 否則每打一個字就會重新查詢、輸入框也會失去焦點。
+// 草稿存純數字，顯示時超過 3 位數自動加千分位（1000 → 1,000，QA）；最多 7 位（9,999,999）。
+function formatThousands(digits: string) {
+  return digits === "" ? "" : Number(digits).toLocaleString("en-US");
+}
+
+function PriceInputs({
+  min,
+  max,
+  onCommit,
+}: {
+  min: number | undefined;
+  max: number | undefined;
+  onCommit: (min: number | undefined, max: number | undefined) => void;
+}) {
+  const [draftMin, setDraftMin] = useState(min?.toString() ?? "");
+  const [draftMax, setDraftMax] = useState(max?.toString() ?? "");
+
+  // 只收數字；空白代表不設限
+  function toPrice(text: string) {
+    return /^\d+$/.test(text) ? Number(text) : undefined;
+  }
+  function commit() {
+    const nextMin = toPrice(draftMin);
+    const nextMax = toPrice(draftMax);
+    if (nextMin !== min || nextMax !== max) onCommit(nextMin, nextMax);
+  }
+  function commitOnEnter(e: React.KeyboardEvent) {
+    if (e.key === "Enter") commit();
+  }
+  const digitsOf = (text: string) => text.replace(/\D/g, "").slice(0, 7);
+  const inputClass =
+    "mt-1 w-full rounded-xl border border-(--color-border-default) bg-(--color-surface-default) px-3 py-1.5 font-normal placeholder:text-(--color-text-secondary)";
+
+  // 版面參考日期面板（QA）：由上到下 最低價（標題）→ 輸入欄（提示字「最低價」）→ 最高價（標題）→ 輸入欄（提示字「最高價」），
+  // 不放最上層的「價格區間（NT$）」標題
+  return (
+    <div className="space-y-2 text-sm">
+      <label className="block font-medium">
+        最低價
+        <input
+          id="filter-price-min"
+          type="text"
+          inputMode="numeric"
+          placeholder="最低價"
+          value={formatThousands(draftMin)}
+          onChange={(e) => setDraftMin(digitsOf(e.target.value))}
+          onBlur={commit}
+          onKeyDown={commitOnEnter}
+          className={inputClass}
+        />
+      </label>
+      <label className="block font-medium">
+        最高價
+        <input
+          id="filter-price-max"
+          type="text"
+          inputMode="numeric"
+          placeholder="最高價"
+          value={formatThousands(draftMax)}
+          onChange={(e) => setDraftMax(digitsOf(e.target.value))}
+          onBlur={commit}
+          onKeyDown={commitOnEnter}
+          className={inputClass}
+        />
+      </label>
+    </div>
+  );
+}
+
+// 日期欄位鎖住今天以前的日子（QA）；用台灣時區的今天，格式 YYYY-MM-DD
+function todayTaipei() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei" }).format(
+    new Date(),
+  );
+}
+
+// 篩選用的 Chip：原生 radio／checkbox 加樣式，單選、複選與鍵盤操作都不用另外寫。
+// label 要 relative：隱藏用的 sr-only 輸入框是絕對定位，不加的話手機上會撐寬整頁
+function Chip({
+  type,
+  name,
+  value,
+  checked,
+  onChange,
+  title,
+  large,
+  children,
+}: {
+  type: "radio" | "checkbox";
+  name: string;
+  value: string;
+  checked: boolean;
+  onChange: () => void;
+  title?: string;
+  // 桌面版字放大並平均撐滿整排（運動種類晶片用）；手機維持原尺寸
+  large?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <label
+      className={`relative shrink-0 cursor-pointer${large ? " md:flex-1" : ""}`}
+      title={title}
+    >
+      <input
+        type={type}
+        name={name}
+        value={value}
+        checked={checked}
+        onChange={onChange}
+        className="peer sr-only"
+      />
+      <span className={`block whitespace-nowrap rounded-full border border-(--color-border-default) bg-(--color-surface-default) px-4 py-1.5 text-sm font-medium${large ? " md:px-4 md:py-1.5 md:text-center md:text-base" : ""} text-(--color-text-primary) transition peer-checked:border-(--color-brand-blue) peer-checked:bg-(--color-tint-blue-100) peer-checked:font-bold peer-focus-visible:ring-2 peer-focus-visible:ring-(--color-brand-blue) peer-focus-visible:ring-offset-2 hover:border-(--color-brand-blue)`}>
+        {children}
+      </span>
+    </label>
+  );
+}
+
+// 在清單裡加入或移除一個值（複選用）
+function toggle<T>(list: T[] | undefined, item: T): T[] | undefined {
+  const next = list?.includes(item)
+    ? list.filter((x) => x !== item)
+    : [...(list ?? []), item];
+  return next.length ? next : undefined;
+}
+
+export default function CourseFilters({
+  cities,
+  districtsByCity,
+  value,
+  sort,
+}: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  // 篩選條件放在網址上，結果可以分享連結，重新整理也不會消失。
+  function navigate(next: Filters) {
+    const query = filtersToQuery(next, sort);
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }
+
+  return (
+    <div className="space-y-3 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-4">
+      {/* 運動種類是最高層級的搜尋條件：單選 Chips 放在其他篩選上面。
+          桌面直接展開；手機單列橫向捲動，不縮小字級。用原生 radio，單選與方向鍵切換都不用自己寫 */}
+      {/* fieldset 預設的最小寬度是內容寬度，不加 min-w-0 的話手機上整頁會被晶片列撐寬 */}
+      <fieldset className="min-w-0">
+        {/* 畫面上不顯示標題（QA），保留給螢幕報讀器 */}
+        <legend className="sr-only">運動種類</legend>
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0">
+          {[
+            { value: "", label: "全部" },
+            ...SPORT_CHIP_ORDER.map((sport) => ({ value: sport, label: sport })),
+          ].map((chip) => (
+            <Chip
+              key={chip.value || "all"}
+              type="radio"
+              name="sport"
+              large
+              value={chip.value}
+              checked={(value.sport ?? "") === chip.value}
+              onChange={() =>
+                navigate({ ...value, sport: chip.value || undefined })
+              }
+            >
+              {chip.label}
+            </Chip>
+          ))}
+        </div>
+      </fieldset>
+
+      {/* 第二排：膠囊下拉（地區、日期、星期、時段、程度、價格），點開是面板 */}
+      {/* 手機單列橫向捲動（和運動晶片一致）。面板在手機是 fixed 定位，不會被捲動容器裁掉；
+          sm 以上面板是 absolute，所以桌面維持換行 */}
+      <div
+        className="flex gap-2 max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4 max-sm:pb-1 sm:flex-wrap"
+        role="group"
+        aria-label="篩選條件"
+      >
+        <FilterPill
+          id="filter-region"
+          label="地區"
+          active={Boolean(value.city)}
+          wide
+          onClear={() =>
+            navigate({ ...value, city: undefined, district: undefined })
+          }
+        >
+          {/* 縣市有 22 個、行政區最多將近 30 個，各欄自己捲動，面板不會變得很長 */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="max-h-64 overflow-y-auto">
+              <p className="px-2 pb-1 text-xs font-semibold text-(--color-text-secondary)">縣市</p>
+              <PanelOption
+                type="radio"
+                name="region-city"
+                checked={!value.city}
+                onChange={() =>
+                  navigate({ ...value, city: undefined, district: undefined })
+                }
+              >
+                不限
+              </PanelOption>
+              {cities.map((city) => (
+                <PanelOption
+                  key={city}
+                  type="radio"
+                  name="region-city"
+                  checked={value.city === city}
+                  onChange={() =>
+                    // 換縣市時行政區要清掉，否則會留著上一個縣市的行政區
+                    navigate({ ...value, city, district: undefined })
+                  }
+                >
+                  {city}
+                </PanelOption>
+              ))}
+            </div>
+            <div className="max-h-64 overflow-y-auto">
+              <p className="px-2 pb-1 text-xs font-semibold text-(--color-text-secondary)">行政區</p>
+              {value.city ? (
+                <>
+                  <PanelOption
+                    type="radio"
+                    name="region-district"
+                    checked={!value.district}
+                    onChange={() => navigate({ ...value, district: undefined })}
+                  >
+                    不限
+                  </PanelOption>
+                  {(districtsByCity[value.city] ?? []).map((district) => (
+                    <PanelOption
+                      key={district}
+                      type="radio"
+                      name="region-district"
+                      checked={value.district === district}
+                      onChange={() => navigate({ ...value, district })}
+                    >
+                      {district}
+                    </PanelOption>
+                  ))}
+                </>
+              ) : (
+                <p className="px-2 py-1.5 text-sm text-(--color-text-secondary)">請先選縣市</p>
+              )}
+            </div>
+          </div>
+        </FilterPill>
+
+        <FilterPill
+          id="filter-date"
+          label="日期"
+          active={Boolean(value.date || value.dateTo)}
+          onClear={() => navigate({ ...value, date: undefined, dateTo: undefined })}
+        >
+          <div className="space-y-2 text-sm">
+            <label className="block font-medium">
+              開始日期
+              <DateField
+                key={`from-${value.date ?? ""}`}
+                id="filter-date-from"
+                value={value.date}
+                min={todayTaipei()}
+                onCommit={(date) => navigate({ ...value, date })}
+              />
+            </label>
+            <label className="block font-medium">
+              結束日期（選填）
+              <DateField
+                key={`to-${value.dateTo ?? ""}`}
+                id="filter-date-to"
+                value={value.dateTo}
+                min={value.date || todayTaipei()}
+                onCommit={(dateTo) => navigate({ ...value, dateTo })}
+              />
+            </label>
+            {isDateRangeInvalid(value) && (
+              <p className="text-xs text-(--color-state-error-text)">
+                結束日期要晚於開始日期，目前沒有套用日期。
+              </p>
+            )}
+          </div>
+        </FilterPill>
+
+        <FilterPill
+          id="filter-weekdays"
+          label="星期"
+          active={Boolean(value.weekdays?.length)}
+          onClear={() => navigate({ ...value, weekdays: undefined })}
+        >
+          {WEEKDAYS.map((day) => (
+            <PanelOption
+              key={day}
+              type="checkbox"
+              name="weekday"
+              checked={value.weekdays?.includes(day) ?? false}
+              onChange={() =>
+                navigate({ ...value, weekdays: toggle(value.weekdays, day) })
+              }
+            >
+              星期{WEEKDAY_LABELS[day]}
+            </PanelOption>
+          ))}
+        </FilterPill>
+
+        {/* 快速時段（可複選，OR）。「指定時段」依 QA 回饋先拿掉（和快速時段擇一、互相清除，操作很怪）；
+            篩選邏輯與網址參數（from／to）仍保留在 lib，之後要補回來只需加回這個面板 */}
+        <FilterPill
+          id="filter-slots"
+          label="時段"
+          active={Boolean(value.timeSlots?.length)}
+          onClear={() => navigate({ ...value, timeSlots: undefined })}
+        >
+          {(Object.keys(TIME_SLOT_LABELS) as TimeSlot[]).map((slot) => (
+            <PanelOption
+              key={slot}
+              type="checkbox"
+              name="slot"
+              checked={value.timeSlots?.includes(slot) ?? false}
+              onChange={() =>
+                navigate({
+                  ...value,
+                  timeSlots: toggle(value.timeSlots, slot),
+                  timeFrom: undefined,
+                  timeTo: undefined,
+                })
+              }
+            >
+              {TIME_SLOT_LABELS[slot]}
+            </PanelOption>
+          ))}
+        </FilterPill>
+
+        <FilterPill
+          id="filter-level"
+          label="程度"
+          active={Boolean(value.level)}
+          onClear={() => navigate({ ...value, level: undefined })}
+        >
+          {FILTER_LEVELS.map((level) => (
+            <PanelOption
+              key={level}
+              type="radio"
+              name="level"
+              checked={value.level === level}
+              onChange={() => navigate({ ...value, level })}
+            >
+              {LEVEL_LABELS[level]}
+            </PanelOption>
+          ))}
+        </FilterPill>
+
+        <FilterPill
+          id="filter-price"
+          label="價格"
+          doneLabel="套用"
+          active={value.priceMin !== undefined || value.priceMax !== undefined}
+          onClear={() =>
+            navigate({ ...value, priceMin: undefined, priceMax: undefined })
+          }
+        >
+          {/* 換條件或清除後網址的值會變，用 key 讓輸入框跟著重設 */}
+          <PriceInputs
+            key={`${value.priceMin ?? ""}-${value.priceMax ?? ""}`}
+            min={value.priceMin}
+            max={value.priceMax}
+            onCommit={(priceMin, priceMax) =>
+              navigate({ ...value, priceMin, priceMax })
+            }
+          />
+        </FilterPill>
+      </div>
+
+      {/* 程度的面板裡沒有一次清掉全部的按鈕，所以有任何條件時都要能一次清掉 */}
+      {hasActiveFilters(value) && (
+        <div className="flex border-t border-(--color-border-default) pt-3 text-sm">
+          <button
+            type="button"
+            onClick={() => router.replace(pathname, { scroll: false })}
+            className="ml-auto text-(--color-text-secondary) underline hover:text-(--color-text-primary)"
+          >
+            清除所有篩選
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
