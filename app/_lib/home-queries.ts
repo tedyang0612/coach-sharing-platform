@@ -33,8 +33,9 @@ export function formatSessionTime(startAt: string, endAt: string): string {
   return `${date} ${timeFormat.format(start)}–${timeFormat.format(new Date(endAt))}`;
 }
 
-// 課程詳情頁（小柔 S05）路由是 /courses/[課程 id]，場次在詳情頁內選。
-const courseHref = (courseId: string) => `/courses/${courseId}`;
+// 課程詳情頁（小柔 S05）路由是 /courses/[課程 id]?session=[場次 id]：一張卡＝一個場次，
+// 必須帶 session，否則詳情頁會落到該課「最近的場次」，和卡片上顯示的時間對不起來（與 /courses 的 CourseCard 一致）。
+const courseHref = (courseId: string, sessionId: string) => `/courses/${courseId}?session=${sessionId}`;
 const coachHref = (coachId: string) => `/coaches/${coachId}`;
 
 /** 該教練是否有「已通過」的證照＝「已認證」徽章（PRD 4.0／9.0） */
@@ -115,7 +116,7 @@ export async function getRecommendedClasses(limit = 4): Promise<ClassCardData[]>
     ranked.map(async ({ row, enrolled }) => {
       const c = row.courses;
       return {
-        href: courseHref(c.id),
+        href: courseHref(c.id, row.id),
         coverUrl: resolveCoverUrl({ cover_image_url: c.cover_image_url, sport_type: c.sport_type }),
         sport: c.sport_type,
         levelLabel: LEVEL_LABELS[c.level] ?? c.level,
