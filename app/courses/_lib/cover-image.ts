@@ -15,17 +15,18 @@ export const COVER_SIZE_ERROR = "封面圖檔案需在 5MB 以內";
 export const COVER_URL_ERROR = "封面圖來源不正確，請重新上傳或從圖庫選擇";
 
 // 平台圖庫：依運動項目分類，檔案放在 public/course-covers/。
-// 目前是佔位圖，AI 生成圖（每項 1–2 張）到了之後換掉檔案、更新這張表即可，DB 不用動。
+// 現在是 AI 生成圖（-2.jpg，1672×941，16:9）。舊的佔位 SVG（-1.svg）檔案還留在 public，
+// 因為線上課程的 cover_image_url 可能存著舊路徑；確認沒有課程在用之後再刪。
 const GALLERY_DIR = "/course-covers";
 export const COVER_GALLERY: Record<string, string[]> = {
-  重訓: [`${GALLERY_DIR}/weight-training-1.svg`],
-  瑜珈: [`${GALLERY_DIR}/yoga-1.svg`],
-  抱石: [`${GALLERY_DIR}/bouldering-1.svg`],
-  衝浪: [`${GALLERY_DIR}/surfing-1.svg`],
-  跑酷: [`${GALLERY_DIR}/parkour-1.svg`],
-  羽球: [`${GALLERY_DIR}/badminton-1.svg`],
-  匹克球: [`${GALLERY_DIR}/pickleball-1.svg`],
-  排球: [`${GALLERY_DIR}/volleyball-1.svg`],
+  重訓: [`${GALLERY_DIR}/weight-training-2.jpg`],
+  瑜珈: [`${GALLERY_DIR}/yoga-2.jpg`],
+  抱石: [`${GALLERY_DIR}/bouldering-2.jpg`],
+  衝浪: [`${GALLERY_DIR}/surfing-2.jpg`],
+  跑酷: [`${GALLERY_DIR}/parkour-2.jpg`],
+  羽球: [`${GALLERY_DIR}/badminton-2.jpg`],
+  匹克球: [`${GALLERY_DIR}/pickleball-2.jpg`],
+  排球: [`${GALLERY_DIR}/volleyball-2.jpg`],
 };
 // sport_type 是自由文字；表單只能選 MVP 八種，清單外（舊資料／之後新增的運動）用通用預設圖
 export const COVER_FALLBACK = `${GALLERY_DIR}/default.svg`;
