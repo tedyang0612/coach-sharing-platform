@@ -411,14 +411,14 @@ export function CourseForm({
         </SelectField>
       </FormSection>
 
-      <FormSection title="費用與人數" description="人數上下限適用於每一個場次。">
+      <FormSection title="費用與人數" description="報名人數達到「最低開課人數」才會開課並扣款；沒達到會自動取消、不收費。每個場次分開計算。">
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
-            <TextField label={`每人費用（NT$，最低 ${MIN_PRICE}）*`} id="price_per_person" {...priceFieldProps} />
+            <TextField label="每人費用（NT$）*" id="price_per_person" placeholder={`最低 ${MIN_PRICE}`} {...priceFieldProps} />
             <input type="hidden" name="price_per_person" value={values.price_per_person} />
           </div>
-          <TextField label="人數下限（至少 1 人）*" {...numberProps("min_participants", 4)} />
-          <TextField label={`人數上限（最多 ${MAX_PARTICIPANTS_CAP}）*`} {...numberProps("max_participants", 4)} />
+          <TextField label="最低開課人數*" placeholder="至少 1 人，達到才開課" {...numberProps("min_participants", 4)} />
+          <TextField label="人數上限*" placeholder={`最多 ${MAX_PARTICIPANTS_CAP} 人，額滿停止報名`} {...numberProps("max_participants", 4)} />
         </div>
       </FormSection>
 
