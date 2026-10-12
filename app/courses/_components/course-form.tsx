@@ -5,10 +5,11 @@
 // - 公開欄位即時檢查聯絡資訊（規格5）
 // - 場次時間逐堂設定（10/3 組員討論）：第一堂手動選開始／結束，「＋ 新增一堂」接續上一堂並沿用時長
 // - 縣市／行政區／街道同一行（1:1:2），送出時組成完整地址存進 location_address
-// - 課程 QA（PRD v4.7 規格 9）；建立課程時可同時存成範本並自訂範本名稱
+// - 課程 QA（PRD v4.7 規格 9）；建立課程有三顆按鈕：存成範本、發布課程、發布課程（存成範本），
+//   按到含範本的按鈕時跳視窗詢問範本名稱（預設帶課程名稱）
 // - 編輯且已有人報名（locked）：只能改課程須知、課程 QA 與封面圖，其他欄位 disabled
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { SPORT_TYPES, type District } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { FormError } from "@/components/ui/form-error";
@@ -106,8 +107,15 @@ export function CourseForm({
   const cities = [...new Set(districts.map((d) => d.city))];
   const cityDistricts = districts.filter((d) => d.city === city);
 
-  const [alsoTemplate, setAlsoTemplate] = useState(false);
   const [templateName, setTemplateName] = useState(initialTemplateName);
+  // 建立課程時，含範本的按鈕先跳視窗問範本名稱，確認後才送出
+  type TemplateIntent = "template" | "publish_and_template";
+  const formRef = useRef<HTMLFormElement>(null);
+  const templateDialog = useRef<HTMLDialogElement>(null);
+  const intentOverride = useRef<HTMLInputElement>(null);
+  const templateNameInput = useRef<HTMLInputElement>(null);
+  const [pendingIntent, setPendingIntent] = useState<TemplateIntent | null>(null);
+  const [dialogName, setDialogName] = useState("");
   const [touched, setTouched] = useState<Partial<Record<CourseField, boolean>>>({});
   const [coverUploading, setCoverUploading] = useState(false);
 
@@ -146,7 +154,7 @@ export function CourseForm({
   const templateCheck = validateCourseValues(values, { requireFutureDeadline: false });
   const clientErrors: CourseFieldErrors = publishCheck.errors ?? {};
 
-  // 範本名稱：建立時（勾選同時存範本、或只存範本）與編輯範本時才會用到
+  // 範本名稱：建立時在視窗內輸入與檢查（dialogNameError），編輯範本時在表單欄位上檢查
   const templateNameError = validateTemplateName(templateName).error;
   const templateNameServerError = state.errors?.template_name && !editedSinceSubmit.has("template_name") ? state.errors.template_name : undefined;
 
@@ -163,8 +171,29 @@ export function CourseForm({
   const ready = hasAllRequiredFields(values) && !coverUploading && !pending;
   const canPublish = locked
     ? !lockedErrors && !coverUploading && !pending
-    : ready && !publishCheck.errors && !(mode === "create" && alsoTemplate && templateNameError) && !(isTemplate && templateNameError);
-  const canSaveTemplate = ready && !templateCheck.errors && !templateNameError;
+    : ready && !publishCheck.errors && !(isTemplate && templateNameError);
+  const canSaveTemplate = ready && !templateCheck.errors;
+  const dialogNameError = validateTemplateName(dialogName).error;
+
+  function openTemplateDialog(intent: TemplateIntent) {
+    setPendingIntent(intent);
+    // 預設帶課程名稱；這次填寫過的範本名稱會被記住
+    setDialogName(templateName || values.title);
+    templateDialog.current?.showModal();
+  }
+
+  function confirmTemplateDialog() {
+    if (!pendingIntent || dialogNameError || pending) return;
+    setTemplateName(dialogName);
+    // 用 hidden input 帶 intent 與範本名稱：直接寫進 DOM，才能在同一個動作裡送出
+    if (templateNameInput.current) templateNameInput.current.value = dialogName.trim();
+    if (intentOverride.current) intentOverride.current.value = pendingIntent;
+    templateDialog.current?.close();
+    formRef.current?.requestSubmit();
+    // FormData 在 requestSubmit 當下已經取走；清掉，避免之後點「發布課程」時沿用這次的選擇
+    if (intentOverride.current) intentOverride.current.value = "";
+    setPendingIntent(null);
+  }
 
   function errorFor(f: CourseField): string | undefined {
     const server = state.errors?.[f];
@@ -206,10 +235,13 @@ export function CourseForm({
     : [...DEADLINE_OPTIONS, Number(values.registration_deadline_hours)].sort((a, b) => a - b);
 
   const primaryLabel = mode === "edit" ? "儲存變更" : "發布課程";
-  const showTemplateName = (mode === "create") || (mode === "edit" && isTemplate && !locked);
+  // 只有「編輯範本」才在表單上顯示範本名稱欄位；建立課程時改由按鈕＋視窗處理
+  const showTemplateName = mode === "edit" && isTemplate && !locked;
 
   return (
+    <>
     <form
+      ref={formRef}
       action={formAction}
       onBlur={(e) => {
         // blur 從各個欄位冒泡上來，target 是實際失焦的 input／select／textarea
@@ -219,6 +251,12 @@ export function CourseForm({
       className="flex flex-col gap-5"
     >
       {sourceId && <input type="hidden" name="sourceId" value={sourceId} />}
+      {mode === "create" && (
+        <>
+          <input ref={intentOverride} type="hidden" name="intent_override" defaultValue="" />
+          <input ref={templateNameInput} type="hidden" name="template_name" defaultValue="" />
+        </>
+      )}
       {courseId && <input type="hidden" name="courseId" value={courseId} />}
 
       {locked && (
@@ -388,27 +426,7 @@ export function CourseForm({
       </FormSection>
 
       {showTemplateName && (
-        <FormSection
-          title={mode === "create" ? "範本" : "範本名稱"}
-          description={
-            mode === "create"
-              ? "範本只存這份設定，不公開、不產生場次，下次可以一鍵帶入再選新的日期。"
-              : undefined
-          }
-        >
-          {mode === "create" && (
-            <label className="flex items-center gap-2 text-sm font-semibold text-neutral-800">
-              <input
-                type="checkbox"
-                name="also_template"
-                value="on"
-                checked={alsoTemplate}
-                onChange={(e) => setAlsoTemplate(e.target.checked)}
-                className="h-4 w-4 accent-brand"
-              />
-              發布的同時存成範本
-            </label>
-          )}
+        <FormSection title="範本名稱">
           <TextField
             label="範本名稱（選填）"
             name="template_name"
@@ -426,23 +444,89 @@ export function CourseForm({
       )}
 
       {state.errors?.form && <FormError message={state.errors.form} />}
+      {mode === "create" && state.errors?.template_name && <FormError message={state.errors.template_name} />}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         {mode === "create" && (
-          <button
-            type="submit"
-            name="intent"
-            value="template"
-            disabled={!canSaveTemplate}
-            className="rounded-xl border border-neutral-200 bg-white px-5 py-3 text-sm font-bold text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            只存成範本（不發布）
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => openTemplateDialog("template")}
+              disabled={!canSaveTemplate}
+              className="rounded-xl border border-neutral-200 bg-white px-5 py-3 text-sm font-bold text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              存成範本
+            </button>
+            <button
+              type="button"
+              onClick={() => openTemplateDialog("publish_and_template")}
+              disabled={!canPublish}
+              className="rounded-xl border border-neutral-200 bg-white px-5 py-3 text-sm font-bold text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              發布課程（存成範本）
+            </button>
+          </>
         )}
         <Button type="submit" name="intent" value="publish" disabled={!canPublish} className="sm:w-auto sm:px-8">
           {pending ? "處理中…" : primaryLabel}
         </Button>
       </div>
     </form>
+
+    {mode === "create" && (
+      <dialog
+        ref={templateDialog}
+        aria-label="範本名稱"
+        onClose={() => setPendingIntent(null)}
+        // 點到視窗以外的暗色區域就關閉（不送出）
+        onClick={(event) => {
+          if (event.target === event.currentTarget) event.currentTarget.close();
+        }}
+        className="m-auto w-[min(92vw,440px)] rounded-xl bg-white p-6 backdrop:bg-black/60"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-lg font-bold text-neutral-900">範本名稱</h2>
+            <p className="text-xs text-neutral-500">
+              範本只存這份設定，不公開、不產生場次，下次可以一鍵帶入再選新的日期。
+              {pendingIntent === "publish_and_template" && "這堂課會同時發布。"}
+            </p>
+          </div>
+          <TextField
+            label="範本名稱"
+            name="dialog_template_name"
+            maxLength={TEMPLATE_NAME_MAX}
+            value={dialogName}
+            error={dialogNameError}
+            onChange={(e) => setDialogName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                confirmTemplateDialog();
+              }
+            }}
+            hint="預設為課程名稱，可以自行修改。"
+          />
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={() => templateDialog.current?.close()}
+              className="rounded-xl border border-neutral-200 bg-white px-5 py-3 text-sm font-bold text-neutral-700 transition hover:bg-neutral-50"
+            >
+              取消
+            </button>
+            <Button
+              type="button"
+              onClick={confirmTemplateDialog}
+              disabled={!!dialogNameError || dialogName.trim() === "" || pending}
+              className="sm:w-auto sm:px-8"
+            >
+              {pendingIntent === "publish_and_template" ? "發布並存成範本" : "存成範本"}
+            </Button>
+          </div>
+        </div>
+      </dialog>
+    )}
+    </>
   );
 }
