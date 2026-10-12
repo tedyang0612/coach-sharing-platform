@@ -6,13 +6,14 @@ import heroWave from "@/components/home/hero-wave.svg";
 import { Footer } from "@/components/layout/footer";
 import { Icon } from "@/components/ui/icon";
 import { createClient } from "@/lib/supabase/server";
+import { HeroAvatar } from "./hero-avatar";
 import { ProfileForm } from "./profile-form";
 
 export const metadata: Metadata = { title: "我的帳戶｜夠練 GoLand" };
 
 // 學員的「我的帳戶」（導覽列頭像選單 →「我的帳戶」）。設計稿初版（2026-10-12）：頂部問候橫幅、基本資料、
-// 通知設定、登出。PRD 還沒有定義這一頁：更換照片、通知設定（優惠通知／Email 通知）需要新欄位，
-// 先照設計稿顯示但不能操作；設計稿的「修改密碼」這一列依 Ted 決定先不做。
+// 通知設定、登出。PRD 還沒有定義這一頁：更換照片（profiles.avatar_url，migration 047）已可使用；
+// 通知設定（優惠通知／Email 通知）需要新欄位，先照設計稿顯示但不能操作；設計稿的「修改密碼」這一列依 Ted 決定先不做。
 export default async function AccountPage() {
   const supabase = await createClient();
   const {
@@ -20,8 +21,9 @@ export default async function AccountPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?redirect=${encodeURIComponent("/account")}`);
 
-  const { data: profile } = await supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+  const { data: profile } = await supabase.from("profiles").select("display_name, avatar_url").eq("id", user.id).maybeSingle();
   const displayName = profile?.display_name ?? "";
+  const avatarUrl = profile?.avatar_url ?? null;
 
   return (
     <main className="flex-1">
@@ -37,16 +39,7 @@ export default async function AccountPage() {
         {/* 設計稿的橫幅是整張偏淡的色調：白色疊層讓深藍標題維持足夠對比 */}
         <div className="absolute inset-0 bg-brand-white/65" />
         <div className="relative flex w-full flex-col gap-4 px-[var(--spacing-screen-padding)] pb-24 pt-10 md:flex-row md:items-center md:gap-10 md:pb-32">
-          <span
-            aria-hidden
-            className="relative flex size-[110px] shrink-0 items-center justify-center rounded-pill border-4 border-brand-blue bg-tint-blue-200 text-text-primary md:size-[226px] md:border-[6px]"
-          >
-            <Icon name="user" className="size-12 md:size-24" />
-            {/* 設計稿的「＋」換照片按鈕；頭像功能尚未開放，只顯示、不能點 */}
-            <span className="absolute bottom-0 right-0 flex size-8 items-center justify-center rounded-pill border-2 border-text-primary bg-brand-lime text-text-primary md:size-14">
-              <Icon name="plus" className="size-4 md:size-7" />
-            </span>
-          </span>
+          <HeroAvatar userId={user.id} avatarUrl={avatarUrl} />
           <div className="flex flex-col gap-1 text-brand-deep">
             <h1 className="text-hero-responsive break-words">嗨，{displayName}！</h1>
             <p className="text-h2">你想練的這邊都有！</p>
@@ -65,7 +58,7 @@ export default async function AccountPage() {
           <h2 id="account-basic" className="text-h2 mb-5 text-text-primary">
             基本資料
           </h2>
-          <ProfileForm displayName={displayName} email={user.email ?? ""} />
+          <ProfileForm userId={user.id} displayName={displayName} avatarUrl={avatarUrl} email={user.email ?? ""} />
         </section>
 
         <div className="flex flex-col gap-6">

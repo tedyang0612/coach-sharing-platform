@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { AVATAR_BUCKET } from "./constants";
 
 export type AccountFormState = {
   /** 儲存成功時為 true；出錯或尚未送出為 undefined */
@@ -37,4 +38,28 @@ export async function updateDisplayName(
   // 頂部問候語與其他頁面的暱稱都會跟著更新
   revalidatePath("/account");
   return { saved: true };
+}
+
+/**
+ * 更換頭像：檔案已經由瀏覽器傳到 avatars bucket 的「{自己的 id}/」底下，這裡只把公開網址存進 profiles.avatar_url。
+ * 網址必須是這個專案 avatars bucket 裡「自己資料夾」的檔案，避免有人把別人的圖或外部網址存成自己的頭像。
+ */
+export async function updateAvatar(publicUrl: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "請先登入" };
+
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const prefix = `${base}/storage/v1/object/public/${AVATAR_BUCKET}/${user.id}/`;
+  if (!base || typeof publicUrl !== "string" || !publicUrl.startsWith(prefix) || publicUrl.includes("..")) {
+    return { ok: false, error: "圖片網址不正確，請重新上傳。" };
+  }
+
+  const { error } = await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", user.id);
+  if (error) return { ok: false, error: "儲存失敗，請稍後再試。" };
+
+  revalidatePath("/account");
+  return { ok: true };
 }
