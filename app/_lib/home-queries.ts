@@ -1,11 +1,20 @@
 // 首頁（PRD 14.0）資料讀取，Server Component 用。全部是未登入也讀得到的公開資料。
 // 不放在 "use server" 檔案裡（理由同 app/courses/_lib/queries.ts）。
 
-import { HOME_SPORTS } from "@/app/_lib/home-config";
+import {
+  courseListHref,
+  HOME_SPORTS,
+  POPULAR_CONDITIONS,
+  WEEKDAYS,
+  WEEKEND,
+  type CourseListFilter,
+} from "@/app/_lib/home-config";
 import { resolveCoverUrl } from "@/app/courses/_lib/cover-image";
 import type { ClassCardData } from "@/components/course/class-card";
 import type { CoachCardData } from "@/components/coach/coach-card";
 import { getSessionProgress } from "@/components/ui/status-indicator";
+import { filterCourses, type CourseFilters } from "@/lib/courses/filterCourses";
+import { getCourses } from "@/lib/courses/getCourses";
 import { createClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -179,4 +188,85 @@ export async function getRecommendedCoaches(limit = 5): Promise<CoachCardData[]>
     tags: c.tags,
     openCourseCount: c.open_course_count,
   }));
+}
+
+export type PopularCondition = { label: string; href: string };
+
+/** 行政區標籤去掉結尾的「區／鄉／鎮／市」（板橋區→板橋）；兩個字以下的名稱（例：中區）維持原樣 */
+function shortDistrictName(district: string): string {
+  return district.length > 2 ? district.replace(/[區鄉鎮市]$/, "") : district;
+}
+
+// 熱門條件要和課程列表用同一支 filterCourses 計算，才保證點進去不會查無結果。
+function toCourseFilters(filter: CourseListFilter): CourseFilters {
+  return {
+    sport: filter.sport,
+    city: filter.city,
+    district: filter.district,
+    weekdays: filter.days,
+    timeSlots: filter.slot ? [filter.slot] : undefined,
+  };
+}
+
+/**
+ * 熱門條件（PRD 14.0 規格 3）：依「目前可報名的場次」即時計算，只列出點進去一定有課的條件。
+ * 候選：運動種類、行政區、週末、平日晚間、行政區＋運動；各自用 filterCourses 算場次數。
+ * 為了讓五個標籤不要全是同一類，照固定的優先順序挑：
+ * 最多場次的運動 → 最多場次的行政區 → 週末 → 最多的「行政區＋運動」→ 第二多的運動 → 平日晚間 → 第二多的行政區 → 第三多的運動。
+ * 資料讀取失敗時，退回平台預設的固定清單。
+ */
+export async function getPopularConditions(limit = 5): Promise<PopularCondition[]> {
+  let courses;
+  try {
+    courses = await getCourses();
+  } catch {
+    return POPULAR_CONDITIONS.map(({ label, filter }) => ({ label, href: courseListHref(filter) }));
+  }
+  if (courses.length === 0) return [];
+
+  const count = (filter: CourseListFilter) => filterCourses(courses, toCourseFilters(filter)).length;
+  const byCountDesc = <T extends { n: number }>(items: T[]) => [...items].sort((a, b) => b.n - a.n);
+
+  type Candidate = { label: string; filter: CourseListFilter; n: number };
+
+  const sports: Candidate[] = byCountDesc(
+    HOME_SPORTS.map(({ name }) => ({ label: name, filter: { sport: name }, n: count({ sport: name }) })),
+  ).filter((c) => c.n > 0);
+
+  const districtKeys = [...new Set(courses.map((c) => `${c.city}|${c.district}`))].filter((k) => !k.endsWith("|"));
+  const districts: Candidate[] = byCountDesc(
+    districtKeys.map((key) => {
+      const [city, district] = key.split("|");
+      return { label: shortDistrictName(district), filter: { city, district }, n: count({ city, district }) };
+    }),
+  ).filter((c) => c.n > 0);
+
+  const pairs: Candidate[] = byCountDesc(
+    districts.flatMap((d) =>
+      sports.map((s) => {
+        const filter = { ...d.filter, sport: s.filter.sport };
+        return { label: `${d.label}${s.label}`, filter, n: count(filter) };
+      }),
+    ),
+  ).filter((c) => c.n > 0);
+
+  const weekend: Candidate = { label: "週末", filter: { days: WEEKEND }, n: count({ days: WEEKEND }) };
+  const weekdayEvening: Candidate = {
+    label: "平日晚間",
+    filter: { days: WEEKDAYS, slot: "evening" },
+    n: count({ days: WEEKDAYS, slot: "evening" }),
+  };
+
+  const ordered = [sports[0], districts[0], weekend, pairs[0], sports[1], weekdayEvening, districts[1], sports[2]];
+  const seen = new Set<string>();
+  const picked: PopularCondition[] = [];
+  for (const candidate of ordered) {
+    if (!candidate || candidate.n <= 0) continue;
+    const href = courseListHref(candidate.filter);
+    if (seen.has(href)) continue;
+    seen.add(href);
+    picked.push({ label: candidate.label, href });
+    if (picked.length >= limit) break;
+  }
+  return picked;
 }
