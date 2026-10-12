@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { PrefillLink } from "@/components/auth/prefill-link";
 import { LogoBadge } from "@/components/brand/logo-badge";
 import { LoginForm } from "./login-form";
 
@@ -22,9 +22,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
         <p className="mt-6 text-center text-sm text-neutral-500">
           還沒有帳號？{" "}
-          <Link href={registerHref} className="font-semibold text-brand hover:underline">
+          <PrefillLink href={registerHref} carry="email-and-password" className="font-semibold text-brand hover:underline">
             免費註冊
-          </Link>
+          </PrefillLink>
         </p>
       </div>
     </main>

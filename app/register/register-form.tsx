@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { signup, type AuthFormState } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { CheckboxField } from "@/components/ui/checkbox";
 import { FormError } from "@/components/ui/form-error";
 import { TextField } from "@/components/ui/text-field";
+import { takePrefill } from "@/lib/auth/prefill";
 
 const initialState: AuthFormState = {};
 
@@ -15,6 +16,15 @@ export function RegisterForm({ redirectTo }: { redirectTo: string }) {
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // 從登入頁點「免費註冊」過來時，帶入剛剛在登入頁輸入的 Email 與密碼（讀完就刪，見 lib/auth/prefill.ts）
+  useEffect(() => {
+    const prefill = takePrefill();
+    if (!prefill) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage 只能在瀏覽器端讀，要等掛載後才能帶入
+    if (prefill.email) setEmail(prefill.email);
+    if (prefill.password) setPassword(prefill.password);
+  }, []);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // React 19：表單 action 結束後會重置表單（reset），原生 checkbox 會被清成沒勾，但上面的 state 還是 true，
