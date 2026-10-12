@@ -23,7 +23,7 @@ export function ReviewTagPicker({ value, onChange }: ReviewTagPickerProps) {
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="text-label text-text-primary">
-        這位教練的特色（選填，最多選 {REVIEW_TAG_MAX} 個）
+        教練特色（選填，最多選 {REVIEW_TAG_MAX} 個）
       </legend>
       <div className="mt-2 flex flex-wrap gap-2">
         {REVIEW_TAGS.map((tag) => {
@@ -41,7 +41,7 @@ export function ReviewTagPicker({ value, onChange }: ReviewTagPickerProps) {
         })}
       </div>
       <p className="text-caption text-text-secondary">
-        已選 {value.length} / {REVIEW_TAG_MAX} 個，不隨星數變化
+        已選 {value.length} / {REVIEW_TAG_MAX} 個
       </p>
     </fieldset>
   );
