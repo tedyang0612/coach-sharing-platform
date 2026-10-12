@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { login, type AuthFormState } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { CheckboxField } from "@/components/ui/checkbox";
 import { FormError } from "@/components/ui/form-error";
 import { TextField } from "@/components/ui/text-field";
+import { takePrefill } from "@/lib/auth/prefill";
 
 const initialState: AuthFormState = {};
 
@@ -13,6 +14,15 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
   const [state, formAction, pending] = useActionState(login, initialState);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // 從註冊頁點「直接登入」過來時，帶入剛剛在註冊頁輸入的 Email（讀完就刪，見 lib/auth/prefill.ts）
+  useEffect(() => {
+    const prefill = takePrefill();
+    if (!prefill) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage 只能在瀏覽器端讀，要等掛載後才能帶入
+    if (prefill.email) setEmail(prefill.email);
+    if (prefill.password) setPassword(prefill.password);
+  }, []);
 
   // 8.0 QA 修正：按鈕只看「兩個欄位有沒有填」，不先擋格式——
   // Email 格式錯誤交給送出後的 server action 判斷，
