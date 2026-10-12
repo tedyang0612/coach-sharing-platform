@@ -29,7 +29,11 @@ const HOURS = Array.from({ length: 24 }, (_, h) => pad(h));
 const MINUTES = Array.from({ length: 60 / TIME_STEP_MINUTES }, (_, i) => pad(i * TIME_STEP_MINUTES));
 
 const SELECT_CLASS =
-  "w-full min-w-0 rounded-xl border border-neutral-200 bg-neutral-50 px-2 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand-ink disabled:cursor-not-allowed disabled:opacity-60 sm:w-[4.5rem]";
+  "w-full min-w-0 rounded-xl border border-neutral-200 bg-neutral-50 px-2 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand-ink disabled:cursor-not-allowed disabled:opacity-60";
+
+// 「新增一堂」與「刪除」共用同一種外觀（鯨魚 QA）
+const ACTION_BUTTON_CLASS =
+  "h-10 shrink-0 whitespace-nowrap rounded-xl border border-brand px-3 text-xs font-bold text-brand transition hover:bg-brand-ink disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-400 disabled:hover:bg-transparent";
 
 /**
  * 一個時間＝小時＋分鐘兩個下拉選單。
@@ -73,7 +77,7 @@ function TimeSelect({
   }
 
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-1 sm:flex-none">
+    <div className="flex min-w-0 flex-1 items-center gap-1">
       <select
         aria-label={`${label}（時）`}
         value={hour}
@@ -151,68 +155,77 @@ export function SlotsEditor({ slots, onChange, disabled = false, error }: Props)
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-sm font-semibold text-neutral-800">場次時間 *</span>
+      <span className="text-label text-text-primary">場次時間 *</span>
 
       <ol className="flex flex-col gap-3 sm:gap-2">
         {slots.map((slot, i) => {
           const prevEnd = i > 0 ? slots[i - 1].end : undefined;
           return (
             // 手機：第一行「第 N 堂 ……… ＋／✕」，第二行時間；sm 以上排成一行
-            <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-1.5 sm:flex-nowrap">
-              <span className="w-12 shrink-0 text-sm font-semibold text-neutral-600">第 {i + 1} 堂</span>
+            <li key={i} className="flex flex-col gap-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 sm:flex-nowrap">
+                <span className="w-12 shrink-0 text-sm font-semibold text-neutral-600">第 {i + 1} 堂</span>
 
-              <div className="order-3 flex w-full items-center gap-2 sm:order-2 sm:w-auto">
-                <TimeSelect
-                  label={`第 ${i + 1} 堂開始時間`}
-                  value={slot.start}
-                  min={prevEnd || undefined}
-                  onChange={(start) => update(i, { start })}
-                  disabled={disabled || slot.locked === true}
-                />
-                <span className="text-neutral-400">–</span>
-                <TimeSelect
-                  label={`第 ${i + 1} 堂結束時間`}
-                  value={slot.end}
-                  min={slot.start ? addMinutes(slot.start, TIME_STEP_MINUTES) ?? toHHMM(LATEST_TIME) : undefined}
-                  onChange={(end) => update(i, { end })}
-                  disabled={disabled || slot.locked === true}
-                  allowMidnight
-                />
-              </div>
+                <div className="order-3 flex w-full items-center gap-2 sm:order-2 sm:w-auto sm:flex-1">
+                  <TimeSelect
+                    label={`第 ${i + 1} 堂開始時間`}
+                    value={slot.start}
+                    min={prevEnd || undefined}
+                    onChange={(start) => update(i, { start })}
+                    disabled={disabled || slot.locked === true}
+                  />
+                  <span className="text-neutral-400">–</span>
+                  <TimeSelect
+                    label={`第 ${i + 1} 堂結束時間`}
+                    value={slot.end}
+                    min={slot.start ? addMinutes(slot.start, TIME_STEP_MINUTES) ?? toHHMM(LATEST_TIME) : undefined}
+                    onChange={(end) => update(i, { end })}
+                    disabled={disabled || slot.locked === true}
+                    allowMidnight
+                  />
+                </div>
 
-              <div className="order-2 ml-auto shrink-0 sm:order-3 sm:ml-0">
-                {slot.locked ? (
-                  <span className="text-xs font-semibold text-amber-700">有人報名，時間已鎖定</span>
-                ) : (
-                  !disabled &&
-                  slots.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => onChange(slots.filter((_, j) => j !== i))}
-                      aria-label={`刪除第 ${i + 1} 堂`}
-                      className="h-10 w-10 rounded-xl text-lg text-neutral-400 transition hover:bg-red-50 hover:text-red-600"
-                    >
-                      ✕
-                    </button>
-                  )
-                )}
+                {/* 每一堂都有「刪除」（只有一堂或已鎖定時灰色不能點）；電腦版「新增一堂」只出現在最後一堂，其他行用透明占位，讓每行欄位寬度一致 */}
+                <div className="order-2 ml-auto flex shrink-0 items-center gap-2 sm:order-3 sm:ml-0">
+                  <button
+                    type="button"
+                    onClick={() => onChange(slots.filter((_, j) => j !== i))}
+                    disabled={disabled || slot.locked === true || slots.length <= 1}
+                    aria-label={`刪除第 ${i + 1} 堂`}
+                    className={`${ACTION_BUTTON_CLASS} w-16`}
+                  >
+                    刪除
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => next && onChange([...slots, next])}
+                    disabled={!canAdd}
+                    title={addBlockedReason ?? "新增一堂"}
+                    aria-hidden={i === slots.length - 1 ? undefined : true}
+                    tabIndex={i === slots.length - 1 ? undefined : -1}
+                    className={`${ACTION_BUTTON_CLASS} hidden w-28 sm:inline-flex sm:items-center sm:justify-center ${
+                      i === slots.length - 1 ? "" : "sm:invisible"
+                    }`}
+                  >
+                    ＋ 新增一堂
+                  </button>
+                </div>
               </div>
+              {slot.locked && <p className="text-xs font-semibold text-amber-700 sm:pl-14">有人報名，時間已鎖定</p>}
             </li>
           );
         })}
       </ol>
 
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => next && onChange([...slots, next])}
-          disabled={!canAdd}
-          title={addBlockedReason ?? "新增一堂"}
-          className="h-10 rounded-xl border border-brand px-3 text-xs font-bold text-brand transition hover:bg-brand-ink disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-400 disabled:hover:bg-transparent"
-        >
-          ＋ 新增一堂
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => next && onChange([...slots, next])}
+        disabled={!canAdd}
+        title={addBlockedReason ?? "新增一堂"}
+        className={`${ACTION_BUTTON_CLASS} w-full sm:hidden`}
+      >
+        ＋ 新增一堂
+      </button>
 
       {addBlockedReason && <p className="text-xs text-amber-700">{addBlockedReason}</p>}
 
@@ -220,7 +233,7 @@ export function SlotsEditor({ slots, onChange, disabled = false, error }: Props)
         <p className="text-xs text-red-600">{error}</p>
       ) : (
         <p className="text-xs text-neutral-500">
-          「＋ 新增一堂」會接續上一堂、沿用上一堂的時長，最多 {MAX_SESSIONS} 堂；結束時間最晚可選 24:00。
+          單次最多建立 {MAX_SESSIONS} 堂課；結束時間最晚可選 24:00。
         </p>
       )}
 
