@@ -2,7 +2,7 @@
 // 把報名紀錄、場次、課程、公告、自己的評價整理成頁面直接能用的一筆資料，並依狀態分類。
 // 頁面（排版）請接 queries.ts 的 listMyRegistrations()，取消按鈕呼叫 app/registrations/actions.ts 的 cancelRegistration()。
 
-import { getLearnerCancelEligibility, type LearnerCancelEligibility } from "@/app/registrations/_lib/cancel-rules";
+import { calculateLearnerCancel, type LearnerCancelQuote } from "@/app/registrations/_lib/cancel-rules";
 import { formatOrderNumber } from "@/app/registrations/_lib/registration-rules";
 import { getSessionProgress, type SessionProgress } from "@/components/ui/status-indicator";
 import type { RegistrationStatus, SessionStatus } from "@/types/database";
@@ -39,7 +39,11 @@ export function categoryOfRegistration(status: RegistrationStatus): MyRegistrati
  * 每筆報名的狀態說明（PRD 5.3）。「已取消」可能是學員自己取消、場次未達人數取消，或教練取消場次，
  * 學員看到的原因不同，所以要帶場次狀態一起判斷。
  */
-export function registrationDetailLabel(status: RegistrationStatus, sessionStatus: SessionStatus | null): string {
+export function registrationDetailLabel(
+  status: RegistrationStatus,
+  sessionStatus: SessionStatus | null,
+  refund?: { amount: number; refundAmount: number | null; feeAmount: number | null }
+): string {
   switch (status) {
     case "pending_match":
       return "已報名（待確認開課），尚未扣款";
@@ -49,8 +53,13 @@ export function registrationDetailLabel(status: RegistrationStatus, sessionStatu
       return "課程完成";
     case "refunded":
       return sessionStatus === "cancelled_by_coach" ? "教練取消場次，已全額退款" : "已退款（全額）";
-    case "partial_refunded":
-      return "已退款（扣 50% 取消手續費）";
+    case "partial_refunded": {
+      // 手續費比例依取消時距開課的時間是 30% 或 50%，所以用實際金額反推，不寫死
+      if (!refund || refund.feeAmount === null || refund.amount <= 0) return "已部分退款";
+      const feePercent = Math.round((refund.feeAmount / refund.amount) * 100);
+      const refunded = refund.refundAmount ?? refund.amount - refund.feeAmount;
+      return `已部分退款 NT$${refunded.toLocaleString()}（扣 ${feePercent}% 取消手續費 NT$${refund.feeAmount.toLocaleString()}）`;
+    }
     case "cancelled":
       if (sessionStatus === "cancelled_unmatched") return "未達人數取消，不扣款";
       if (sessionStatus === "cancelled_by_coach") return "教練取消場次，不扣款";
@@ -61,7 +70,7 @@ export function registrationDetailLabel(status: RegistrationStatus, sessionStatu
 /** 取消按鈕該怎麼呈現：show＝可以點；contact_coach＝開課前 24 小時內，改顯示聯絡教練的說明；hide＝不顯示 */
 export type CancelButtonMode = "show" | "contact_coach" | "hide";
 
-export function cancelButtonMode(cancel: LearnerCancelEligibility): CancelButtonMode {
+export function cancelButtonMode(cancel: LearnerCancelQuote): CancelButtonMode {
   if (cancel.ok) return "show";
   return cancel.reason === "too_late" ? "contact_coach" : "hide";
 }
@@ -71,6 +80,9 @@ export type MyRegistrationRow = {
   id: string;
   status: RegistrationStatus;
   amount: number;
+  /** 部分退款的實際退款金額與取消手續費（其他狀態為 null） */
+  refund_amount: number | null;
+  refund_fee_amount: number | null;
   created_at: string;
   session: {
     id: string;
@@ -117,7 +129,7 @@ export type MyRegistrationItem = {
     coverImageUrl: string | null;
     coachId: string | null;
   };
-  cancel: LearnerCancelEligibility;
+  cancel: LearnerCancelQuote;
   cancelButton: CancelButtonMode;
   /** 教練對這個場次發的公告，新到舊；已取消的報名不顯示（資料庫也看不到） */
   announcements: MyAnnouncement[];
@@ -146,8 +158,14 @@ export function buildMyRegistrationItem(
   const category = categoryOfRegistration(row.status);
 
   // 讀不到場次時給一個一定不能取消的判斷，頁面不會出現壞掉的取消按鈕
-  const cancel: LearnerCancelEligibility = session
-    ? getLearnerCancelEligibility({ status: row.status }, { start_at: session.start_at }, now)
+  const cancel: LearnerCancelQuote = session
+    ? calculateLearnerCancel({
+        amount: Number(row.amount),
+        status: row.status,
+        sessionStartAt: session.start_at,
+        registrationDeadlineAt: session.registration_deadline_at,
+        now,
+      })
     : { ok: false, reason: "not_cancellable", message: "這筆報名目前狀態無法取消" };
 
   return {
@@ -155,7 +173,11 @@ export function buildMyRegistrationItem(
     orderNumber: formatOrderNumber(row.id),
     status: row.status,
     category,
-    detailLabel: registrationDetailLabel(row.status, session?.status ?? null),
+    detailLabel: registrationDetailLabel(row.status, session?.status ?? null, {
+      amount: Number(row.amount),
+      refundAmount: row.refund_amount === null ? null : Number(row.refund_amount),
+      feeAmount: row.refund_fee_amount === null ? null : Number(row.refund_fee_amount),
+    }),
     amount: Number(row.amount),
     createdAt: row.created_at,
     unavailable: !session || !course,

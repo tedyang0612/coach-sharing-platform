@@ -3,22 +3,40 @@
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { cancelRegistration } from "@/app/registrations/actions";
+import {
+  calculateLearnerCancel,
+  CANCEL_OUTCOME_LABELS,
+  type LearnerCancelQuote,
+} from "@/app/registrations/_lib/cancel-rules";
+import type { RegistrationStatus } from "@/types/database";
 import { CloseIcon } from "./Icons";
-import type { CANCEL_OUTCOME_TEXT } from "../_lib/display";
 
 interface Props {
   registrationId: string;
-  // 資料層判斷的取消結果（尚未扣款／全額退款）；設計稿的確認視窗兩種情況用同一段說明，所以這裡不再用它換文案
-  outcome: keyof typeof CANCEL_OUTCOME_TEXT;
+  // 算手續費與退款金額要用的資料（Ted 的 calculateLearnerCancel）
+  amount: number;
+  status: RegistrationStatus;
+  sessionStartAt: string;
+  registrationDeadlineAt: string;
   // 觸發按鈕的樣式由卡片決定（設計稿是藍框膠囊）
   className?: string;
 }
 
+const money = (n: number) => `NT$${n.toLocaleString()}`;
+
 // 取消前先跳確認視窗（設計稿 S09「取消報名確認」）。
 // 取消成功後 server action 會 revalidatePath("/my-courses")，清單會自己更新。
-export default function CancelRegistrationButton({ registrationId, className }: Props) {
+export default function CancelRegistrationButton({
+  registrationId,
+  amount,
+  status,
+  sessionStartAt,
+  registrationDeadlineAt,
+  className,
+}: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [quote, setQuote] = useState<LearnerCancelQuote | null>(null);
   const [pending, startTransition] = useTransition();
 
   function confirmCancel() {
@@ -39,6 +57,8 @@ export default function CancelRegistrationButton({ registrationId, className }: 
         type="button"
         onClick={() => {
           setError(null);
+          // 打開視窗當下才算：級距取決於「現在」距開課幾小時，頁面載入後放久了會變
+          setQuote(calculateLearnerCancel({ amount, status, sessionStartAt, registrationDeadlineAt }));
           dialog.current?.showModal();
         }}
         className={className}
@@ -62,17 +82,33 @@ export default function CancelRegistrationButton({ registrationId, className }: 
             <CloseIcon size={16} />
           </button>
         </div>
-        <p className="text-body mt-3 text-(--color-text-secondary)">
-          取消後名額會釋出。已確定開課並已扣款者，開課 24 小時前取消將全額退款。
-        </p>
-        <div className="text-body-small mt-4 space-y-2 rounded-(--radius-md) bg-(--color-brand-light) p-3">
-          <p>開課前 24 小時以上：可線上取消，已扣款者全額退款</p>
-          <p>開課前 24 小時內：請聯絡教練協助，將收取 50% 取消手續費</p>
-          {/* 條款頁是牛牛的 #53（/terms#refund）；合併前點不開 */}
-          <Link href="/terms#refund" className="block font-bold underline">
-            查看完整取消與退款規定
-          </Link>
-        </div>
+        {quote?.ok ? (
+          quote.tier === "free" ? (
+            <p className="text-body mt-3 text-(--color-text-secondary)">{CANCEL_OUTCOME_LABELS.cancel_unpaid}</p>
+          ) : (
+            // 金額由 calculateLearnerCancel 算出，和實際退款是同一個公式
+            <dl className="text-body mt-3 space-y-1.5 text-(--color-text-secondary)">
+              <div className="flex justify-between gap-3">
+                <dt>課程費用</dt>
+                <dd>{money(amount)}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt>取消手續費（{Math.round(quote.feeRate * 100)}%）</dt>
+                <dd>－{money(quote.feeAmount)}</dd>
+              </div>
+              <div className="flex justify-between gap-3 font-bold text-(--color-text-primary)">
+                <dt>退款金額</dt>
+                <dd>{money(quote.refundAmount)}</dd>
+              </div>
+            </dl>
+          )
+        ) : (
+          <p className="text-body mt-3 text-(--color-text-secondary)">{quote?.message}</p>
+        )}
+        {/* 條款頁是牛牛的 #53（/terms#refund） */}
+        <Link href="/terms#refund" className="text-body-small mt-4 block font-bold underline">
+          查看完整取消與退款規定
+        </Link>
         {error && (
           <p role="alert" className="text-body-small mt-3 text-(--color-state-error-text)">
             {error}
@@ -90,7 +126,7 @@ export default function CancelRegistrationButton({ registrationId, className }: 
           <button
             type="button"
             onClick={confirmCancel}
-            disabled={pending}
+            disabled={pending || !quote?.ok}
             className="text-button rounded-full bg-(--color-brand-blue) px-5 py-2.5 text-(--color-text-inverse) hover:bg-(--color-brand-blue-pressed) disabled:opacity-40"
           >
             {pending ? "取消中…" : "確認取消"}

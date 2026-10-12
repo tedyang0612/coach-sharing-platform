@@ -29,7 +29,7 @@ export async function listMyRegistrations(
   const { data: regs } = await supabase
     .from("registrations")
     .select(
-      "id, status, amount, created_at, session:sessions(id, start_at, end_at, registration_deadline_at, status, course:courses(id, title, sport_type, location_name, location_address, cover_image_url, coach_id, min_participants, max_participants))"
+      "id, status, amount, refund_amount, refund_fee_amount, created_at, session:sessions(id, start_at, end_at, registration_deadline_at, status, course:courses(id, title, sport_type, location_name, location_address, cover_image_url, coach_id, min_participants, max_participants))"
     )
     .eq("learner_id", userId)
     .order("created_at", { ascending: false });
