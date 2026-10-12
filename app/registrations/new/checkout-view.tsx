@@ -115,6 +115,10 @@ export function CheckoutView({
             <SummaryRow label="每人費用">
               <span className={latin}>{price}</span>
             </SummaryRow>
+            {/* PRD v4.11：MVP 一個帳號在同一個場次只能替自己報名一個名額，報名人數固定為 1 人、不可調整 */}
+            <SummaryRow label="報名人數">
+              <span className={latin}>1</span> 人
+            </SummaryRow>
             <hr className="border-border-default" />
             <div className="flex items-start gap-3">
               <span className="text-body-small text-text-secondary">預計扣款金額（確定開課時）</span>
