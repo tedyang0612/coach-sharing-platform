@@ -23,12 +23,12 @@ function disabledLabel(state: RegistrationState) {
 // 場次列上的報名按鈕，狀態由 Ted 的 getRegistrationState 決定
 export default function SessionRegisterButton({
   state,
-  courseId,
   sessionId,
   fullWidth = false,
 }: {
   state: RegistrationState;
-  courseId: string;
+  /** 保留給呼叫端（課程詳情頁）原本就會傳的參數；登入後改回到付款頁，這裡已經用不到 */
+  courseId?: string;
   sessionId: string;
   // 英雄區的主按鈕要撐滿資訊卡寬度
   fullWidth?: boolean;
@@ -36,9 +36,11 @@ export default function SessionRegisterButton({
   // 連結（<a>）預設是行內元素，撐滿寬度要加 block
   const buttonClass = fullWidth ? `${BUTTON_CLASS} block w-full text-center` : BUTTON_CLASS;
   if (state.kind === "login_required") {
-    // 登入後回到這一頁（#32）
+    // 登入（或註冊）完成後直接回到這個場次的報名／付款頁，不是回課程詳情頁（UAT 回饋：
+    // 沒有帳號的人要先註冊，註冊完還要再回詳情頁重按一次報名，很麻煩）。
+    // /login、/register 的 ?redirect= 會一路帶著走，登入或註冊成功後由 server action 導向這裡。
     return (
-      <Link href={loginHref(`/courses/${courseId}`)} className={buttonClass}>
+      <Link href={loginHref(registerHref(sessionId))} className={buttonClass}>
         {REGISTRATION_BUTTON_LABELS.login_required}
       </Link>
     );
