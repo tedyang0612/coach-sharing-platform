@@ -160,7 +160,6 @@ export default async function CourseDetailPage({
               <span className="text-display font-(family-name:--font-latin)! font-medium!">
                 NT${course.price.toLocaleString()}
               </span>
-              <span className="text-body text-(--color-text-secondary)">/ 人</span>
             </p>
             <SessionRegisterButton
               fullWidth

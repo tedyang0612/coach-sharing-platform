@@ -21,6 +21,7 @@ type Props = {
 
 export function CoverPicker({ value, sportType, onChange, onUploadingChange, error }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
+  const previewDialog = useRef<HTMLDialogElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -48,12 +49,43 @@ export function CoverPicker({ value, sportType, onChange, onUploadingChange, err
     <div className="flex flex-col gap-3">
       <span className="text-sm font-semibold text-neutral-800">課程封面圖</span>
 
-      <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100">
+      {/* 這塊就是前台卡片與詳情頁實際會顯示的 16:9 範圍；點一下可以看完整、未裁切的原圖 */}
+      <button
+        type="button"
+        onClick={() => previewDialog.current?.showModal()}
+        aria-label="放大預覽課程封面"
+        title="點擊查看完整原圖"
+        className="relative aspect-video w-full cursor-zoom-in overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 transition hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
         <img src={preview} alt="課程封面預覽" className="h-full w-full object-cover" />
         <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-xs font-semibold text-white">
           {value === "" ? "系統預設" : isUploaded ? "自行上傳" : "圖庫圖片"}
         </span>
-      </div>
+      </button>
+
+      <dialog
+        ref={previewDialog}
+        aria-label="課程封面完整預覽"
+        // 點到圖片以外的暗色區域就關閉
+        onClick={(event) => {
+          if (event.target === event.currentTarget) event.currentTarget.close();
+        }}
+        className="m-auto max-h-[90vh] max-w-[min(92vw,720px)] rounded-xl bg-white p-4 backdrop:bg-black/60"
+      >
+        <div className="flex flex-col items-center gap-3">
+          <img src={preview} alt="課程封面完整預覽" className="max-h-[70vh] w-auto max-w-full rounded-lg object-contain" />
+          <p className="text-center text-xs text-neutral-500">
+            這是完整原圖。課程卡片與詳情頁會把圖片置中裁成 16:9，上方預覽框就是實際顯示的範圍。
+          </p>
+          <button
+            type="button"
+            onClick={() => previewDialog.current?.close()}
+            className="rounded-xl border border-neutral-200 bg-white px-5 py-2 text-sm font-bold text-neutral-700 transition hover:bg-neutral-50"
+          >
+            關閉
+          </button>
+        </div>
+      </dialog>
 
       <div className="flex flex-wrap items-center gap-2">
         {options.map((url) => (

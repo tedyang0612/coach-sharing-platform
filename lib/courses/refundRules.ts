@@ -1,11 +1,8 @@
 // 課程詳情頁「取消與退款規則」的固定文案（設計稿 S05）。
-// 文案依 PRD v4.7（10/4）：開課前 24 小時內取消的手續費由 30% 改為 50%（教練與平台各得 25%）。
-// 比例要和 Ted 的取消規則（app/registrations、資料庫 coach_assist_refund）一致；
-// 設計師的 Figma（S05、S09）還是 30%，等設計師更新。以後要改只改這一個地方。
+// 文案由 Ted 的 cancel-rules.ts 統一維護（PRD v4.10 6.0），這裡直接引用，不要另寫一份；
+// 規則要改只改 CANCEL_POLICY_LINES。
+import { CANCEL_POLICY_LINES } from "@/app/registrations/_lib/cancel-rules";
+
 export const REFUND_RULE_TITLE = "取消與退款規則";
 
-export const REFUND_RULE_LINES = [
-  "報名時不扣款，報名截止時開課才扣款；未達人數不扣款。",
-  "開課前 24 小時以上可線上取消。",
-  "開課前 24 小時內，如需取消，請聯絡該堂教練協助處理，將收取 50% 取消手續費，缺席不予退款。",
-] as const;
+export const REFUND_RULE_LINES = CANCEL_POLICY_LINES;

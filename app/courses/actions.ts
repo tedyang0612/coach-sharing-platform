@@ -19,6 +19,7 @@ import {
   serializeSlots,
   slotsFromCourse,
   validateCourseValues,
+  validateNotes,
   validateQa,
   validateTemplateName,
   type CourseFieldErrors,
@@ -80,8 +81,10 @@ async function ownedSourceId(ctx: OkCoach, raw: FormDataEntryValue | null): Prom
 
 /**
  * 新增課程。表單的 intent：
- * - "publish"（預設）：建立課程＋切場次＋改為已發布（招生中）；勾了 also_template 時，同時另存一份範本
+ * - "publish"（預設）：建立課程＋切場次＋改為已發布（招生中）
+ * - "publish_and_template"：同上，並同時另存一份範本（範本名稱 template_name）
  * - "template"：只存成範本，不產生場次、不公開
+ * 含範本的 intent 由表單的「範本名稱」視窗確認後，以 intent_override 帶入（優先於按鈕的 intent）。
  * 從範本／複製進來的表單會帶 sourceId，記到 template_source_id。範本名稱（template_name）選填，只寫在範本那筆。
  *
  * 場次在應用層切，不呼叫 DB 的 generate_sessions_for_course()：那支 function 用 date + time
@@ -91,8 +94,9 @@ export async function createCourse(_prev: CourseFormState, formData: FormData): 
   const ctx = await getCoachContext();
   if (!ctx.ok) return { errors: { form: notCoachMessage(ctx.reason) } };
 
-  const asTemplate = formData.get("intent") === "template";
-  const alsoTemplate = !asTemplate && formData.get("also_template") === "on";
+  const intent = String(formData.get("intent_override") || formData.get("intent") || "publish");
+  const asTemplate = intent === "template";
+  const alsoTemplate = intent === "publish_and_template";
   const template = validateTemplateName(String(formData.get("template_name") ?? ""));
   if (template.error && (asTemplate || alsoTemplate)) return { errors: { template_name: template.error } };
 
@@ -181,6 +185,8 @@ export async function updateCourse(_prev: CourseFormState, formData: FormData): 
 
   if (isCourseEditLocked(course)) {
     if (containsContactInfo(values.notes)) return { errors: { notes: CONTACT_INFO_MESSAGE } };
+    const notesError = validateNotes(values.notes);
+    if (notesError) return { errors: { notes: notesError } };
     const qaItems = parseQa(values.qa);
     const qaError = qaItems ? validateQa(qaItems) : "課程 QA 格式不正確";
     if (qaError || !qaItems) return { errors: { qa: qaError ?? "課程 QA 格式不正確" } };

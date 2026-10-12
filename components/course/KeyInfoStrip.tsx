@@ -44,7 +44,7 @@ export default function KeyInfoStrip({
         </>
       ),
     },
-    { icon: <TagIcon size={24} />, label: "費用", value: `NT$${price.toLocaleString()} / 人` },
+    { icon: <TagIcon size={24} />, label: "費用", value: `NT$${price.toLocaleString()}` },
     {
       icon: <UsersIcon size={24} />,
       label: "人數",

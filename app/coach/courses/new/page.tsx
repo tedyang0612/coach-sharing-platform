@@ -33,7 +33,7 @@ export default async function NewCoursePage({ searchParams }: PageProps<"/coach/
       description={
         source ? `已帶入「${source.title}」的設定，請選擇新的上課日期後發布。` : "填好必填欄位就能發布，幾分鐘內完成開課。"
       }
-      back={{ href: "/coach/courses", label: "我的課程" }}
+      back={{ href: "/coach/courses", label: "課程管理" }}
     >
       {ctx.ok && templates.length > 0 && (
         <section className="flex flex-col gap-2 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">

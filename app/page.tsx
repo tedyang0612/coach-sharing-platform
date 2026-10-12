@@ -1,6 +1,6 @@
 import { listDistricts } from "@/app/courses/_lib/queries";
-import { courseListHref, HOME_SPORTS, POPULAR_CONDITIONS } from "@/app/_lib/home-config";
-import { getRecommendedClasses, getRecommendedCoaches } from "@/app/_lib/home-queries";
+import { courseListHref, HOME_SPORTS } from "@/app/_lib/home-config";
+import { getPopularConditions, getRecommendedClasses, getRecommendedCoaches } from "@/app/_lib/home-queries";
 import { CoachCard } from "@/components/coach/coach-card";
 import { ClassCard } from "@/components/course/class-card";
 import { Hero } from "@/components/home/hero";
@@ -12,13 +12,12 @@ import { createClient } from "@/lib/supabase/server";
 // S01｜P01 首頁（PRD 14.0）。未登入可瀏覽全部區塊；沒有符合的推薦課程／教練時整個區塊不顯示。
 export default async function Home() {
   const supabase = await createClient();
-  const [districts, classes, coaches] = await Promise.all([
+  const [districts, classes, coaches, popular] = await Promise.all([
     listDistricts(supabase),
     getRecommendedClasses(),
     getRecommendedCoaches(),
+    getPopularConditions(),
   ]);
-
-  const popular = POPULAR_CONDITIONS.map(({ label, filter }) => ({ label, href: courseListHref(filter) }));
 
   const section = "px-[var(--spacing-screen-padding)] pt-8 md:pt-16";
 
@@ -62,8 +61,6 @@ export default async function Home() {
           <SectionHeader
             title="推薦教練"
             subtitle="認證教練、真實評價，找到適合你的人"
-            moreHref="/coaches"
-            moreLabel="查看更多教練"
           />
           <div className="-mx-[var(--spacing-screen-padding)] mt-5 flex gap-3 overflow-x-auto px-[var(--spacing-screen-padding)] pb-1 md:mx-0 md:grid md:grid-cols-5 md:gap-4 md:overflow-visible md:px-0 md:pb-0">
             {coaches.map((coach) => (
