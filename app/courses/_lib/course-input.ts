@@ -37,7 +37,7 @@ export const NOTES_MAX = 300; // 課程須知：穿著、裝備、集合方式�
 export const TEMPLATE_NAME_MIN = 2;
 export const TEMPLATE_NAME_MAX = 40;
 export const MIN_PRICE = 200; // PRD v4.7：每人費用下限 NT$200，不提供 0 元課程
-export const MAX_PARTICIPANTS_CAP = 999; // PRD v4.7：人數上限最多 999
+export const MAX_PARTICIPANTS_CAP = 50; // 平台定位小班課：人數上限最多 50（2026-10-12 牛牛需求，PRD 同步；v4.7 原為 999，資料庫約束 courses_max_participants_cap 同步改，見 migration 046）
 
 // 課程 QA（PRD v4.7 1.0 規格 9）。數量與字數上限不在 PRD 內，是為了避免畫面被塞爆而加的保守值
 export const MAX_QA_ITEMS = 10;
@@ -485,19 +485,19 @@ export function validateCourseValues(
   if (priceRaw && price === null) errors.price_per_person = "請輸入整數金額";
   else if (price !== null && price < MIN_PRICE) errors.price_per_person = `每人費用最低 NT$${MIN_PRICE}`;
 
-  // 人數：正整數，上限最多 999（輸入框已擋掉小數點與負號，這裡是繞過前端時的第二道防線）
+  // 人數：正整數，上限最多 MAX_PARTICIPANTS_CAP（輸入框已擋掉小數點與負號，這裡是繞過前端時的第二道防線）
   const minRaw = values.min_participants.trim();
   const maxRaw = values.max_participants.trim();
   const min = toInt(minRaw);
   const max = toInt(maxRaw);
-  if (minRaw && (min === null || min < 1)) errors.min_participants = "請輸入正整數，人數下限至少為 1";
+  if (minRaw && (min === null || min < 1)) errors.min_participants = "請輸入正整數，最低開課人數至少為 1";
   if (maxRaw && (max === null || max < 1)) errors.max_participants = "請輸入正整數，人數上限至少為 1";
   else if (max !== null && max > MAX_PARTICIPANTS_CAP) errors.max_participants = `人數上限最多 ${MAX_PARTICIPANTS_CAP}`;
   if (!errors.max_participants && min !== null && max !== null && min >= 1 && max < min) {
-    errors.max_participants = "人數上限不可低於人數下限";
+    errors.max_participants = "人數上限不可低於最低開課人數";
   }
   if (!errors.min_participants && min !== null && min > MAX_PARTICIPANTS_CAP) {
-    errors.min_participants = `人數下限最多 ${MAX_PARTICIPANTS_CAP}`;
+    errors.min_participants = `最低開課人數最多 ${MAX_PARTICIPANTS_CAP}`;
   }
 
   const deadlineHours = values.registration_deadline_hours
