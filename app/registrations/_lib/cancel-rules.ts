@@ -13,9 +13,6 @@
 
 import type { RegistrationStatus } from "@/types/database";
 
-/** 學員線上取消的時限：開課前 24 小時以上（和教練取消場次的 48 小時是兩回事） */
-export const LEARNER_CANCEL_WINDOW_HOURS = 24;
-
 /** 結帳頁在付款前要顯示的取消與退款規則（PRD 6.0 AC 3，字句依 PRD v4.10） */
 export const CANCEL_POLICY_LINES = [
   "報名時不扣款，報名截止時達到開課人數才會確定開課並扣款；未達開課人數會自動取消，不會扣款。",
@@ -29,37 +26,6 @@ export const CANCEL_TOO_LATE_MESSAGE =
   "開課前 24 小時內無法退費，可免費轉讓名額給親友，請透過行前公告提供的聯絡方式聯繫教練";
 
 export type LearnerCancelOutcome = "cancel_unpaid" | "refund_full";
-
-export type LearnerCancelEligibility =
-  | {
-      ok: true;
-      /** cancel_unpaid：已取消（未扣款）；refund_full：已退款（全額） */
-      outcome: LearnerCancelOutcome;
-    }
-  | { ok: false; reason: "too_late" | "not_cancellable"; message: string };
-
-/**
- * @deprecated v4.10 起請改用 calculateLearnerCancel()：它依報名截止時間與距開課時間算出級距與金額。
- * 這支只看「距開課 24 小時以上」，不分級距，也不知道待確認開課報名是否已過截止，
- * 留著只是讓「我的課程」在小柔改接 calculateLearnerCancel() 之前不會壞掉。
- * 注意它的 refund_full 已經不是實際結果（已扣款者現在是部分退款）。
- */
-export function getLearnerCancelEligibility(
-  registration: { status: RegistrationStatus },
-  session: { start_at: string },
-  now: Date = new Date()
-): LearnerCancelEligibility {
-  if (registration.status !== "pending_match" && registration.status !== "confirmed") {
-    return { ok: false, reason: "not_cancellable", message: "這筆報名目前狀態無法取消" };
-  }
-
-  const cancelDeadline = new Date(session.start_at).getTime() - LEARNER_CANCEL_WINDOW_HOURS * 60 * 60 * 1000;
-  if (now.getTime() > cancelDeadline) {
-    return { ok: false, reason: "too_late", message: CANCEL_TOO_LATE_MESSAGE };
-  }
-
-  return { ok: true, outcome: registration.status === "confirmed" ? "refund_full" : "cancel_unpaid" };
-}
 
 export const CANCEL_OUTCOME_LABELS: Record<LearnerCancelOutcome, string> = {
   cancel_unpaid: "取消後訂單改為「已取消」，尚未扣款，名額會釋出",

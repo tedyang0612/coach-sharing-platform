@@ -57,5 +57,5 @@ export function formatDateTime(d: DateLike): string {
 }
 
 export function formatPrice(amount: number): string {
-  return `NT$ ${amount.toLocaleString("zh-TW")}`;
+  return `NT$${amount.toLocaleString("zh-TW")}`;
 }

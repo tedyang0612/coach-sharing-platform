@@ -206,13 +206,13 @@ export function buildEarnings(
   };
 }
 
-/** 分 → 「NT$ 1,600」 */
+/** 分 → 「NT$1,600」（Figma 寫法，NT$ 後不空格） */
 export function formatNtd(cents: number): string {
   const dollars = cents / 100;
   const text = Number.isInteger(dollars)
     ? dollars.toLocaleString("zh-TW")
     : dollars.toLocaleString("zh-TW", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `NT$ ${text}`;
+  return `NT$${text}`;
 }
 
 export const EARNINGS_STATUS_LABELS: Record<EarningsRowStatus, string> = {
