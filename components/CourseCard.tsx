@@ -159,7 +159,6 @@ export default function CourseCard({ course }: Props) {
           <div className="flex items-center justify-between pt-1">
             <span className="text-h3 text-(--color-text-primary)">
               NT$ {course.price.toLocaleString()}
-              <span className="text-body-small text-(--color-text-secondary)"> / 人</span>
             </span>
             {/* 列表卡片不放報名按鈕（QA／UI 決定），報名在課程詳情頁選場次；人數進度也只在詳情頁（設計稿 S04 沒有） */}
             {isFull ? (

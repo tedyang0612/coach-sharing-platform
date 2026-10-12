@@ -77,9 +77,8 @@ export function ClassCard({ card, className = "" }: { card: ClassCardData; class
         <div className="flex items-center gap-2 border-t border-border-default pt-3">
           <span className="text-h3 whitespace-nowrap text-text-primary">
             <span className="font-[family-name:var(--font-latin)] font-medium">
-              NT${TWD.format(card.pricePerPerson)} /
-            </span>{" "}
-            人
+              NT${TWD.format(card.pricePerPerson)}
+            </span>
           </span>
           <span className="flex-1" />
           <StatusIndicator progress={card.progress} />
