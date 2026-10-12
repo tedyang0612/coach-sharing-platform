@@ -120,18 +120,21 @@ export function Hero({
             </button>
           </form>
 
-          <div className="flex flex-wrap items-center justify-center gap-2.5">
-            <span className="text-label text-text-inverse">熱門條件</span>
-            {popular.map((p) => (
-              <Link
-                key={p.label}
-                href={p.href}
-                className="text-label whitespace-nowrap rounded-pill border border-border-default bg-brand-white px-4 py-2 text-text-primary transition active:bg-tint-blue-100"
-              >
-                {p.label}
-              </Link>
-            ))}
-          </div>
+          {/* 沒有任何可報名的課程時，熱門條件整列不顯示 */}
+          {popular.length > 0 && (
+            <div className="flex flex-wrap items-center justify-center gap-2.5">
+              <span className="text-label text-text-inverse">熱門條件</span>
+              {popular.map((p) => (
+                <Link
+                  key={p.label}
+                  href={p.href}
+                  className="text-label whitespace-nowrap rounded-pill border border-border-default bg-brand-white px-4 py-2 text-text-primary transition active:bg-tint-blue-100"
+                >
+                  {p.label}
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
