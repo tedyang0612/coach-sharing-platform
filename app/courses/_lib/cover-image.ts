@@ -30,6 +30,18 @@ export const COVER_GALLERY: Record<string, string[]> = {
 // sport_type 是自由文字；表單只能選 MVP 八種，清單外（舊資料／之後新增的運動）用通用預設圖
 export const COVER_FALLBACK = `${GALLERY_DIR}/default.svg`;
 
+/** 8 種運動各一張的預設圖（順序同 COVER_GALLERY） */
+export const ALL_GALLERY_COVERS: string[] = Object.values(COVER_GALLERY).map((urls) => urls[0]);
+
+/**
+ * 1013 補充：開課表單還沒選運動項目時，封面預覽隨機顯示 8 張預設圖其中一張（不再顯示綠色佔位圖）。
+ * 要在伺服器端（進頁面時）抽一次再傳給表單：在 client 元件裡每次 render 抽會一直換圖，
+ * 而且伺服器與瀏覽器抽到不同的圖會造成 hydration 不一致。
+ */
+export function pickRandomCover(random: () => number = Math.random): string {
+  return ALL_GALLERY_COVERS[Math.floor(random() * ALL_GALLERY_COVERS.length)];
+}
+
 export function galleryFor(sportType: string): string[] {
   return COVER_GALLERY[sportType] ?? [];
 }
