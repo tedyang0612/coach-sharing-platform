@@ -90,20 +90,26 @@ export default function CancelRegistrationButton({
             <p className="text-body mt-3 text-(--color-text-secondary)">{CANCEL_OUTCOME_LABELS.cancel_unpaid}</p>
           ) : (
             // 金額由 calculateLearnerCancel 算出，和實際退款是同一個公式
-            <dl className="text-body mt-3 space-y-1.5 text-(--color-text-secondary)">
-              <div className="flex justify-between gap-3">
-                <dt>課程費用</dt>
-                <dd>{money(amount)}</dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt>取消手續費（{Math.round(quote.feeRate * 100)}%）</dt>
-                <dd>－{money(quote.feeAmount)}</dd>
-              </div>
-              <div className="flex justify-between gap-3 font-bold text-(--color-text-primary)">
-                <dt>退款金額</dt>
-                <dd>{money(quote.refundAmount)}</dd>
-              </div>
-            </dl>
+            <>
+              <dl className="text-body mt-3 space-y-1.5 text-(--color-text-secondary)">
+                <div className="flex justify-between gap-3">
+                  <dt>課程費用</dt>
+                  <dd>{money(amount)}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt>取消手續費（{Math.round(quote.feeRate * 100)}%）</dt>
+                  <dd>－{money(quote.feeAmount)}</dd>
+                </div>
+                <div className="flex justify-between gap-3 font-bold text-(--color-text-primary)">
+                  <dt>退款金額</dt>
+                  <dd>{money(quote.refundAmount)}</dd>
+                </div>
+              </dl>
+              {/* 文案照 PRD 原文（設計師 10/13）：確認後訂單改為「部分退款」 */}
+              <p className="text-body-small mt-3 text-(--color-text-secondary)">
+                確認後訂單改為「部分退款」
+              </p>
+            </>
           )
         ) : (
           <p className="text-body mt-3 text-(--color-text-secondary)">{quote?.message}</p>

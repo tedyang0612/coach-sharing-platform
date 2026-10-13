@@ -143,6 +143,7 @@ export default function MyCourseCard({ item }: { item: MyRegistrationItem }) {
     <article className="space-y-3 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-4">
       <div className="flex gap-4">
         {!item.unavailable && (
+          // 設計稿 S09：縮圖是橫幅（約 120×72），設計師 10/13 確認
           // 封面可能來自 Supabase Storage（外部網域），不設定 next/image 網域，用一般 img
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -152,7 +153,7 @@ export default function MyCourseCard({ item }: { item: MyRegistrationItem }) {
             })}
             alt=""
             loading="lazy"
-            className="h-18 w-18 shrink-0 rounded-(--radius-md) bg-(--color-tint-blue-100) object-cover"
+            className="h-18 w-30 shrink-0 rounded-(--radius-md) bg-(--color-tint-blue-100) object-cover"
           />
         )}
         <div className="min-w-0 space-y-0.5">
