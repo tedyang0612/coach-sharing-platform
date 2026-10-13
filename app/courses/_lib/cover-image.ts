@@ -15,8 +15,7 @@ export const COVER_SIZE_ERROR = "封面圖檔案需在 5MB 以內";
 export const COVER_URL_ERROR = "封面圖來源不正確，請重新上傳或從圖庫選擇";
 
 // 平台圖庫：依運動項目分類，檔案放在 public/course-covers/。
-// 現在是 AI 生成圖（-2.jpg，1672×941，16:9）。舊的佔位 SVG（-1.svg）檔案還留在 public，
-// 因為線上課程的 cover_image_url 可能存著舊路徑；確認沒有課程在用之後再刪。
+// AI 生成圖（-2.jpg，1672×941，16:9）。舊的佔位 SVG 已刪（10/13 Ted 查過線上沒有課程用舊路徑）。
 const GALLERY_DIR = "/course-covers";
 export const COVER_GALLERY: Record<string, string[]> = {
   重訓: [`${GALLERY_DIR}/weight-training-2.jpg`],
