@@ -71,7 +71,7 @@ export default function KeyInfoStrip({
         >
           <span className="text-(--color-text-primary) md:hidden">{item.icon}</span>
           <div className="space-y-0.5">
-            <dt className="text-caption flex items-center gap-1.5 text-(--color-text-secondary) md:justify-center">
+            <dt className="flex items-center gap-1.5 text-[12px] leading-[18px] text-(--color-text-secondary) md:justify-center md:text-[13px] md:leading-5">
               <span className="max-md:hidden">
                 {/* 桌機的圖示縮小成標籤旁的小圖示 */}
                 {item.label === "時間" && <CalendarIcon size={16} />}
@@ -81,9 +81,9 @@ export default function KeyInfoStrip({
               </span>
               {item.label}
             </dt>
-            <dd className="text-body text-(--color-text-primary)">{item.value}</dd>
+            <dd className="text-[15px] font-medium leading-6 text-(--color-text-primary) md:text-[16px]">{item.value}</dd>
             {item.note && (
-              <dd className="text-caption text-(--color-text-secondary)">{item.note}</dd>
+              <dd className="text-[14px] leading-5 text-(--color-text-secondary)">{item.note}</dd>
             )}
           </div>
         </div>

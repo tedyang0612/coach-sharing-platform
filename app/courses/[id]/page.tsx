@@ -128,7 +128,7 @@ export default async function CourseDetailPage({
           : undefined;
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-6 px-(--spacing-screen-padding) pb-32 pt-4 lg:pb-12 lg:pt-8">
+    <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-7 px-(--spacing-screen-padding) pb-32 pt-4 lg:pb-12 lg:pt-8">
       <BackToResults />
 
       <CourseStatusNotice
@@ -144,9 +144,9 @@ export default async function CourseDetailPage({
         <img
           src={course.coverUrl}
           alt=""
-          className="-mx-(--spacing-screen-padding) aspect-video w-[calc(100%+2*var(--spacing-screen-padding))] max-w-none bg-(--color-tint-blue-100) object-cover lg:mx-0 lg:w-[63%] lg:max-w-full"
+          className="-mx-(--spacing-screen-padding) aspect-video w-[calc(100%+2*var(--spacing-screen-padding))] max-w-none bg-(--color-tint-blue-100) object-cover lg:mx-0 lg:w-[69.5%] lg:max-w-full"
         />
-        <div className="mt-4 space-y-4 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-4 lg:mt-0 lg:flex-1 lg:rounded-none lg:border-0 lg:p-6">
+        <div className="mt-4 space-y-5 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-4 lg:mt-0 lg:flex-1 lg:rounded-none lg:border-0 lg:px-8 lg:py-9">
           <div className="text-caption flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-(--color-border-default) bg-(--color-surface-default) px-3 py-1">
               {course.sport}
@@ -156,10 +156,12 @@ export default async function CourseDetailPage({
             </span>
           </div>
           <h1 className="text-h1">{course.title}</h1>
-          <div className="text-body space-y-2 text-(--color-text-primary)">
+          <div className="space-y-2 text-[16px] leading-6 text-(--color-text-primary)">
             <p className="flex items-center gap-2">
               <CalendarIcon size={18} />
-              <span>{dateText}</span>
+              <span>
+                <span className="font-medium">{dateText.split(" ")[0]}</span> {dateText.split(" ").slice(1).join(" ")}
+              </span>
             </p>
             <p className="flex items-center gap-2">
               <MapPinIcon size={18} />
@@ -232,14 +234,14 @@ export default async function CourseDetailPage({
 
       {/* 介紹與須知各一張白底卡片（設計稿 S05，10/13） */}
       <section className="space-y-3">
-        <div className="space-y-2 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-5">
+        <div className="space-y-2 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-6">
           <h2 className="text-h3">課程介紹</h2>
           <p className="text-body whitespace-pre-line text-(--color-text-secondary)">
             {course.description}
           </p>
         </div>
         {course.notes && (
-          <div className="space-y-2 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-5">
+          <div className="space-y-2 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-6">
             <h2 className="text-h3">課程須知</h2>
             <p className="text-body whitespace-pre-line text-(--color-text-secondary)">
               {course.notes}

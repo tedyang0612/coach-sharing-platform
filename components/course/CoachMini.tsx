@@ -25,7 +25,7 @@ export default function CoachMini({
   return (
     <Link
       href={href}
-      className="flex items-center gap-4 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-4 transition-shadow hover:shadow-(--shadow-md)"
+      className="flex items-center gap-4 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-6 transition-shadow hover:shadow-(--shadow-md)"
     >
       {photoUrl ? (
         // 大頭貼來自 Supabase Storage，用一般 img，不需要設定 next/image 的來源網域
@@ -63,7 +63,7 @@ export default function CoachMini({
             <>
               <StarIcon size={14} />
               <span>
-                <span className="font-(family-name:--font-latin)">{rating.toFixed(1)}</span>
+                <span className="font-medium font-(family-name:--font-latin)">{rating.toFixed(1)}</span>
                 （{reviewCount} 則評價）
               </span>
             </>

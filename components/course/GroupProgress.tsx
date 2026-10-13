@@ -15,8 +15,8 @@ export default function GroupProgress({
 
   return (
     <div className="space-y-2">
-      <div className="text-body flex items-center justify-between">
-        <span className="font-bold text-(--color-text-primary)">
+      <div className="flex items-center justify-between text-[16px] font-medium leading-6">
+        <span className="text-(--color-text-primary)">
           {reachedMin ? "已達開課人數" : `差 ${minToOpen - enrolled} 人開課`}
         </span>
         <span className="text-(--color-text-secondary)">
