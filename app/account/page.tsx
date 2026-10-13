@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import { logout } from "@/app/actions/auth";
-import heroWave from "@/components/home/hero-wave.svg";
 import { Footer } from "@/components/layout/footer";
 import { Icon } from "@/components/ui/icon";
 import { createClient } from "@/lib/supabase/server";
-import { HeroAvatar } from "./hero-avatar";
+import { AccountHero } from "./account-hero";
 import { ProfileForm } from "./profile-form";
 
 export const metadata: Metadata = { title: "我的帳戶｜夠練 GoLand" };
@@ -27,31 +25,7 @@ export default async function AccountPage() {
 
   return (
     <main className="flex-1">
-      <section className="relative flex min-h-[320px] items-end overflow-clip md:min-h-[500px]">
-        <Image
-          src="/images/hero.png"
-          alt=""
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-[60%_center]"
-        />
-        {/* 設計稿的橫幅是整張偏淡的色調：白色疊層讓深藍標題維持足夠對比 */}
-        <div className="absolute inset-0 bg-brand-white/65" />
-        <div className="relative flex w-full flex-col gap-4 px-[var(--spacing-screen-padding)] pb-24 pt-10 md:flex-row md:items-center md:gap-10 md:pb-32">
-          <HeroAvatar userId={user.id} avatarUrl={avatarUrl} />
-          <div className="flex flex-col gap-1 text-brand-deep">
-            <h1 className="text-hero-responsive break-words">嗨，{displayName}！</h1>
-            <p className="text-h2">你想練的這邊都有！</p>
-          </div>
-        </div>
-        <Image
-          src={heroWave}
-          alt=""
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-auto w-full"
-        />
-      </section>
+      <AccountHero avatarUrl={avatarUrl} displayName={displayName} />
 
       <div className="mx-auto grid w-full max-w-[1440px] gap-6 px-[var(--spacing-screen-padding)] pb-12 pt-4 lg:grid-cols-[2fr_1fr] lg:items-start">
         <section aria-labelledby="account-basic" className="rounded-lg border border-border-default bg-brand-white p-6 md:p-9">
