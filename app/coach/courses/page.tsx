@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { NotCoachNotice, PageShell } from "@/app/courses/_components/page-shell";
+import { NotCoachNotice } from "@/app/courses/_components/page-shell";
 import { buttonClassName } from "@/components/ui/button";
-import { SessionStatusBadge } from "@/app/courses/_components/status-badge";
+import { CoachLocalNav } from "@/components/coach/coach-local-nav";
+import { CoachCourseCard, type CardSession } from "./_components/course-card";
 import { resolveCoverUrl } from "@/app/courses/_lib/cover-image";
 import { COURSE_LEVELS, slotsFromCourse } from "@/app/courses/_lib/course-input";
-import { formatPrice, formatSessionTime } from "@/app/courses/_lib/format";
-import { getCoachContext, listMyCourses, listMyTemplates } from "@/app/courses/_lib/queries";
+import { formatPrice } from "@/app/courses/_lib/format";
+import { getCoachContext, listDistricts, listMyCourses, listMyTemplates } from "@/app/courses/_lib/queries";
 import { SESSION_DISPLAY_LABELS, sessionDisplayStatus, type SessionDisplayStatus } from "@/app/courses/_lib/session-rules";
 import type { Course } from "@/types/database";
 
@@ -23,6 +24,9 @@ function parseView(raw: string | string[] | undefined): View {
   return VIEWS.includes(raw as View) ? (raw as View) : "recruiting";
 }
 
+// 「全部」分頁裡，一門課的卡片狀態取最優先的場次狀態
+const CARD_STATUS_PRIORITY: SessionDisplayStatus[] = ["recruiting", "matched", "ended", "cancelled"];
+
 const levelLabel = (level: Course["level"]) => COURSE_LEVELS.find((l) => l.value === level)?.label ?? level;
 
 export default async function MyCoursesPage({ searchParams }: PageProps<"/coach/courses">) {
@@ -34,125 +38,99 @@ export default async function MyCoursesPage({ searchParams }: PageProps<"/coach/
   }
   if (!ctx.ok) {
     return (
-      <PageShell title="課程管理">
+      <main className="flex flex-1 flex-col gap-6 px-[var(--spacing-screen-padding)] pb-20 pt-6 md:pt-8">
+        <CoachLocalNav active="courses" ctaDisabled />
         <NotCoachNotice />
-      </PageShell>
+      </main>
     );
   }
 
-  const [courses, templates] = await Promise.all([listMyCourses(ctx), listMyTemplates(ctx)]);
+  const [courses, templates, districts] = await Promise.all([
+    listMyCourses(ctx),
+    listMyTemplates(ctx),
+    listDistricts(ctx.supabase),
+  ]);
+  const regionById = new Map(districts.map((d) => [d.id, `${d.city}${d.district}`]));
   const now = new Date();
 
-  // 攤平成「場次」列表，每列帶著所屬課程
-  const rows = courses
+  // 一張卡片＝一門課程；課程下的場次依「目前分頁」篩選（全部＝所有場次）
+  const cards = courses
     .filter((c) => c.status !== "draft")
-    .flatMap((course) => course.sessions.map((session) => ({ course, session, status: sessionDisplayStatus(session, now) })));
-
-  const counts = Object.fromEntries(SESSION_TABS.map((t) => [t, rows.filter((r) => r.status === t).length])) as Record<
-    SessionDisplayStatus,
-    number
-  >;
-
-  // 進行中的依開課時間由近到遠；已結束／已取消由新到舊；「全部」進行中的排在前面
-  const isLive = (s: SessionDisplayStatus) => s === "recruiting" || s === "matched";
-  const visible = rows
-    .filter((r) => view === "all" || r.status === view)
+    .map((course) => {
+      const all: CardSession[] = course.sessions.map((session) => ({ session, status: sessionDisplayStatus(session, now) }));
+      const sessions = view === "all" ? all : all.filter((s) => s.status === view);
+      // 「全部」分頁的卡片狀態：進行中的優先，其次已結束、已取消
+      const cardStatus: SessionDisplayStatus =
+        view === "all" || view === "templates"
+          ? (CARD_STATUS_PRIORITY.find((st) => sessions.some((s) => s.status === st)) ?? "cancelled")
+          : view;
+      return { course, sessions, cardStatus };
+    })
+    .filter((c) => c.sessions.length > 0)
+    // 進行中的依開課時間由近到遠；已結束／已取消由新到舊；「全部」進行中的排在前面
     .sort((a, b) => {
-      if (view === "all" && isLive(a.status) !== isLive(b.status)) return isLive(a.status) ? -1 : 1;
-      const live = view === "all" ? isLive(a.status) : view === "recruiting" || view === "matched";
-      return live ? a.session.start_at.localeCompare(b.session.start_at) : b.session.start_at.localeCompare(a.session.start_at);
+      const live = (st: SessionDisplayStatus) => st === "recruiting" || st === "matched";
+      if (view === "all" && live(a.cardStatus) !== live(b.cardStatus)) return live(a.cardStatus) ? -1 : 1;
+      const cmp = a.sessions[0].session.start_at.localeCompare(b.sessions[0].session.start_at);
+      return live(a.cardStatus) ? cmp : -cmp;
     });
 
-  const tabs: { key: View; label: string; count: number }[] = [
-    { key: "all", label: "全部", count: rows.length },
-    ...SESSION_TABS.map((t) => ({ key: t as View, label: SESSION_DISPLAY_LABELS[t], count: counts[t] })),
-    { key: "templates", label: "範本", count: templates.length },
+  // 設計稿只有四個狀態分頁；「全部」（鯨魚 QA）與「範本」（PRD 規格3）是額外功能，接在後面
+  const tabs: { key: View; label: string }[] = [
+    ...SESSION_TABS.map((t) => ({ key: t as View, label: SESSION_DISPLAY_LABELS[t] })),
+    { key: "all", label: "全部" },
+    { key: "templates", label: "範本" },
   ];
 
   return (
-    <PageShell
-      title="課程管理"
-      description="依場次狀態查看報名人數與學員名單；點場次進入課程管理。"
-      actions={
-        <Link href="/coach/courses/new" className={buttonClassName("primary")}>
-          ＋ 建立課程
-        </Link>
-      }
-    >
-      <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1" aria-label="課程狀態">
-        {tabs.map((t) => (
-          <Link
-            key={t.key}
-            href={`/coach/courses?view=${t.key}`}
-            aria-current={view === t.key ? "page" : undefined}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${
-              view === t.key ? "bg-brand text-white" : "bg-white text-neutral-600 hover:bg-neutral-100"
-            }`}
-          >
-            {t.label}
-            <span className={`ml-1.5 text-xs ${view === t.key ? "text-white/80" : "text-neutral-400"}`}>{t.count}</span>
-          </Link>
-        ))}
+    <main className="flex flex-1 flex-col gap-6 px-[var(--spacing-screen-padding)] pb-20 pt-6 md:pt-8">
+      <CoachLocalNav active="courses" />
+
+      <nav className="flex gap-6 overflow-x-auto border-b border-border-default" aria-label="課程狀態">
+        {tabs.map((t) => {
+          const active = view === t.key;
+          return (
+            <Link
+              key={t.key}
+              href={`/coach/courses?view=${t.key}`}
+              aria-current={active ? "page" : undefined}
+              className={`flex shrink-0 flex-col gap-2 pt-2 ${active ? "text-button text-text-primary" : "text-body text-text-secondary"}`}
+            >
+              {t.label}
+              <span className={`h-[3px] w-full ${active ? "bg-brand-blue" : ""}`} />
+            </Link>
+          );
+        })}
       </nav>
 
       {view === "templates" ? (
         <TemplateList templates={templates} />
-      ) : visible.length === 0 ? (
+      ) : cards.length === 0 ? (
         <EmptyState view={view} />
       ) : (
-        <ul className="flex flex-col gap-2">
-          {visible.map(({ course, session, status }) => (
-            <li
-              key={session.id}
-              className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm transition hover:border-brand"
-            >
-              <Link href={`/coach/courses/${course.id}`} className="flex items-center gap-4">
-                <img src={resolveCoverUrl(course)} alt="" className="h-16 w-24 shrink-0 rounded-lg object-cover" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-neutral-900">{course.title}</p>
-                  <p className="text-xs font-semibold text-brand">
-                    {course.sport_type}｜{levelLabel(course.level)}
-                  </p>
-                  <p className="text-sm text-neutral-600">{formatSessionTime(session.start_at, session.end_at)}</p>
-                  <p className="text-xs text-neutral-500">
-                    已報名 {session.active_count}／{course.max_participants} 人（下限 {course.min_participants}）｜
-                    {course.location_name}
-                  </p>
-                </div>
-                <SessionStatusBadge status={status} />
-              </Link>
-              {/* 列表上直接給編輯與複製，不用先點進課程頁（鯨魚 QA）；已取消的課程不能編輯 */}
-              <div className="mt-2 flex justify-end gap-2 border-t border-neutral-100 pt-2">
-                {course.status !== "cancelled" && (
-                  <Link
-                    href={`/coach/courses/${course.id}/edit`}
-                    className="rounded-lg px-3 py-1.5 text-xs font-bold text-neutral-700 hover:bg-neutral-100"
-                  >
-                    編輯
-                  </Link>
-                )}
-                <Link
-                  href={`/coach/courses/new?from=${course.id}`}
-                  className="rounded-lg px-3 py-1.5 text-xs font-bold text-brand hover:bg-brand-ink"
-                >
-                  複製課程
-                </Link>
-              </div>
-            </li>
+        <ul className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
+          {cards.map(({ course, sessions, cardStatus }) => (
+            <CoachCourseCard
+              key={course.id}
+              course={course}
+              sessions={sessions}
+              cardStatus={cardStatus}
+              location={course.district_id ? (regionById.get(course.district_id) ?? "") : ""}
+            />
           ))}
         </ul>
       )}
-    </PageShell>
+    </main>
   );
 }
 
 function EmptyState({ view }: { view: View }) {
   const label = view === "all" ? "" : `「${SESSION_DISPLAY_LABELS[view as SessionDisplayStatus]}」`;
   return (
-    <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-8 text-center">
-      <p className="text-sm text-neutral-500">目前沒有{label}的場次。</p>
+    <div className="rounded-lg border border-dashed border-border-default bg-brand-white p-8 text-center">
+      <p className="text-body-small text-text-secondary">目前沒有{label}的場次。</p>
       {(view === "recruiting" || view === "all") && (
-        <Link href="/coach/courses/new" className="mt-3 inline-block text-sm font-bold text-brand hover:underline">
+        <Link href="/coach/courses/new" className="text-label mt-3 inline-block text-brand-blue hover:underline">
           建立第一堂課 →
         </Link>
       )}
@@ -165,41 +143,36 @@ function EmptyState({ view }: { view: View }) {
 function TemplateList({ templates }: { templates: Course[] }) {
   if (templates.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-neutral-300 bg-white p-8 text-center text-sm text-neutral-500">
+      <div className="text-body-small rounded-lg border border-dashed border-border-default bg-brand-white p-8 text-center text-text-secondary">
         還沒有範本。開課時勾選「發布的同時存成範本」，或在課程管理頁按「另存範本」，下次就能一鍵帶入設定。
       </div>
     );
   }
   return (
-    <ul className="grid gap-3 sm:grid-cols-2">
+    <ul className="grid gap-4 md:grid-cols-2">
       {templates.map((t) => {
         const slots = slotsFromCourse(t);
         return (
-          <li key={t.id} className="flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+          <li key={t.id} className="flex flex-col overflow-hidden rounded-lg border border-border-default bg-brand-white">
             <img src={resolveCoverUrl(t)} alt="" className="aspect-[2/1] w-full object-cover" />
-            <div className="flex flex-1 flex-col gap-1 p-4">
-              <p className="line-clamp-2 min-h-[3rem] font-semibold leading-6 text-neutral-900">{t.template_name ?? t.title}</p>
-              {t.template_name && <p className="truncate text-xs text-neutral-500">課程名稱：{t.title}</p>}
-              <p className="text-xs font-semibold text-brand">
-                {t.sport_type}｜{levelLabel(t.level)}
+            <div className="flex flex-1 flex-col gap-1 p-5">
+              <p className="text-h3 line-clamp-2 min-h-[3.25rem] text-text-primary">{t.template_name ?? t.title}</p>
+              {t.template_name && <p className="text-caption truncate text-text-secondary">課程名稱：{t.title}</p>}
+              <p className="text-caption text-text-primary">
+                {t.sport_type}
+                <span className="ml-3">{levelLabel(t.level)}</span>
               </p>
-              <p className="text-xs text-neutral-500">
+              <p className="text-caption text-text-secondary">
                 {formatPrice(t.price_per_person)}｜{t.min_participants}–{t.max_participants} 人
               </p>
-              <p className="text-xs text-neutral-500">
+              <p className="text-caption text-text-secondary">
                 {slots.length} 堂：{slots.map((sl) => `${sl.start}–${sl.end}`).join("、")}
               </p>
               <div className="mt-auto flex items-center justify-between gap-2 pt-3">
-                <Link
-                  href={`/coach/courses/${t.id}`}
-                  className="rounded-xl border border-neutral-200 px-3.5 py-2 text-sm font-bold text-neutral-700 hover:bg-neutral-50"
-                >
+                <Link href={`/coach/courses/${t.id}`} className={buttonClassName("secondary")}>
                   查看／編輯
                 </Link>
-                <Link
-                  href={`/coach/courses/new?from=${t.id}`}
-                  className="rounded-xl bg-brand px-3.5 py-2 text-sm font-bold text-white hover:opacity-90"
-                >
+                <Link href={`/coach/courses/new?from=${t.id}`} className={buttonClassName("primary")}>
                   套用範本開課
                 </Link>
               </div>
