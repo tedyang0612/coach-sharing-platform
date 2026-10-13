@@ -1,8 +1,9 @@
 import Image from "next/image";
 import footerWave from "@/components/home/footer-wave.svg";
 
-// Figma「Footer」37:1089：深藍波浪底，只有標誌與標語（PRD 14.0 規格 7）。
-// 標誌用設計提供的「深色底」版本（深藍改白）；波浪上緣即與上一個區塊的銜接。
+// Figma「標註｜導覽列與首頁底部」696:4651 C：深藍波浪底（桌機高 230、手機高 198），
+// 內容置中：左吉祥物（白色小狗＋GO）、右 Logo／標語／版權（桌機間距 32、手機 16；三行間距桌機 8、手機 6）。
+// Logo 與吉祥物只用設計提供的 SVG（深色底版），吉祥物與波浪只出現在首頁 Footer。
 export function Footer() {
   return (
     <footer className="relative mt-4 text-text-inverse">
@@ -10,13 +11,17 @@ export function Footer() {
         src={footerWave}
         alt=""
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-[16px] h-[197px] w-full md:top-[39px] md:h-[227px]"
+        className="pointer-events-none absolute inset-x-0 top-[16px] h-[182px] w-full md:top-[39px] md:h-[191px]"
       />
-      <div className="relative flex flex-col gap-2 px-[var(--spacing-screen-padding)] pb-8 pt-[54px] md:pt-[86px]">
+      <div className="relative flex h-[198px] items-center justify-start gap-4 px-[var(--spacing-screen-padding)] pt-8 md:h-[230px] md:gap-8 md:pt-10">
         {/* eslint-disable-next-line @next/next/no-img-element -- 設計提供的 SVG，不需要 next/image 最佳化 */}
-        <img src="/brand/logo-horizontal-on-dark.svg" alt="夠練 GoLand" width={285} height={58} />
-        <p className="text-body-small">讓教練好好教，讓學員好好練。</p>
-        <p className="text-caption opacity-70">© 夠練 GoLand</p>
+        <img src="/brand/logo-full-on-dark.svg" alt="" aria-hidden className="h-[46px] w-[92px] shrink-0 md:h-[90px] md:w-[200px]" />
+        <div className="flex flex-col gap-1.5 md:gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element -- 同上 */}
+          <img src="/brand/logo-horizontal-on-dark.svg" alt="夠練 GoLand" className="h-[25px] w-[177px] md:h-10 md:w-[285px]" />
+          <p className="text-[13px]">來 GoLand 找夠練（教練）</p>
+          <p className="text-[12px] opacity-70">© 夠練 GoLand</p>
+        </div>
       </div>
     </footer>
   );
