@@ -41,6 +41,8 @@ function VerifiedIcon() {
   );
 }
 
+const MAX_VISIBLE_TAGS = 3;
+
 interface Props {
   course: Course;
 }
@@ -49,12 +51,12 @@ export default function CourseCard({ course }: Props) {
   const isConfirmed = course.enrolled >= course.minToOpen;
   const isFull = course.enrolled >= course.capacity;
   const gap = course.minToOpen - course.enrolled;
-  // 狀態小圓點：差 1 人用黃綠提醒「快開課」，其他未達標用藍，已達標用深色
-  const dotClass = isConfirmed
-    ? "bg-(--color-brand-deep)"
+  // 狀態小圓點（設計師 10/13）：差 1 人螢光綠 12px、差 N 人天空藍 8px；已達標與額滿都是深藍 8px
+  const dotClass = isFull || isConfirmed
+    ? "h-2 w-2 bg-(--color-brand-deep)"
     : gap === 1
-      ? "bg-(--color-brand-lime)"
-      : "bg-(--color-brand-blue)";
+      ? "h-3 w-3 bg-(--color-brand-lime)"
+      : "h-2 w-2 bg-(--color-brand-blue)";
 
   return (
     <article
@@ -105,10 +107,8 @@ export default function CourseCard({ course }: Props) {
               {course.city}{course.district} {course.venue}
             </span>
           </p>
-        </div>
-
-        <div className="space-y-3 border-t border-(--color-border-default) pt-3">
-          <div className="flex items-center justify-between gap-2 text-body-small text-(--color-text-secondary)">
+          {/* 設計稿 S04（第六頁）：教練列在地點下面、分隔線上面，名稱與星級靠在一起 */}
+          <div className="mt-1 flex items-center gap-2 text-body-small text-(--color-text-secondary)">
             <div className="flex min-w-0 items-center gap-2">
               {/* 浮在整張卡片的連結上面（relative z-10），點教練名稱去教練頁，不會進課程詳情 */}
               <Link
@@ -136,22 +136,54 @@ export default function CourseCard({ course }: Props) {
               )}
             </span>
           </div>
+          {/* 設計稿 S04（10/13 設計師回覆）：教練列下面一行特色 Tag，如「適合新手」 */}
+          {course.coachTags.length > 0 && (
+            <ul className="mt-2 flex flex-wrap gap-1.5">
+              {course.coachTags.slice(0, MAX_VISIBLE_TAGS).map((tag) => (
+                <li
+                  key={tag}
+                  className="rounded-full border border-(--color-border-default) bg-(--color-surface-default) px-2 py-0.5 text-caption text-(--color-text-secondary)"
+                >
+                  {tag}
+                </li>
+              ))}
+              {course.coachTags.length > MAX_VISIBLE_TAGS && (
+                <li className="rounded-full border border-(--color-border-default) bg-(--color-surface-default) px-2 py-0.5 text-caption text-(--color-text-secondary)">
+                  +{course.coachTags.length - MAX_VISIBLE_TAGS}
+                </li>
+              )}
+            </ul>
+          )}
+        </div>
 
-          <div className="flex items-center justify-between pt-1">
+        <div className="border-t border-(--color-border-default) pt-3">
+          <div className="flex items-center justify-between">
             <span className="text-h3 text-(--color-text-primary)">
               NT${course.price.toLocaleString()}
             </span>
-            {/* 列表卡片不放報名按鈕（QA／UI 決定），報名在課程詳情頁選場次 */}
-            {isFull ? (
-              <span className="text-xs font-bold text-(--color-text-secondary)">已額滿</span>
-            ) : (
-              <span className="flex items-center gap-1.5 text-body-small text-(--color-text-primary)">
-                <span className={`h-2 w-2 rounded-full ${dotClass}`} />
-                {/* 文案：差 1 人開課，3/6人；已達開課人數，4/6人（分母是人數上限） */}
-                {isConfirmed ? "已達開課人數" : `差 ${gap} 人開課`}，{course.enrolled}/{course.capacity}人
+            {/* 文案（設計師 10/13）：差 1 人開課・3/6 人；已達開課人數・4/6 人；已額滿・6/6 人；人數用次要色 */}
+            <span className="flex items-center gap-1.5 text-body-small text-(--color-text-primary)">
+              <span className={`rounded-full ${dotClass}`} />
+              {isFull ? "已額滿" : isConfirmed ? "已達開課人數" : `差 ${gap} 人開課`}
+              <span className="text-(--color-text-secondary)">
+                {course.enrolled}/{course.capacity} 人
               </span>
-            )}
+            </span>
           </div>
+          {/* 「報名」進課程詳情頁（一張卡＝一個場次，健康聲明與立即報名在詳情頁）；
+              浮在整張卡片的連結上面（relative z-10）。額滿是不可點的灰色按鈕 */}
+          {isFull ? (
+            <span className="text-button mt-3 flex items-center justify-center rounded-full bg-(--color-state-disabled-bg) px-5 py-2.5 text-(--color-state-disabled-text)">
+              已額滿
+            </span>
+          ) : (
+            <Link
+              href={`/courses/${course.courseId}?session=${course.id}`}
+              className="text-button relative z-10 mt-3 flex items-center justify-center rounded-full bg-(--color-brand-blue) px-5 py-2.5 text-(--color-text-inverse) hover:bg-(--color-brand-blue-pressed)"
+            >
+              報名
+            </Link>
+          )}
         </div>
       </div>
     </article>
