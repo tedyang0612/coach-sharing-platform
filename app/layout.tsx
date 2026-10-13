@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_TC, Poppins } from "next/font/google";
 import { SiteNav } from "@/components/layout/site-nav";
+import { ToastViewport } from "@/components/ui/toast";
 import "./globals.css";
 
 // 中文 Noto Sans TC；英數字 Poppins（Poppins 沒有中文字，只用在英數字）。
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <SiteNav />
         {children}
+        <ToastViewport />
       </body>
     </html>
   );
