@@ -118,21 +118,22 @@ export default function CancelRegistrationButton({
           </p>
         )}
         <div className="mt-5 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => dialog.current?.close()}
-            disabled={pending}
-            className="text-button rounded-full border border-(--color-brand-blue) bg-(--color-surface-default) px-5 py-2.5 hover:bg-(--color-tint-blue-100) disabled:opacity-40"
-          >
-            保留報名
-          </button>
+          {/* 設計稿 S09：「確認取消」在左（框線）、「保留報名」在右（實心），實心放安全選項，避免誤按取消 */}
           <button
             type="button"
             onClick={confirmCancel}
             disabled={pending || !quote?.ok}
-            className="text-button rounded-full bg-(--color-brand-blue) px-5 py-2.5 text-(--color-text-inverse) hover:bg-(--color-brand-blue-pressed) disabled:opacity-40"
+            className="text-button rounded-full border border-(--color-brand-blue) bg-(--color-surface-default) px-5 py-2.5 hover:bg-(--color-tint-blue-100) disabled:opacity-40"
           >
             {pending ? "取消中…" : "確認取消"}
+          </button>
+          <button
+            type="button"
+            onClick={() => dialog.current?.close()}
+            disabled={pending}
+            className="text-button rounded-full bg-(--color-brand-blue) px-5 py-2.5 text-(--color-text-inverse) hover:bg-(--color-brand-blue-pressed) disabled:opacity-40"
+          >
+            保留報名
           </button>
         </div>
       </dialog>
