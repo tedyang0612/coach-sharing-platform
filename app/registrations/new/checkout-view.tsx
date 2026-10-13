@@ -11,6 +11,7 @@ import { FormError } from "@/components/ui/form-error";
 import { Modal } from "@/components/ui/modal";
 import { RadioField } from "@/components/ui/radio";
 import { createRegistration, type RegistrationActionState } from "../actions";
+import { HEALTH_DECLARATION_LINES } from "@/lib/courses/healthDeclaration";
 import { HEALTH_DECLARATION_LABEL, PAYMENT_METHODS } from "../_lib/registration-rules";
 import { registrationSuccessHref } from "../_lib/routes";
 
@@ -58,9 +59,14 @@ export function CheckoutView({
     <main className="flex-1 px-[var(--spacing-screen-padding)] pb-32 pt-4 md:px-[240px] md:pb-20 md:pt-10">
       {/* S06 健康聲明：確認鈕在勾選前維持停用（Figma Modal 33:682 說明） */}
       <Modal title="健康聲明" open={!declared} onClose={() => router.push(courseHref)}>
-        <p className="text-body text-text-secondary">
-          為了你的安全，請確認自己的身體狀況適合參與運動課程。我們不會蒐集任何病史資料。
-        </p>
+        {/* 完整聲明文字放在彈窗內（與課程詳情頁底部的健康聲明同一份文案）；內容長，手機上在彈窗內捲動 */}
+        <div className="flex max-h-[50vh] flex-col gap-2 overflow-y-auto">
+          {HEALTH_DECLARATION_LINES.map((line) => (
+            <p key={line} className="text-body-small text-text-secondary">
+              {line}
+            </p>
+          ))}
+        </div>
         <CheckboxField
           name="health_declaration_dialog"
           label={HEALTH_DECLARATION_LABEL}
@@ -72,7 +78,7 @@ export function CheckoutView({
             取消
           </Button>
           <Button type="button" className="flex-1" disabled={!agreed} onClick={() => setDeclared(true)}>
-            確認並繼續
+            確認
           </Button>
         </div>
       </Modal>
