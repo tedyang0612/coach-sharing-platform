@@ -85,7 +85,8 @@ export async function createRegistration(
   revalidatePath("/my-courses");
   // 在伺服器端直接導到報名成功頁。不能只回傳 { ok } 讓畫面自己跳轉：報名完成後目前這頁（/registrations/new）會被重新讀取，
   // 這時學員已經報名了，頁面會換成「已報名」的簡單提示、結帳畫面被卸載，跳轉的程式就沒機會執行（停在 /registrations/new）。
-  redirect(registrationSuccessHref(data.id));
+  // 報名成功頁會顯示「報名成功！確定開課後才會扣款」Toast（見 components/ui/toast.tsx 的 TOAST_FROM_URL）
+  redirect(`${registrationSuccessHref(data.id)}?toast=registered`);
 }
 
 export type CancelActionState = {

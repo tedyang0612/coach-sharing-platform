@@ -28,13 +28,15 @@ type NavActive = "explore" | "my-courses" | "coach-courses";
 
 type GlobalNavProps = {
   auth: NavAuth;
+  /** 未讀通知數（由 SiteNav 在伺服器端查好傳進來），鈴鐺右上角顯示 */
+  unreadCount?: number;
   /** 不傳就依目前網址判斷 */
   active?: NavActive;
 };
 
 // Figma「Global Navigation」Desktop 23:719／Mobile 24:1046／Drawer 24:1099／Account Menu 24:871。
 // 全站同一個結構（教練工作台也一樣）；「成為教練」只給非教練，教練的「教練工作台」收在帳戶選單裡。
-export function GlobalNav({ auth, active }: GlobalNavProps) {
+export function GlobalNav({ auth, unreadCount = 0, active }: GlobalNavProps) {
   const pathname = usePathname();
   const current: NavActive | undefined =
     active ??
@@ -98,7 +100,7 @@ export function GlobalNav({ auth, active }: GlobalNavProps) {
         )}
         {loggedIn && (
           <>
-            <NotificationLink />
+            <NotificationLink unreadCount={unreadCount} />
             <div className="relative">
               <button
                 type="button"
@@ -132,7 +134,7 @@ export function GlobalNav({ auth, active }: GlobalNavProps) {
         </Link>
         <div className="flex-1" />
         {loggedIn ? (
-          <NotificationLink />
+          <NotificationLink unreadCount={unreadCount} />
         ) : (
           <Link href={ROUTES.login} className={`${buttonClassName("primary")} w-[120px]`}>
             登入
@@ -175,14 +177,20 @@ function DesktopNavItem({
   );
 }
 
-function NotificationLink() {
+// 未讀數大於 0 時在鈴鐺右上角顯示數字，超過 99 顯示 99+（7.0 通知中心）
+function NotificationLink({ unreadCount }: { unreadCount: number }) {
   return (
     <Link
       href={ROUTES.notifications}
-      aria-label="通知"
-      className="flex size-10 shrink-0 items-center justify-center text-text-primary"
+      aria-label={unreadCount > 0 ? `通知，${unreadCount} 則未讀` : "通知"}
+      className="relative flex size-10 shrink-0 items-center justify-center text-text-primary"
     >
       <Icon name="bell" />
+      {unreadCount > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-pill bg-state-error px-1 text-[11px] font-bold leading-none text-text-inverse">
+          {unreadCount > 99 ? "99+" : unreadCount}
+        </span>
+      )}
     </Link>
   );
 }

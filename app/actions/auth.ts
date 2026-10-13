@@ -122,5 +122,6 @@ export async function signup(
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/");
+  // 首頁會顯示「你已登出」Toast（見 components/ui/toast.tsx 的 TOAST_FROM_URL）
+  redirect("/?toast=logout");
 }
