@@ -93,11 +93,6 @@ export function GlobalNav({ auth, unreadCount = 0, active }: GlobalNavProps) {
             成為教練
           </Link>
         )}
-        {auth === "coach" && (
-          <Link href={ROUTES.coachWorkspace} className={`${buttonClassName("secondary")} w-[120px]`}>
-            教練工作台
-          </Link>
-        )}
         {loggedIn && (
           <>
             <NotificationLink unreadCount={unreadCount} />
