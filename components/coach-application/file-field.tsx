@@ -22,11 +22,12 @@ type FileFieldProps = {
   existing?: { label: string; imageUrl?: string };
   /**
    * 版面（設計稿 C01）：
-   * - photo：左邊照片預覽、右邊「更換照片」按鈕與說明（大頭貼、生活／運動照片）
+   * - photo：左邊照片預覽、右邊「更換照片」按鈕與說明（教練資料管理 C08 用）
+   * - photo-box：1013 版申請表單 C01：標籤在上、框內左預覽右按鈕、尺寸說明在框外下方
    * - dropzone：整塊的上傳框（良民證）
    * - inline：和文字欄位同高的一列（證照檔案）
    */
-  layout?: "photo" | "dropzone" | "inline";
+  layout?: "photo" | "photo-box" | "dropzone" | "inline";
   // photo 版面的預覽形狀：大頭貼圓形，生活／運動照片直式
   previewShape?: "circle" | "portrait";
   // 必填時在標籤後面加紅色 *
@@ -105,6 +106,79 @@ export function FileField({
       className="sr-only"
     />
   );
+
+  if (layout === "photo-box") {
+    const imageUrl = previewUrl ?? (file ? undefined : existing?.imageUrl);
+    const frame =
+      previewShape === "circle" ? "size-[120px] rounded-pill" : "h-[160px] w-[120px] rounded-md";
+    return (
+      <div className="flex flex-col gap-2">
+        <span className="text-label text-text-primary">
+          {label}
+          {requiredMark}
+        </span>
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-border-default bg-brand-white p-4">
+          {imageUrl ? (
+            // 有照片時縮圖可以點開放大看（本機預覽的 data URL 或已上傳的公開照片，不經過 next/image 的最佳化）
+            <button
+              type="button"
+              aria-label={`放大預覽${label}`}
+              title="點擊放大預覽"
+              onClick={() => previewDialogRef.current?.showModal()}
+              className={`${frame} shrink-0 cursor-zoom-in overflow-hidden bg-tint-blue-200 transition hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-blue`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imageUrl} alt="" className="size-full object-cover" />
+            </button>
+          ) : (
+            <div className={`${frame} shrink-0 overflow-hidden bg-tint-blue-200`} />
+          )}
+          <label
+            htmlFor={name}
+            className={`${buttonClassName("secondary")} cursor-pointer focus-within:ring-2 focus-within:ring-brand-blue focus-within:ring-offset-2`}
+          >
+            {input}
+            {hasFile ? "更換照片" : "選擇照片"}
+          </label>
+        </div>
+        {shownError ? (
+          <p data-field-error className="text-caption text-state-error-text">
+            {shownError}
+          </p>
+        ) : (
+          <p className="text-caption whitespace-pre-line text-text-secondary">{hint ?? formatHint}</p>
+        )}
+
+        {imageUrl && (
+          <dialog
+            ref={previewDialogRef}
+            aria-label={`${label}預覽`}
+            // 點到照片以外的暗色區域就關閉
+            onClick={(event) => {
+              if (event.target === event.currentTarget) event.currentTarget.close();
+            }}
+            className="m-auto max-h-[90vh] max-w-[min(90vw,560px)] rounded-lg bg-brand-white p-4 backdrop:bg-black/60"
+          >
+            <div className="flex flex-col items-center gap-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageUrl}
+                alt={`${label}預覽`}
+                className="max-h-[70vh] w-auto max-w-full rounded-md object-contain"
+              />
+              <button
+                type="button"
+                onClick={() => previewDialogRef.current?.close()}
+                className={buttonClassName("secondary")}
+              >
+                關閉
+              </button>
+            </div>
+          </dialog>
+        )}
+      </div>
+    );
+  }
 
   if (layout === "photo") {
     const imageUrl = previewUrl ?? (file ? undefined : existing?.imageUrl);

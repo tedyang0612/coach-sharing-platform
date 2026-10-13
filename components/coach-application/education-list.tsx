@@ -23,12 +23,15 @@ export type EducationDraft = {
 type EducationListProps = {
   value: EducationDraft[];
   onChange: (next: EducationDraft[]) => void;
+  // 新增一筆（useEducationAdder 回傳的函式）：桌機放在第一列尾端，手機放在清單下方
+  // 沒傳（教練資料管理頁）就維持舊樣式：新增鈕在卡片標題列，每列尾端只有「移除」
+  onAdd?: () => void;
   // 送出檢查後的錯誤：error 是整體（例如一筆都沒填），itemErrors 的 key 是清單位置
   error?: string;
   itemErrors?: Record<number, string>;
 };
 
-// 「＋ 新增學歷」放在卡片標題列右邊（設計稿 C01），所以新增的動作由外層呼叫
+// 新增的動作由外層建立（key 要跨元件記住），再用 onAdd 傳進來
 export function useEducationAdder(
   value: EducationDraft[],
   onChange: (next: EducationDraft[]) => void
@@ -42,7 +45,7 @@ export function useEducationAdder(
 }
 
 /** 個人學歷：必填、可新增多筆，每筆是「學位」下拉選單＋「學校科系」。 */
-export function EducationList({ value, onChange, error, itemErrors }: EducationListProps) {
+export function EducationList({ value, onChange, onAdd, error, itemErrors }: EducationListProps) {
   function update(key: number, patch: Partial<EducationDraft>) {
     onChange(value.map((item) => (item.key === key ? { ...item, ...patch } : item)));
   }
@@ -84,19 +87,41 @@ export function EducationList({ value, onChange, error, itemErrors }: EducationL
                 error={message}
               />
             </div>
-            {value.length > 1 && (
+            {/* 1013 設計稿：第一列尾端「＋ 新增」，之後各列尾端「－ 移除」（手機版新增改放清單下方） */}
+            {onAdd && index === 0 ? (
+              <button
+                type="button"
+                onClick={onAdd}
+                className="text-label hidden shrink-0 items-center py-3 text-brand-deep sm:flex sm:pt-10"
+              >
+                ＋ 新增
+              </button>
+            ) : (onAdd || value.length > 1) && (
               <button
                 type="button"
                 aria-label={`移除學歷 ${index + 1}`}
                 onClick={() => onChange(value.filter((other) => other.key !== item.key))}
-                className="text-label shrink-0 self-end py-3 text-brand-deep underline underline-offset-4 sm:self-start sm:pt-10"
+                className={
+                  onAdd
+                    ? "text-label shrink-0 self-start py-3 text-brand-deep sm:pt-10"
+                    : "text-label shrink-0 self-end py-3 text-brand-deep underline underline-offset-4 sm:self-start sm:pt-10"
+                }
               >
-                移除
+                {onAdd ? "－ 移除" : "移除"}
               </button>
             )}
           </div>
         );
       })}
+      {onAdd && (
+        <button
+          type="button"
+          onClick={onAdd}
+          className="text-label flex w-fit items-center py-2 text-brand-deep sm:hidden"
+        >
+          ＋ 新增學歷
+        </button>
+      )}
       {error && <p data-field-error className="text-caption text-state-error-text">{error}</p>}
     </div>
   );
