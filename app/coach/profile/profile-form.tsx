@@ -17,6 +17,7 @@ import {
   LicenseList,
   type LicenseDraft,
 } from "@/components/coach-application/license-list";
+import { SocialAccountField } from "@/components/coach-application/social-account-field";
 import { SportPicker } from "@/components/coach-application/sport-picker";
 import { TagInput } from "@/components/coach-application/tag-input";
 import { TextAreaField } from "@/components/coach-application/text-area-field";
@@ -28,6 +29,7 @@ import {
   COACH_PHOTO_BUCKET,
 } from "@/lib/coach-application/constants";
 import { DEFAULT_EDUCATION_DEGREE, parseEducation } from "@/lib/coach-application/education";
+import { parseSocialAccount, serializeSocialAccount } from "@/lib/coach-application/social";
 import { uploadCoachFile } from "@/lib/coach-application/upload";
 import {
   contactInfoWarning,
@@ -113,7 +115,9 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
 
   const [contactPhone, setContactPhone] = useState(initial.contactPhone);
   const [contactLine, setContactLine] = useState(initial.contactLine);
-  const [contactSocial, setContactSocial] = useState(initial.contactSocial);
+  // 社群帳號分成平台＋帳號兩格，儲存與檢查時再組回資料庫用的單一字串
+  const [social, setSocial] = useState(() => parseSocialAccount(initial.contactSocial));
+  const contactSocial = serializeSocialAccount(social);
 
   const [newLicenses, setNewLicenses] = useState<LicenseDraft[]>([]);
   const [removedLicenseIds, setRemovedLicenseIds] = useState<string[]>([]);
@@ -381,13 +385,7 @@ export function ProfileForm({ userId, initial, licenses }: ProfileFormProps) {
             onChange={(event) => setContactLine(event.target.value)}
           />
         </div>
-        <TextField
-          label="社群帳號"
-          name="contactSocial"
-          placeholder="請輸入社群帳號"
-          value={contactSocial}
-          onChange={(event) => setContactSocial(event.target.value)}
-        />
+        <SocialAccountField value={social} onChange={setSocial} />
         {errors.contact && (
           <p data-field-error className="text-caption text-state-error-text">
             {errors.contact}
