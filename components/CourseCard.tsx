@@ -51,12 +51,12 @@ export default function CourseCard({ course }: Props) {
   const isConfirmed = course.enrolled >= course.minToOpen;
   const isFull = course.enrolled >= course.capacity;
   const gap = course.minToOpen - course.enrolled;
-  // 狀態小圓點：差 1 人用黃綠提醒「快開課」，其他未達標用藍，已達標用深色
-  const dotClass = isConfirmed
-    ? "bg-(--color-brand-deep)"
+  // 狀態小圓點（設計師 10/13）：差 1 人螢光綠 12px、差 N 人天空藍 8px；已達標與額滿都是深藍 8px
+  const dotClass = isFull || isConfirmed
+    ? "h-2 w-2 bg-(--color-brand-deep)"
     : gap === 1
-      ? "bg-(--color-brand-lime)"
-      : "bg-(--color-brand-blue)";
+      ? "h-3 w-3 bg-(--color-brand-lime)"
+      : "h-2 w-2 bg-(--color-brand-blue)";
 
   return (
     <article
@@ -163,7 +163,7 @@ export default function CourseCard({ course }: Props) {
             </span>
             {/* 文案（設計師 10/13）：差 1 人開課・3/6 人；已達開課人數・4/6 人；已額滿・6/6 人 */}
             <span className="flex items-center gap-1.5 text-body-small text-(--color-text-primary)">
-              {!isFull && <span className={`h-2 w-2 rounded-full ${dotClass}`} />}
+              <span className={`rounded-full ${dotClass}`} />
               {isFull ? "已額滿" : isConfirmed ? "已達開課人數" : `差 ${gap} 人開課`}・{course.enrolled}/{course.capacity} 人
             </span>
           </div>
