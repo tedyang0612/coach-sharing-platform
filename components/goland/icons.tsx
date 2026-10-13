@@ -56,6 +56,15 @@ export function TagIcon({ size }: Props) {
   );
 }
 
+export function UserIcon({ size }: Props) {
+  return (
+    <Icon size={size}>
+      <path d="M12 12C14.2091 12 16 10.2091 16 8C16 5.79086 14.2091 4 12 4C9.79086 4 8 5.79086 8 8C8 10.2091 9.79086 12 12 12Z" />
+      <path d="M4 21V20C4 18.4087 4.63214 16.8826 5.75736 15.7574C6.88258 14.6321 8.4087 14 10 14H14C15.5913 14 17.1174 14.6321 18.2426 15.7574C19.3679 16.8826 20 18.4087 20 20V21" />
+    </Icon>
+  );
+}
+
 export function UsersIcon({ size }: Props) {
   return (
     <Icon size={size}>

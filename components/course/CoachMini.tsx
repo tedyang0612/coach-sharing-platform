@@ -42,8 +42,19 @@ export default function CoachMini({
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-h3 truncate">{name}</span>
           {verified && (
-            <span className="text-caption rounded-full bg-(--color-tint-blue-100) px-3 py-0.5">
-              已認證
+            <span title="認證教練" className="inline-flex shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="11" className="fill-(--color-brand-blue)" />
+                <path
+                  d="m7.5 12.3 3 3 6-6.6"
+                  fill="none"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="stroke-white"
+                />
+              </svg>
+              <span className="sr-only">已認證教練</span>
             </span>
           )}
         </div>

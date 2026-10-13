@@ -26,6 +26,8 @@ export default function GroupProgress({
           人
         </span>
       </div>
+      {/* 設計稿 S05（10/13）：進度條帶圓形旋鈕 */}
+      <div className="relative">
       <div
         role="progressbar"
         aria-valuemin={0}
@@ -37,6 +39,12 @@ export default function GroupProgress({
         <div
           className="h-full rounded-full bg-(--color-brand-blue)"
           style={{ width: `${percent}%` }}
+        />
+      </div>
+        <span
+          aria-hidden="true"
+          className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-(--color-brand-blue) bg-(--color-surface-default)"
+          style={{ left: `${Math.min(Math.max(percent, 2), 98)}%` }}
         />
       </div>
     </div>
