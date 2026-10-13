@@ -105,10 +105,8 @@ export default function CourseCard({ course }: Props) {
               {course.city}{course.district} {course.venue}
             </span>
           </p>
-        </div>
-
-        <div className="space-y-3 border-t border-(--color-border-default) pt-3">
-          <div className="flex items-center justify-between gap-2 text-body-small text-(--color-text-secondary)">
+          {/* 設計稿 S04（第六頁）：教練列在地點下面、分隔線上面，名稱與星級靠在一起 */}
+          <div className="mt-1 flex items-center gap-2 text-body-small text-(--color-text-secondary)">
             <div className="flex min-w-0 items-center gap-2">
               {/* 浮在整張卡片的連結上面（relative z-10），點教練名稱去教練頁，不會進課程詳情 */}
               <Link
@@ -136,8 +134,10 @@ export default function CourseCard({ course }: Props) {
               )}
             </span>
           </div>
+        </div>
 
-          <div className="flex items-center justify-between pt-1">
+        <div className="border-t border-(--color-border-default) pt-3">
+          <div className="flex items-center justify-between">
             <span className="text-h3 text-(--color-text-primary)">
               NT${course.price.toLocaleString()}
             </span>

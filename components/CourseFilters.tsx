@@ -201,14 +201,14 @@ export default function CourseFilters({
   }
 
   return (
-    <div className="space-y-3 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-4">
+    <div className="space-y-3 sm:rounded-(--radius-lg) sm:border sm:border-(--color-border-default) sm:bg-(--color-surface-default) sm:p-4">
       {/* 運動種類是最高層級的搜尋條件：單選 Chips 放在其他篩選上面。
           桌面直接展開；手機單列橫向捲動，不縮小字級。用原生 radio，單選與方向鍵切換都不用自己寫 */}
       {/* fieldset 預設的最小寬度是內容寬度，不加 min-w-0 的話手機上整頁會被晶片列撐寬 */}
       <fieldset className="min-w-0">
         {/* 畫面上不顯示標題（QA），保留給螢幕報讀器 */}
         <legend className="sr-only">運動種類</legend>
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0">
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0">
           {[
             { value: "", label: "全部" },
             ...SPORT_CHIP_ORDER.map((sport) => ({ value: sport, label: sport })),
@@ -233,8 +233,9 @@ export default function CourseFilters({
       {/* 第二排：膠囊下拉（地區、日期、星期、時段、程度、價格），點開是面板 */}
       {/* 手機單列橫向捲動（和運動晶片一致）。面板在手機是 fixed 定位，不會被捲動容器裁掉；
           sm 以上面板是 absolute，所以桌面維持換行 */}
+      <div className="sm:flex sm:items-start sm:justify-between sm:gap-3">
       <div
-        className="flex gap-2 max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4 max-sm:pb-1 sm:flex-wrap"
+        className="flex gap-2 max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4 max-sm:pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap"
         role="group"
         aria-label="篩選條件"
       >
@@ -431,18 +432,18 @@ export default function CourseFilters({
         </FilterPill>
       </div>
 
-      {/* 程度的面板裡沒有一次清掉全部的按鈕，所以有任何條件時都要能一次清掉 */}
+      {/* 設計稿 S04（第六頁）：「清除所有篩選」在第二排最右邊，手機在晶片下面靠左。
+          程度的面板裡沒有一次清掉全部的按鈕，所以有任何條件時都要能一次清掉 */}
       {hasActiveFilters(value) && (
-        <div className="flex border-t border-(--color-border-default) pt-3 text-sm">
-          <button
-            type="button"
-            onClick={() => router.replace(pathname, { scroll: false })}
-            className="ml-auto text-(--color-text-secondary) underline hover:text-(--color-text-primary)"
-          >
-            清除所有篩選
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => router.replace(pathname, { scroll: false })}
+          className="text-button whitespace-nowrap py-2 text-(--color-text-primary) hover:underline max-sm:mt-1 sm:shrink-0"
+        >
+          清除所有篩選
+        </button>
       )}
+      </div>
     </div>
   );
 }
