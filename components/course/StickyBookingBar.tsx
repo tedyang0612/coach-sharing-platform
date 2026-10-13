@@ -12,6 +12,8 @@ export default function StickyBookingBar({
   return (
     <div className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-3 border-t border-(--color-border-default) bg-(--color-surface-default) px-4 pb-6 pt-3 lg:hidden">
       <div className="shrink-0">
+        {/* 設計稿 S05 手機：「每人」12px、價格 22px Medium（Poppins） */}
+        <p className="text-caption text-(--color-text-secondary)">每人</p>
         <p className="font-(family-name:--font-latin) text-[22px] font-medium leading-7">
           NT${price.toLocaleString()}
         </p>

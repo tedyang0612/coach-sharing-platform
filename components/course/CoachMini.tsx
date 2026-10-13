@@ -25,7 +25,7 @@ export default function CoachMini({
   return (
     <Link
       href={href}
-      className="flex items-center gap-4 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-4 transition-shadow hover:shadow-(--shadow-md)"
+      className="flex items-center gap-4 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-6 transition-shadow hover:shadow-(--shadow-md)"
     >
       {photoUrl ? (
         // 大頭貼來自 Supabase Storage，用一般 img，不需要設定 next/image 的來源網域
@@ -42,8 +42,19 @@ export default function CoachMini({
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-h3 truncate">{name}</span>
           {verified && (
-            <span className="text-caption rounded-full bg-(--color-tint-blue-100) px-3 py-0.5">
-              已認證
+            <span title="認證教練" className="inline-flex shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="11" className="fill-(--color-brand-blue)" />
+                <path
+                  d="m7.5 12.3 3 3 6-6.6"
+                  fill="none"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="stroke-white"
+                />
+              </svg>
+              <span className="sr-only">已認證教練</span>
             </span>
           )}
         </div>
@@ -52,7 +63,7 @@ export default function CoachMini({
             <>
               <StarIcon size={14} />
               <span>
-                <span className="font-(family-name:--font-latin)">{rating.toFixed(1)}</span>
+                <span className="font-medium font-(family-name:--font-latin)">{rating.toFixed(1)}</span>
                 （{reviewCount} 則評價）
               </span>
             </>

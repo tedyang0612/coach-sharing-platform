@@ -15,6 +15,7 @@ import StickyBookingBar from "@/components/course/StickyBookingBar";
 import { getCourseAvailability } from "@/lib/course-status/getCourseAvailability";
 import { getCourseDetail } from "@/lib/courses/getCourseDetail";
 import { getCourseViewer, getSessionAnnouncements } from "@/lib/courses/queries";
+import { CalendarIcon, MapPinIcon, UserIcon } from "@/components/goland/icons";
 import { LEVEL_LABELS } from "@/lib/courses/types";
 
 // 台灣時區；日期與時間分開組字串，避免 Node 與瀏覽器的 Intl 空白不同
@@ -33,6 +34,23 @@ function formatSession(startIso: string, endIso: string) {
       timeZone: "Asia/Taipei",
     }).format(new Date(iso));
   return `${date} ${time(startIso)}–${time(endIso)}`;
+}
+
+// 報名截止時間，例如「10/16（四） 19:00」
+function formatDeadline(iso: string) {
+  const date = new Intl.DateTimeFormat("zh-TW", {
+    month: "numeric",
+    day: "numeric",
+    weekday: "short",
+    timeZone: "Asia/Taipei",
+  }).format(new Date(iso));
+  const time = new Intl.DateTimeFormat("zh-TW", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Taipei",
+  }).format(new Date(iso));
+  return `${date} ${time}`;
 }
 
 export default async function CourseDetailPage({
@@ -110,7 +128,7 @@ export default async function CourseDetailPage({
           : undefined;
 
   return (
-    <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-6 px-(--spacing-screen-padding) pb-32 pt-4 lg:pb-12 lg:pt-8">
+    <main className="mx-auto w-full max-w-[1440px] flex-1 space-y-7 px-(--spacing-screen-padding) pb-32 pt-4 lg:pb-12 lg:pt-8">
       <BackToResults />
 
       <CourseStatusNotice
@@ -119,16 +137,16 @@ export default async function CourseDetailPage({
         cancelReason={cancelReason}
       />
 
-      {/* 英雄區：桌機左邊封面（約 63%）右邊資訊卡；手機封面滿版、資訊在下面 */}
+      {/* 英雄區（設計稿 S05，10/13）：桌機左邊 16:9 封面、右邊資訊卡；手機封面滿版、下面一張資訊卡 */}
       <section className="lg:flex lg:overflow-hidden lg:rounded-(--radius-lg) lg:border lg:border-(--color-border-default) lg:bg-(--color-surface-default)">
         {/* 封面可能是站內圖庫（svg）或 Supabase bucket 的網址，用一般 img，不需要設定 next/image 的來源網域 */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={course.coverUrl}
           alt=""
-          className="-mx-(--spacing-screen-padding) h-[220px] w-[calc(100%+2*var(--spacing-screen-padding))] max-w-none bg-(--color-tint-blue-100) object-cover lg:mx-0 lg:h-[420px] lg:w-[63%] lg:max-w-full"
+          className="-mx-(--spacing-screen-padding) aspect-video w-[calc(100%+2*var(--spacing-screen-padding))] max-w-none bg-(--color-tint-blue-100) object-cover lg:mx-0 lg:w-[69.5%] lg:max-w-full"
         />
-        <div className="space-y-4 pt-4 lg:flex-1 lg:p-6">
+        <div className="mt-4 space-y-5 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-4 lg:mt-0 lg:flex-1 lg:rounded-none lg:border-0 lg:px-8 lg:py-9">
           <div className="text-caption flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-(--color-border-default) bg-(--color-surface-default) px-3 py-1">
               {course.sport}
@@ -136,49 +154,75 @@ export default async function CourseDetailPage({
             <span className="rounded-full bg-(--color-tint-blue-100) px-3 py-1">
               {LEVEL_LABELS[course.level]}
             </span>
-            {course.coachVerified && (
-              <span className="rounded-full bg-(--color-tint-blue-100) px-3 py-1">
-                已認證
-              </span>
-            )}
           </div>
-          <div className="flex items-start justify-between gap-3">
-            <h1 className="text-h1">{course.title}</h1>
-            <ShareButton
-              iconOnly
-              path={`/courses/${course.courseId}?session=${chosen.id}`}
-              title={course.title}
-            />
-          </div>
-          {/* 桌機資訊卡才顯示日期、地點、價格與主按鈕；手機這些在下方資訊卡與固定底欄 */}
-          <div className="space-y-4 max-lg:hidden">
-            <p className="text-body-large">{dateText}</p>
-            <p className="text-body-large">
-              {course.city}
-              {course.district} {course.venue}
-            </p>
-            <p className="flex items-baseline gap-1.5">
-              <span className="text-display font-(family-name:--font-latin)! font-medium!">
-                NT${course.price.toLocaleString()}
+          <h1 className="text-h1">{course.title}</h1>
+          <div className="space-y-2 text-[16px] leading-6 text-(--color-text-primary)">
+            <p className="flex items-center gap-2">
+              <CalendarIcon size={18} />
+              <span>
+                <span className="font-medium">{dateText.split(" ")[0]}</span> {dateText.split(" ").slice(1).join(" ")}
               </span>
             </p>
-            <SessionRegisterButton
-              fullWidth
-              state={state}
-              courseId={course.courseId}
-              sessionId={chosen.id}
-            />
+            <p className="flex items-center gap-2">
+              <MapPinIcon size={18} />
+              <span>
+                {course.city}
+                {course.district} {course.venue}
+              </span>
+            </p>
+            <p className="flex items-center gap-2">
+              <UserIcon size={18} />
+              <span>{course.coachName}</span>
+              {course.coachVerified && (
+                <span title="認證教練" className="inline-flex shrink-0">
+                  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="11" className="fill-(--color-brand-blue)" />
+                    <path
+                      d="m7.5 12.3 3 3 6-6.6"
+                      fill="none"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="stroke-white"
+                    />
+                  </svg>
+                  <span className="sr-only">已認證教練</span>
+                </span>
+              )}
+            </p>
           </div>
           <GroupProgress
             enrolled={chosen.enrolled}
             minToOpen={course.minToOpen}
             capacity={course.capacity}
           />
+          <p className="flex items-baseline gap-1.5">
+            <span className="text-display font-(family-name:--font-latin)! font-medium!">
+              NT${course.price.toLocaleString()}
+            </span>
+          </p>
+          {/* 分享圖示＋立即報名並排；手機底部固定列另有一顆報名鈕 */}
+          <div className="flex items-center gap-3">
+            <ShareButton
+              iconOnly
+              path={`/courses/${course.courseId}?session=${chosen.id}`}
+              title={course.title}
+            />
+            <div className="min-w-0 flex-1">
+              <SessionRegisterButton
+                fullWidth
+                state={state}
+                courseId={course.courseId}
+                sessionId={chosen.id}
+              />
+            </div>
+          </div>
         </div>
       </section>
 
       <KeyInfoStrip
         dateText={dateText}
+        deadlineText={formatDeadline(chosen.registrationDeadlineAt)}
         venue={course.venue}
         address={course.address}
         price={course.price}
@@ -188,15 +232,16 @@ export default async function CourseDetailPage({
 
       {announcements.length > 0 && <AnnouncementHistory announcements={announcements} title="教練公告" />}
 
-      <section className="space-y-6">
-        <div className="space-y-2">
+      {/* 介紹與須知各一張白底卡片（設計稿 S05，10/13） */}
+      <section className="space-y-3">
+        <div className="space-y-2 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-6">
           <h2 className="text-h3">課程介紹</h2>
           <p className="text-body whitespace-pre-line text-(--color-text-secondary)">
             {course.description}
           </p>
         </div>
         {course.notes && (
-          <div className="space-y-2">
+          <div className="space-y-2 rounded-(--radius-lg) border border-(--color-border-default) bg-(--color-surface-default) p-6">
             <h2 className="text-h3">課程須知</h2>
             <p className="text-body whitespace-pre-line text-(--color-text-secondary)">
               {course.notes}
@@ -207,8 +252,7 @@ export default async function CourseDetailPage({
 
       <CourseQa items={course.qa} />
 
-      <section className="space-y-3">
-        <h2 className="text-h3">授課教練</h2>
+      <section>
         <CoachMini
           href={`/coaches/${course.coachId}`}
           name={course.coachName}
