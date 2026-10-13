@@ -57,9 +57,9 @@ export function GlobalNav({ auth, active }: GlobalNavProps) {
   return (
     <header className="relative border-b border-border-default bg-brand-white">
       {/* 桌機 */}
-      <div className="hidden h-[72px] items-center gap-8 pr-[var(--spacing-screen-padding)] pl-[calc(var(--spacing-screen-padding)-25px)] md:flex">
+      <div className="hidden h-[72px] items-center gap-8 px-[var(--spacing-screen-padding)] md:flex">
         <Link href="/" aria-label="夠練 GoLand 首頁" className="shrink-0">
-          <LogoHorizontal className="h-auto w-[288px]" />
+          <LogoHorizontal className="h-10 w-[285px]" />
         </Link>
         <DesktopNavItem href={ROUTES.explore} active={current === "explore"}>
           探索課程
@@ -89,6 +89,11 @@ export function GlobalNav({ auth, active }: GlobalNavProps) {
         {auth === "user" && (
           <Link href={ROUTES.becomeCoach} className={`${buttonClassName("secondary")} w-[120px]`}>
             成為教練
+          </Link>
+        )}
+        {auth === "coach" && (
+          <Link href={ROUTES.coachWorkspace} className={`${buttonClassName("secondary")} w-[120px]`}>
+            教練工作台
           </Link>
         )}
         {loggedIn && (
@@ -123,7 +128,7 @@ export function GlobalNav({ auth, active }: GlobalNavProps) {
       {/* 手機 */}
       <div className="flex h-16 items-center gap-3 px-[var(--spacing-screen-padding)] md:hidden">
         <Link href="/" aria-label="夠練 GoLand 首頁" className="shrink-0" onClick={closeAll}>
-          <LogoFull className="h-11 w-auto" />
+          <LogoFull className="h-11 w-[97px]" />
         </Link>
         <div className="flex-1" />
         {loggedIn ? (
@@ -164,7 +169,7 @@ function DesktopNavItem({
       aria-current={active ? "page" : undefined}
       className="flex flex-col items-center gap-1.5 text-text-primary"
     >
-      <span className={active ? "text-button" : "text-body"}>{children}</span>
+      <span className="text-[15px] leading-6">{children}</span>
       <span className={`h-[3px] w-6 rounded-pill ${active ? "bg-brand-blue" : ""}`} />
     </Link>
   );
