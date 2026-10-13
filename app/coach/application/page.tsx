@@ -43,8 +43,9 @@ export default async function CoachApplicationStatusPage() {
   ];
 
   return (
-    <main className="flex-1 px-4 pb-8 pt-5 sm:px-6 sm:pb-20 sm:pt-10">
-      <div className="mx-auto flex w-full max-w-[800px] flex-col gap-4">
+    // 1013 設計稿：結果頁底色是由上到下的淺藍漸層（brand-light → tint-blue-200），內容直接置中、不放白卡片
+    <main className="flex-1 bg-linear-to-b from-brand-light to-tint-blue-200 px-4 pb-16 pt-8 sm:px-6 sm:pb-24 sm:pt-16">
+      <div className="mx-auto flex w-full max-w-[800px] flex-col gap-10">
         <StatusCard
           status={application.application_status as CoachApplicationStatus}
           rejectionReason={application.rejection_reason}

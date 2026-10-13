@@ -9,9 +9,10 @@ export const metadata: Metadata = {
   description: "申請成為夠練 GoLand 教練，上架小班課、由平台處理報名與收款。",
 };
 
-// 設計稿沒有這一頁（設計上直接進表單）；PM 決定保留，給還沒登入的人看好處與準備清單。
-// 「為什麼需要良民證」的說明在申請表單的「身分文件」卡片（設計稿 C01），這裡不重複。
-// 文案以 PRD v4.6 為準（確定開課才扣款、媒合費 5%、每週三撥款）。
+// 1013 設計稿 C01 說明頁（桌機 565:1087／手機 566:9257）。文案以 PRD 為準（確定開課才扣款、媒合費 5%、每週三撥款）。
+// 「為什麼需要良民證」的說明在申請表單的「身分文件」卡片，這裡不重複。
+// 說明頁主視覺（吉祥物）與三個亮點圖示設計師尚未匯出 SVG（交接包 00_先讀我 第六節「還沒完成」），
+// 檔案到位前先用圓圈佔位，到位後把 HeroIllustration／BenefitIcon 換成 <Image> 即可。
 const BENEFITS = [
   {
     title: "自主彈性排課",
@@ -58,59 +59,72 @@ export default async function BecomeCoachPage() {
   }
 
   return (
-    <main className="flex-1 px-4 pb-8 pt-5 sm:px-6 sm:pb-20 sm:pt-10">
-      <div className="mx-auto flex w-full max-w-[800px] flex-col gap-4">
-        <header className="flex flex-col items-center gap-4 rounded-lg bg-tint-blue-100 px-6 py-10 text-center sm:py-12">
-          <h1 className="text-h1 text-text-primary">成為教練</h1>
-          <p className="text-body text-text-secondary">把時間留給教學，剩下的交給夠練。</p>
-          <ApplyLink />
+    // 底色：由上到下的淺藍漸層（brand-light → tint-blue-200），與結果頁一致
+    <main className="flex-1 bg-linear-to-b from-brand-light to-tint-blue-200 px-4 pb-10 pt-8 sm:px-6 md:px-20 md:pb-20 md:pt-16">
+      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 md:gap-10">
+        <header className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between md:gap-10">
+          <div className="order-2 flex flex-col gap-4 md:order-1 md:max-w-[560px]">
+            <h1 className="text-display text-text-primary md:text-[48px]! md:leading-[60px]!">成為教練</h1>
+            <p className="text-hero-lead text-text-primary">把時間留給教學，剩下的交給夠練。</p>
+            <p className="text-body-large text-text-secondary">
+              完成一次身分審核就能開課。審核通過後，你的帳號會多一個教練身分，原本的學員功能一樣可以用。
+            </p>
+            <ApplyLink className="mt-2 w-full md:w-[288px]" />
+          </div>
+          <HeroIllustration />
         </header>
 
         <section aria-label="成為教練的好處" className="grid gap-4 md:grid-cols-3">
           {BENEFITS.map((benefit) => (
             <div
               key={benefit.title}
-              className="rounded-lg border border-border-default bg-brand-white p-6"
+              className="flex items-center gap-4 rounded-lg bg-brand-white/90 p-5"
             >
-              <h2 className="text-h3 text-text-primary">{benefit.title}</h2>
-              <p className="text-body-small mt-2 text-text-secondary">
-                {benefit.body}
-              </p>
+              <BenefitIcon />
+              <div>
+                <h2 className="text-h3 text-text-primary">{benefit.title}</h2>
+                <p className="text-body-small mt-1 text-text-secondary">{benefit.body}</p>
+              </div>
             </div>
           ))}
         </section>
 
-        <section className="rounded-lg border border-border-default bg-brand-white p-6">
-          <h2 className="text-h3 text-text-primary">申請流程</h2>
-          <ol className="mt-4 flex flex-col gap-4">
-            {STEPS.map((step, index) => (
-              <li key={step.title} className="flex gap-3">
-                <span className="text-label flex size-7 shrink-0 items-center justify-center rounded-pill bg-tint-blue-200 text-text-primary">
-                  {index + 1}
-                </span>
-                <div>
-                  <p className="text-body font-medium text-text-primary">{step.title}</p>
-                  <p className="text-body-small mt-0.5 text-text-secondary">{step.body}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
+        <div className="grid gap-4 md:grid-cols-2 md:gap-6">
+          <section className="rounded-lg bg-brand-white/90 p-6 md:p-8">
+            <h2 className="text-h2 text-text-primary">申請流程</h2>
+            <ol className="mt-5 flex flex-col gap-5">
+              {STEPS.map((step, index) => (
+                <li key={step.title} className="flex gap-4">
+                  <span className="text-label flex size-9 shrink-0 items-center justify-center rounded-pill bg-tint-blue-100 text-brand-blue">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <p className="text-h3 text-text-primary">{step.title}</p>
+                    <p className="text-body-small mt-1 text-text-secondary">{step.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
 
-        <section className="rounded-lg border border-border-default bg-brand-white p-6">
-          <h2 className="text-h3 text-text-primary">申請前請先準備</h2>
-          <ul className="text-body mt-4 flex list-disc flex-col gap-2 pl-5 text-text-primary">
-            {CHECKLIST.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-          <p className="text-caption mt-4 text-text-secondary">
-            聯絡方式不會公開，只在場次確定開課後透過行前公告提供給該場次學員。
-          </p>
-        </section>
+          <section className="rounded-lg bg-brand-white/90 p-6 md:p-8">
+            <h2 className="text-h2 text-text-primary">申請前請先準備</h2>
+            <ul className="mt-5 flex flex-col gap-3">
+              {CHECKLIST.map((item) => (
+                <li key={item} className="text-body flex gap-3 text-text-primary">
+                  <CheckMark />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-caption mt-5 text-text-secondary">
+              聯絡方式不會公開，只在場次確定開課後透過行前公告提供給該場次學員。
+            </p>
+          </section>
+        </div>
 
         <div className="flex justify-center pt-2">
-          <ApplyLink />
+          <ApplyLink className="w-full md:w-[288px]" />
         </div>
       </div>
     </main>
@@ -118,13 +132,38 @@ export default async function BecomeCoachPage() {
 }
 
 // 樣式比照 components/ui/button.tsx；這裡是換頁所以用 Link 而不是 <button>
-function ApplyLink() {
+function ApplyLink({ className = "" }: { className?: string }) {
   return (
-    <Link
-      href="/coach/apply"
-      className={`${buttonClassName("primary")} w-full justify-center sm:w-1/2`}
-    >
+    <Link href="/coach/apply" className={`${buttonClassName("primary")} ${className}`}>
       開始填寫教練申請
     </Link>
+  );
+}
+
+// 佔位：設計稿是吉祥物＋日曆的主視覺，檔案到位後換成 <Image>
+function HeroIllustration() {
+  return (
+    <div
+      aria-hidden="true"
+      className="order-1 mx-auto size-[220px] shrink-0 rounded-pill bg-tint-blue-100 md:order-2 md:mx-0 md:size-[400px]"
+    />
+  );
+}
+
+// 佔位：三個亮點的圖示（72px 圓），檔案到位後換成 <Image>
+function BenefitIcon() {
+  return <span aria-hidden="true" className="size-[72px] shrink-0 rounded-pill bg-tint-blue-100" />;
+}
+
+function CheckMark() {
+  return (
+    <span
+      aria-hidden="true"
+      className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-pill bg-brand-blue text-text-inverse"
+    >
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2.5 6.2l2.4 2.4 4.6-5" />
+      </svg>
+    </span>
   );
 }
