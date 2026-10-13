@@ -9,6 +9,7 @@ import {
   type LearnerCancelQuote,
 } from "@/app/registrations/_lib/cancel-rules";
 import type { RegistrationStatus } from "@/types/database";
+import { toast } from "@/components/ui/toast";
 import { CloseIcon } from "./Icons";
 
 interface Props {
@@ -48,6 +49,8 @@ export default function CancelRegistrationButton({
         return;
       }
       dialog.current?.close();
+      // 取消不導頁（action 只重新整理清單），所以直接在這裡顯示 Toast，不走 ?toast=cancelled
+      toast.success("已取消報名");
     });
   }
 
