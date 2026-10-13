@@ -142,13 +142,13 @@ export default function CourseCard({ course }: Props) {
               {course.coachTags.slice(0, MAX_VISIBLE_TAGS).map((tag) => (
                 <li
                   key={tag}
-                  className="rounded-full bg-(--color-tint-blue-100) px-2 py-0.5 text-caption text-(--color-text-primary)"
+                  className="rounded-full border border-(--color-border-default) bg-(--color-surface-default) px-2 py-0.5 text-caption text-(--color-text-secondary)"
                 >
                   {tag}
                 </li>
               ))}
               {course.coachTags.length > MAX_VISIBLE_TAGS && (
-                <li className="rounded-full bg-(--color-tint-blue-100) px-2 py-0.5 text-caption text-(--color-text-secondary)">
+                <li className="rounded-full border border-(--color-border-default) bg-(--color-surface-default) px-2 py-0.5 text-caption text-(--color-text-secondary)">
                   +{course.coachTags.length - MAX_VISIBLE_TAGS}
                 </li>
               )}
@@ -161,12 +161,29 @@ export default function CourseCard({ course }: Props) {
             <span className="text-h3 text-(--color-text-primary)">
               NT${course.price.toLocaleString()}
             </span>
-            {/* 文案（設計師 10/13）：差 1 人開課・3/6 人；已達開課人數・4/6 人；已額滿・6/6 人 */}
+            {/* 文案（設計師 10/13）：差 1 人開課・3/6 人；已達開課人數・4/6 人；已額滿・6/6 人；人數用次要色 */}
             <span className="flex items-center gap-1.5 text-body-small text-(--color-text-primary)">
               <span className={`rounded-full ${dotClass}`} />
-              {isFull ? "已額滿" : isConfirmed ? "已達開課人數" : `差 ${gap} 人開課`}・{course.enrolled}/{course.capacity} 人
+              {isFull ? "已額滿" : isConfirmed ? "已達開課人數" : `差 ${gap} 人開課`}
+              <span className="text-(--color-text-secondary)">
+                {course.enrolled}/{course.capacity} 人
+              </span>
             </span>
           </div>
+          {/* 「報名」進課程詳情頁（一張卡＝一個場次，健康聲明與立即報名在詳情頁）；
+              浮在整張卡片的連結上面（relative z-10）。額滿是不可點的灰色按鈕 */}
+          {isFull ? (
+            <span className="text-button mt-3 flex items-center justify-center rounded-full bg-(--color-state-disabled-bg) px-5 py-2.5 text-(--color-state-disabled-text)">
+              已額滿
+            </span>
+          ) : (
+            <Link
+              href={`/courses/${course.courseId}?session=${course.id}`}
+              className="text-button relative z-10 mt-3 flex items-center justify-center rounded-full bg-(--color-brand-blue) px-5 py-2.5 text-(--color-text-inverse) hover:bg-(--color-brand-blue-pressed)"
+            >
+              報名
+            </Link>
+          )}
         </div>
       </div>
     </article>
