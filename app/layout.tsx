@@ -23,6 +23,16 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "夠練 GoLand",
   description: "三方媒合平台（教練／學員／場地）",
+  // 網站圖示（設計師 1013 補充包，檔案在 public/）：SVG 依淺色／深色分頁列各一版，.ico 給舊瀏覽器，
+  // apple-touch-icon 給 iPhone 加到主畫面。注意：這不是登入／註冊卡片上方的小狗頭 App 圖示（那是另一個圖）。
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/favicon.svg", type: "image/svg+xml", media: "(prefers-color-scheme: light)" },
+      { url: "/favicon-dark.svg", type: "image/svg+xml", media: "(prefers-color-scheme: dark)" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

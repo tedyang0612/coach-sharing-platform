@@ -4,6 +4,7 @@ import { CourseForm } from "@/app/courses/_components/course-form";
 import { NotCoachNotice, PageShell } from "@/app/courses/_components/page-shell";
 import Link from "next/link";
 import { courseRowToFormValues, emptyCourseFormValues } from "@/app/courses/_lib/course-input";
+import { pickRandomCover } from "@/app/courses/_lib/cover-image";
 import { getCoachContext, getMyCourse, listDistricts, listMyTemplates } from "@/app/courses/_lib/queries";
 
 /**
@@ -68,6 +69,7 @@ export default async function NewCoursePage({ searchParams }: PageProps<"/coach/
           districts={districts}
           mode="create"
           sourceId={source?.id}
+          randomCoverUrl={pickRandomCover()}
         />
       ) : (
         <NotCoachNotice />

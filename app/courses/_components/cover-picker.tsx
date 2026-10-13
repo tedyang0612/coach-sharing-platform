@@ -8,7 +8,7 @@
    MVP 先用 <img>，之後要做圖片最佳化再一起調整。 */
 
 import { useRef, useState } from "react";
-import { COVER_FALLBACK, galleryFor, resolveCoverUrl } from "../_lib/cover-image";
+import { ALL_GALLERY_COVERS, galleryFor } from "../_lib/cover-image";
 import { uploadCoverImage } from "../_lib/upload-cover";
 
 type Props = {
@@ -17,17 +17,23 @@ type Props = {
   onChange: (url: string) => void;
   onUploadingChange: (uploading: boolean) => void;
   error?: string;
+  /** 還沒選運動項目時預覽用的隨機預設圖（進頁面時由伺服器抽一次）；沒傳就固定用第一張，不會重抽 */
+  randomCoverUrl?: string;
 };
 
-export function CoverPicker({ value, sportType, onChange, onUploadingChange, error }: Props) {
+export function CoverPicker({ value, sportType, onChange, onUploadingChange, error, randomCoverUrl }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
   const previewDialog = useRef<HTMLDialogElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const gallery = galleryFor(sportType);
-  const options = gallery.length > 0 ? gallery : [COVER_FALLBACK];
-  const preview = resolveCoverUrl({ cover_image_url: value || null, sport_type: sportType });
+  // 1013 補充：沒選運動時顯示隨機一張運動預設圖（縮圖列的第一張同一張）；選了運動就換成該運動的圖；
+  // 自行上傳（value 有值）以上傳的為準。已移除原本的綠色佔位圖。
+  // 用 useState 把第一次拿到的圖凍結起來：之後就算頁面被伺服器重新渲染（傳進來的圖不同），預覽也不會換圖
+  const [fallbackCover] = useState(() => randomCoverUrl ?? ALL_GALLERY_COVERS[0]);
+  const options = gallery.length > 0 ? gallery : [fallbackCover];
+  const preview = value || options[0];
   const isUploaded = value !== "" && !options.includes(value);
 
   async function handleFile(file: File | undefined) {

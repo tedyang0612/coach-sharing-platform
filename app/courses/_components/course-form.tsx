@@ -69,6 +69,8 @@ type Props = {
   initialTemplateName?: string;
   /** 已有人報名：只能改課程須知、課程 QA 與封面圖 */
   locked?: boolean;
+  /** 還沒選運動項目時封面預覽用的隨機預設圖（進頁面時由伺服器抽一次） */
+  randomCoverUrl?: string;
 };
 
 /** 點日期欄位任何地方都打開日曆（原生只有點到圖示才會開）；不支援 showPicker 的瀏覽器維持原本行為 */
@@ -96,6 +98,7 @@ export function CourseForm({
   isTemplate = false,
   initialTemplateName = "",
   locked = false,
+  randomCoverUrl,
 }: Props) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const [values, setValues] = useState(initialValues);
@@ -315,6 +318,7 @@ export function CourseForm({
           onChange={(url) => set("cover_image_url", url)}
           onUploadingChange={setCoverUploading}
           error={errorFor("cover_image_url")}
+          randomCoverUrl={randomCoverUrl}
         />
       </FormSection>
 
