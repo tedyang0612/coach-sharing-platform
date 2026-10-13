@@ -6,6 +6,7 @@ import CoachMini from "@/components/course/CoachMini";
 import CourseQa from "@/components/course/CourseQa";
 import GroupProgress from "@/components/course/GroupProgress";
 import KeyInfoStrip from "@/components/course/KeyInfoStrip";
+import HealthDeclaration from "@/components/course/HealthDeclaration";
 import RefundRule from "@/components/course/RefundRule";
 import ShareButton from "@/components/share/ShareButton";
 import CourseStatusNotice from "@/components/course/CourseStatusNotice";
@@ -220,6 +221,8 @@ export default async function CourseDetailPage({
       </section>
 
       <RefundRule />
+
+      <HealthDeclaration />
 
       {/* 手機：底部固定列（每人價格＋主按鈕）；桌機的在英雄區 */}
       <StickyBookingBar price={course.price}>
