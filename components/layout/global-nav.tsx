@@ -169,10 +169,11 @@ function DesktopNavItem({
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className="flex flex-col items-center gap-1.5 text-text-primary"
+      className="relative flex items-center text-text-primary"
     >
       <span className="text-[15px] leading-6">{children}</span>
-      <span className={`h-[3px] w-6 rounded-pill ${active ? "bg-brand-blue" : ""}`} />
+      {/* 底線用絕對定位，文字才會和 Logo、按鈕在同一條水平中線（1013 設計稿） */}
+      {active && <span className="absolute left-1/2 top-full mt-1.5 h-[3px] w-6 -translate-x-1/2 rounded-pill bg-brand-blue" />}
     </Link>
   );
 }
