@@ -125,16 +125,10 @@ export function NotificationList({ notifications, markReadAction }: Notification
       >
         {selected && (
           <div className="flex flex-col gap-4 p-6">
-            <div className="flex flex-col gap-1">
-              <h2 id="notification-dialog-title" className="text-h3 text-text-primary">
-                {selected.title}
-              </h2>
-              <p className="text-caption text-text-secondary">
-                {formatTaipeiTime(selected.created_at)}
-                {/* MVP 是模擬寄信：資料庫只記錄這則通知有沒有同步發 Email */}
-                {selected.email_sent && "・已同步寄送 Email"}
-              </p>
-            </div>
+            {/* 彈窗只留標題與內文；時間在列表上已經有，Email 目前是模擬寄信，不顯示（QA 回饋） */}
+            <h2 id="notification-dialog-title" className="text-h3 text-text-primary">
+              {selected.title}
+            </h2>
 
             {selected.body && (
               <p className="text-body max-h-[50vh] overflow-y-auto whitespace-pre-line text-text-secondary">
@@ -142,16 +136,17 @@ export function NotificationList({ notifications, markReadAction }: Notification
               </p>
             )}
 
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            {/* 兩顆按鈕撐滿彈窗寬度、各佔一半；沒有連結時「關閉」獨佔一整行 */}
+            <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => dialogRef.current?.close()}
-                className={buttonClassName("secondary")}
+                className={`${buttonClassName("secondary")} min-w-0 flex-1`}
               >
                 關閉
               </button>
               {selectedLink && (
-                <Link href={selectedLink} className={buttonClassName("primary")}>
+                <Link href={selectedLink} className={`${buttonClassName("primary")} min-w-0 flex-1`}>
                   前往查看
                 </Link>
               )}

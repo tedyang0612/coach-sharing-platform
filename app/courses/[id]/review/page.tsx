@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { buttonClassName } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 import { ReviewForm } from "./review-form";
 
@@ -21,11 +22,33 @@ function formatTaipeiTime(iso: string): string {
   }).format(new Date(iso));
 }
 
-function Notice({ title, body, children }: { title: string; body: string; children?: React.ReactNode }) {
+// 版面和送出成功的畫面（review-form.tsx）一致：圓形圖示、標題、說明、按鈕
+function Notice({
+  title,
+  body,
+  done = false,
+  children,
+}: {
+  title: string;
+  body: string;
+  // 已完成評價時在最上面顯示打勾
+  done?: boolean;
+  children?: React.ReactNode;
+}) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-lg border border-border-default bg-brand-white p-8 text-center">
-      <h1 className="text-h3 text-text-primary">{title}</h1>
-      <p className="text-body-small text-text-secondary">{body}</p>
+    <div className="flex flex-col items-center gap-4 rounded-lg border border-border-default bg-brand-white p-8 text-center">
+      {done && (
+        <span
+          aria-hidden
+          className="text-h2 flex size-14 items-center justify-center rounded-pill bg-tint-blue-100 text-text-primary"
+        >
+          ✓
+        </span>
+      )}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-h3 text-text-primary">{title}</h1>
+        <p className="text-body-small text-text-secondary">{body}</p>
+      </div>
       {children}
     </div>
   );
@@ -101,11 +124,8 @@ export default async function CourseReviewPage({ params }: PageProps<"/courses/[
               .join("・")}
           />
         ) : completed.length > 0 ? (
-          <Notice title="已評價" body="你已經評價過這堂課了，每筆訂單只能評價一次。">
-            <Link
-              href={`/coaches/${course.coach_id}`}
-              className="text-label text-brand-deep underline underline-offset-4"
-            >
+          <Notice done title="已評價" body="你已經評價過這堂課了，每筆訂單只能評價一次。">
+            <Link href={`/coaches/${course.coach_id}`} className={buttonClassName("primary")}>
               查看教練個人檔案
             </Link>
           </Notice>

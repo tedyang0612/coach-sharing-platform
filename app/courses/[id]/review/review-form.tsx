@@ -80,7 +80,7 @@ export function ReviewForm({ registrationId, coachId, coachName, summary }: Revi
       onSubmit={handleSubmit}
     >
       <div className="flex flex-col gap-2">
-        <h1 className="text-h2 text-text-primary">評價這堂課</h1>
+        <h1 className="text-h2 text-text-primary">評價課程</h1>
         <p className="text-body-small text-text-secondary">{summary}</p>
       </div>
 

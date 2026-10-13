@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { contactInfoWarning } from "@/lib/coach-application/validation";
 import {
   formatReviewComment,
@@ -82,8 +81,9 @@ export async function submitReview(payload: ReviewPayload): Promise<ReviewResult
     return { ok: false, error: "評價送出失敗，請稍後再試。" };
   }
 
-  // 評價回流教練個人檔案與評價頁（PRD 5.0 AC 2）
-  revalidatePath(`/coaches/${course.coach_id}`);
-  revalidatePath(`/courses/${session.course_id}/review`);
+  // 這裡刻意不呼叫 revalidatePath。Server Action 裡只要 revalidate 任何路徑（或設定 cookie），
+  // Next 就會把「目前這一頁」一起重新渲染：評價頁重新渲染時這筆訂單已經評過，
+  // 畫面上的「評價已送出，謝謝你的回饋！」會立刻被換成「已評價」。
+  // 教練個人檔案是動態頁，下次進去就會讀到新評價（PRD 5.0 AC 2），不需要在這裡重新整理。
   return { ok: true };
 }
