@@ -1,51 +1,46 @@
+import Image from "next/image";
 import Link from "next/link";
 import { buttonClassName } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
 import type { CoachApplicationStatus, LicenseStatus } from "@/types/database";
 
 type Action = { label: string; href: string; variant: "primary" | "secondary" };
 
-// 四種審核狀態的文案與樣式（設計稿 C01；PRD 4.0 規格 3、第六章 5.1）
+// 四種審核狀態的文案與插畫（1013 設計稿 C01「情緒版」；PRD 4.0 規格 3、第六章 5.1）
+// 插畫由設計師提供，放在 public/illustrations/coach-result/
 const STATUS_VIEW: Record<
   CoachApplicationStatus,
   {
-    label: string;
     title: string;
     body: string;
-    // 上方圓形標記的底色、狀態小圓點的顏色
-    markTone: string;
-    dotTone: string;
+    illustration: string;
+    illustrationAlt: string;
     reasonTitle?: string;
   }
 > = {
   pending: {
-    label: "審核中",
     title: "我們收到你的申請了",
     body: "管理員正在審核你的資料與文件，結果會以站內通知與 Email 告知。審核期間你仍可正常使用學員功能。",
-    markTone: "bg-tint-blue-100 text-text-primary",
-    dotTone: "bg-brand-blue",
+    illustration: "/illustrations/coach-result/illus_coach-result_reviewing.svg",
+    illustrationAlt: "資料夾與放大鏡，代表申請審核中",
   },
   approved: {
-    label: "審核通過",
     title: "恭喜！你已成為教練",
     body: "教練工作台已開啟，你可以開始建立課程。你的公開教練檔案也已上線。",
-    markTone: "bg-tint-blue-100 text-text-primary",
-    dotTone: "bg-brand-deep",
+    illustration: "/illustrations/coach-result/illus_coach-result_approved.svg",
+    illustrationAlt: "獎牌，代表審核通過",
   },
   needs_more_info: {
-    label: "需補件",
     title: "申請需要補件",
     body: "請依下方原因補充或修改資料，重新送審後狀態會回到「審核中」。",
-    markTone: "bg-state-error-bg text-state-error-text",
-    dotTone: "bg-state-disabled-text",
+    illustration: "/illustrations/coach-result/illus_coach-result_need-more.svg",
+    illustrationAlt: "文件與筆，代表需要補件",
     reasonTitle: "補件原因",
   },
   rejected: {
-    label: "未通過",
     title: "這次審核未通過",
     body: "很抱歉，這次未通過審核。你可以修改資料後重新送審，次數不受限制。",
-    markTone: "bg-state-error-bg text-state-error-text",
-    dotTone: "bg-state-disabled-text",
+    illustration: "/illustrations/coach-result/illus_coach-result_not-approved.svg",
+    illustrationAlt: "路標，代表這次審核未通過",
     reasonTitle: "未通過原因",
   },
 };
@@ -65,25 +60,6 @@ function formatTaipeiTime(iso: string): string {
   return `${get("month")}/${get("day")} ${get("hour")}:${get("minute")}`;
 }
 
-function ClockIcon() {
-  return (
-    <svg
-      width="36"
-      height="36"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" />
-    </svg>
-  );
-}
-
 type StatusCardProps = {
   status: CoachApplicationStatus;
   rejectionReason: string | null;
@@ -95,6 +71,7 @@ type StatusCardProps = {
   coachId?: string;
 };
 
+// 結果頁不再是白色卡片：插畫、標題、按鈕直接置中放在漸層背景上（背景由頁面的 <main> 提供）。
 export function StatusCard({
   status,
   rejectionReason,
@@ -105,6 +82,7 @@ export function StatusCard({
 }: StatusCardProps) {
   const view = STATUS_VIEW[status];
 
+  // 主要動作在左、次要在右（手機版上下堆疊，主要在上）
   const actions: Action[] =
     status === "approved"
       ? [
@@ -116,40 +94,55 @@ export function StatusCard({
         ]
       : status === "pending"
         ? [
-            { label: "探索課程", href: "/courses", variant: "secondary" },
-            { label: "回到首頁", href: "/", variant: "primary" },
+            { label: "探索課程", href: "/courses", variant: "primary" },
+            { label: "回到首頁", href: "/", variant: "secondary" },
           ]
         : [
-            { label: "探索課程", href: "/courses", variant: "secondary" },
             {
               label: status === "rejected" ? "修改資料並重新送審" : "修改並重新送審",
               href: "/coach/apply",
               variant: "primary",
             },
+            { label: "探索課程", href: "/courses", variant: "secondary" },
           ];
 
   const summary = [
     { label: "送出時間", value: submittedAt ? formatTaipeiTime(submittedAt) : "" },
-    { label: "可授課的運動項目", value: sportCategories.join("、") },
+    { label: "運動類別", value: sportCategories.join("、") },
     { label: "已上傳文件", value: uploadedDocuments.join("、") },
   ].filter((row) => row.value !== "");
 
   return (
-    <section className="flex flex-col items-center gap-4 rounded-lg border border-border-default bg-brand-white p-6 text-center sm:p-8">
-      <span className={`flex size-[72px] items-center justify-center rounded-pill ${view.markTone}`}>
-        {status === "pending" ? <ClockIcon /> : <Icon name="award" className="size-9" />}
-      </span>
+    <section className="flex flex-col items-center gap-4 text-center">
+      {/* 插畫外圈的虛線圈是設計稿的裝飾，插畫本身（220px）已含淡色圓底 */}
+      <div className="flex size-[270px] max-w-full items-center justify-center rounded-pill border border-dashed border-brand-blue/60">
+        <Image
+          src={view.illustration}
+          alt={view.illustrationAlt}
+          width={220}
+          height={220}
+          unoptimized
+          priority
+        />
+      </div>
 
-      <p className="text-label flex items-center gap-2 text-text-secondary">
-        <span aria-hidden="true" className={`size-2 rounded-pill ${view.dotTone}`} />
-        {view.label}
-      </p>
+      <h1 className="text-display mt-4 text-text-primary md:text-[48px]! md:leading-[60px]!">{view.title}</h1>
+      <p className="text-body-large max-w-xl text-text-secondary">{view.body}</p>
 
-      <h1 className="text-h1 text-text-primary">{view.title}</h1>
-      <p className="text-body max-w-xl text-text-secondary">{view.body}</p>
+      <div className="mt-2 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row">
+        {actions.map((action) => (
+          <Link
+            key={action.label}
+            href={action.href}
+            className={`${buttonClassName(action.variant)} w-full sm:w-auto`}
+          >
+            {action.label}
+          </Link>
+        ))}
+      </div>
 
       {status === "pending" && summary.length > 0 && (
-        <dl className="flex w-full flex-col gap-2 rounded-md bg-brand-light px-4 py-3.5 text-left">
+        <dl className="mt-4 flex w-full max-w-[640px] flex-col gap-2 rounded-lg bg-brand-light px-6 py-5 text-left">
           {summary.map((row) => (
             <div key={row.label} className="flex justify-between gap-4">
               <dt className="text-body-small shrink-0 text-text-secondary">{row.label}</dt>
@@ -160,26 +153,18 @@ export function StatusCard({
       )}
 
       {view.reasonTitle && (
-        <>
-          <div className="flex w-full flex-col gap-1.5 rounded-md border border-state-error bg-state-error-bg px-4 py-3.5 text-left">
+        <div className="mt-4 flex w-full max-w-[640px] flex-col gap-2 text-left">
+          <div className="flex flex-col gap-1.5 rounded-lg border border-state-error bg-state-error-bg px-6 py-4">
             <p className="text-label text-state-error-text">{view.reasonTitle}</p>
-            <p className="text-body whitespace-pre-line text-state-error-text">
+            <p className="text-body-large whitespace-pre-line text-state-error-text">
               {rejectionReason ?? "管理員未填寫說明，請聯繫平台。"}
             </p>
           </div>
-          <p className="text-caption w-full text-left text-text-secondary">
+          <p className="text-caption text-text-secondary">
             若良民證原檔已依規定在審核完成 7 天後刪除，重新送審時需重新上傳。
           </p>
-        </>
+        </div>
       )}
-
-      <div className="flex flex-wrap justify-center gap-3">
-        {actions.map((action) => (
-          <Link key={action.label} href={action.href} className={buttonClassName(action.variant)}>
-            {action.label}
-          </Link>
-        ))}
-      </div>
     </section>
   );
 }

@@ -294,38 +294,43 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
           />
         </div>
 
-        <FileField
-          label="大頭貼"
-          required
-          name="photo"
-          kind="photo"
-          hint="教練檔案與評價頁使用。JPG／PNG，5MB 以內"
-          previewShape="circle"
-          file={photo}
-          onChange={setPhoto}
-          existing={
-            existing?.photoUrl
-              ? { label: "沿用先前上傳的大頭貼", imageUrl: existing.photoUrl }
-              : undefined
-          }
-          error={errors.photo}
-        />
-        <FileField
-          label="生活／運動照片"
-          required
-          name="lifestylePhoto"
-          kind="photo"
-          hint="首頁推薦教練卡片與教練檔案使用。JPG／PNG，5MB 以內"
-          previewShape="portrait"
-          file={lifestylePhoto}
-          onChange={setLifestylePhoto}
-          existing={
-            existing?.lifestylePhotoUrl
-              ? { label: "沿用先前上傳的照片", imageUrl: existing.lifestylePhotoUrl }
-              : undefined
-          }
-          error={errors.lifestylePhoto}
-        />
+        {/* 1013 設計稿：兩個照片框桌機並排、手機上下排；尺寸說明採桌機版文案（手機版稿面數字與桌機不一致，已回報設計師） */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FileField
+            label="大頭貼"
+            required
+            name="photo"
+            kind="photo"
+            layout="photo-box"
+            hint={"用於教練檔案與評價頁。\n比例 1:1，建議尺寸 800 x 800，5MB 以內，僅接受 JPG 或 PNG。"}
+            previewShape="circle"
+            file={photo}
+            onChange={setPhoto}
+            existing={
+              existing?.photoUrl
+                ? { label: "沿用先前上傳的大頭貼", imageUrl: existing.photoUrl }
+                : undefined
+            }
+            error={errors.photo}
+          />
+          <FileField
+            label="生活／運動照片"
+            required
+            name="lifestylePhoto"
+            kind="photo"
+            layout="photo-box"
+            hint={"用於首頁推薦教練卡片與教練檔案。\n比例 3:4，建議尺寸 1200 x 1600，5MB 以內，僅接受 JPG 或 PNG。"}
+            previewShape="portrait"
+            file={lifestylePhoto}
+            onChange={setLifestylePhoto}
+            existing={
+              existing?.lifestylePhotoUrl
+                ? { label: "沿用先前上傳的照片", imageUrl: existing.lifestylePhotoUrl }
+                : undefined
+            }
+            error={errors.lifestylePhoto}
+          />
+        </div>
 
         <SportPicker
           value={sportCategories}
@@ -351,15 +356,11 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
       <Section
         number={2}
         title="學歷與經歷"
-        action={
-          <Button type="button" variant="ghost" onClick={addEducation}>
-            ＋ 新增學歷
-          </Button>
-        }
       >
         <EducationList
           value={education}
           onChange={setEducation}
+          onAdd={addEducation}
           error={errors.education}
           itemErrors={errors.educationItems}
         />
