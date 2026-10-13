@@ -41,6 +41,8 @@ function VerifiedIcon() {
   );
 }
 
+const MAX_VISIBLE_TAGS = 3;
+
 interface Props {
   course: Course;
 }
@@ -134,6 +136,24 @@ export default function CourseCard({ course }: Props) {
               )}
             </span>
           </div>
+          {/* 設計稿 S04（10/13 設計師回覆）：教練列下面一行特色 Tag，如「適合新手」 */}
+          {course.coachTags.length > 0 && (
+            <ul className="mt-2 flex flex-wrap gap-1.5">
+              {course.coachTags.slice(0, MAX_VISIBLE_TAGS).map((tag) => (
+                <li
+                  key={tag}
+                  className="rounded-full bg-(--color-tint-blue-100) px-2 py-0.5 text-caption text-(--color-text-primary)"
+                >
+                  {tag}
+                </li>
+              ))}
+              {course.coachTags.length > MAX_VISIBLE_TAGS && (
+                <li className="rounded-full bg-(--color-tint-blue-100) px-2 py-0.5 text-caption text-(--color-text-secondary)">
+                  +{course.coachTags.length - MAX_VISIBLE_TAGS}
+                </li>
+              )}
+            </ul>
+          )}
         </div>
 
         <div className="border-t border-(--color-border-default) pt-3">
@@ -141,16 +161,11 @@ export default function CourseCard({ course }: Props) {
             <span className="text-h3 text-(--color-text-primary)">
               NT${course.price.toLocaleString()}
             </span>
-            {/* 列表卡片不放報名按鈕（QA／UI 決定），報名在課程詳情頁選場次 */}
-            {isFull ? (
-              <span className="text-xs font-bold text-(--color-text-secondary)">已額滿</span>
-            ) : (
-              <span className="flex items-center gap-1.5 text-body-small text-(--color-text-primary)">
-                <span className={`h-2 w-2 rounded-full ${dotClass}`} />
-                {/* 文案：差 1 人開課，3/6人；已達開課人數，4/6人（分母是人數上限） */}
-                {isConfirmed ? "已達開課人數" : `差 ${gap} 人開課`}，{course.enrolled}/{course.capacity}人
-              </span>
-            )}
+            {/* 文案（設計師 10/13）：差 1 人開課・3/6 人；已達開課人數・4/6 人；已額滿・6/6 人 */}
+            <span className="flex items-center gap-1.5 text-body-small text-(--color-text-primary)">
+              {!isFull && <span className={`h-2 w-2 rounded-full ${dotClass}`} />}
+              {isFull ? "已額滿" : isConfirmed ? "已達開課人數" : `差 ${gap} 人開課`}・{course.enrolled}/{course.capacity} 人
+            </span>
           </div>
         </div>
       </div>
