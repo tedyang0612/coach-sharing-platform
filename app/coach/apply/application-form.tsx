@@ -14,12 +14,14 @@ import {
   LicenseList,
   type LicenseDraft,
 } from "@/components/coach-application/license-list";
+import { SocialAccountField } from "@/components/coach-application/social-account-field";
 import { SportPicker } from "@/components/coach-application/sport-picker";
 import { TagInput } from "@/components/coach-application/tag-input";
 import { TextAreaField } from "@/components/coach-application/text-area-field";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { CheckboxField } from "@/components/ui/checkbox";
 import { FormError } from "@/components/ui/form-error";
+import { Icon } from "@/components/ui/icon";
 import { TextField } from "@/components/ui/text-field";
 import type { LicenseStatus } from "@/types/database";
 import { CONSENT_SUMMARY } from "@/lib/coach-application/consent";
@@ -28,6 +30,7 @@ import {
   COACH_PHOTO_BUCKET,
 } from "@/lib/coach-application/constants";
 import { DEFAULT_EDUCATION_DEGREE, parseEducation } from "@/lib/coach-application/education";
+import { parseSocialAccount, serializeSocialAccount } from "@/lib/coach-application/social";
 import { uploadCoachFile } from "@/lib/coach-application/upload";
 import {
   contactInfoWarning,
@@ -39,6 +42,9 @@ import {
   validateCoachApplication,
   type CoachApplicationErrors,
 } from "@/lib/coach-application/validation";
+
+// 內政部警政署「警察刑事紀錄證明書」線上申請系統（2026/10 查詢）
+const POLICE_RECORD_APPLY_URL = "https://i33.npa.gov.tw/NM114-I33WebE/index";
 
 // 補件／未通過後重新送審時，帶入先前填寫的內容（由 page.tsx 從資料庫讀出）
 export type ExistingApplication = {
@@ -126,7 +132,9 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
 
   const [contactPhone, setContactPhone] = useState(existing?.contactPhone ?? "");
   const [contactLine, setContactLine] = useState(existing?.contactLine ?? "");
-  const [contactSocial, setContactSocial] = useState(existing?.contactSocial ?? "");
+  // 社群帳號分成平台＋帳號兩格，送出與檢查時再組回資料庫用的單一字串
+  const [social, setSocial] = useState(() => parseSocialAccount(existing?.contactSocial));
+  const contactSocial = serializeSocialAccount(social);
 
   const [criminalRecord, setCriminalRecord] = useState<File | null>(null);
   const [licenses, setLicenses] = useState<LicenseDraft[]>([]);
@@ -405,13 +413,7 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
             onChange={(event) => setContactLine(event.target.value)}
           />
         </div>
-        <TextField
-          label="社群帳號"
-          name="contactSocial"
-          placeholder="請輸入社群帳號"
-          value={contactSocial}
-          onChange={(event) => setContactSocial(event.target.value)}
-        />
+        <SocialAccountField value={social} onChange={setSocial} />
         {errors.contact && (
           <p data-field-error className="text-caption text-state-error-text">
             {errors.contact}
@@ -427,7 +429,18 @@ export function ApplicationForm({ userId, existing, defaultNickname }: Applicati
           <ul className="flex list-disc flex-col gap-1 pl-5">
             <li>用途：學員會與教練實際見面，良民證作為基本把關。</li>
             <li>保管：僅用於審核，審核完成後 7 日內刪除原檔。</li>
-            <li>申請：警政署網站線上申請，到警察局領取；每份 100 元，約 1–3 個工作天。</li>
+            <li>
+              申請：警政署網站線上申請，到警察局領取；每份 100 元，約 1–3 個工作天。
+              <a
+                href={POLICE_RECORD_APPLY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-label ml-1 inline-flex items-center gap-1 text-brand-deep underline underline-offset-4"
+              >
+                前往警政署線上申請
+                <Icon name="arrow-right" className="size-4" />
+              </a>
+            </li>
           </ul>
         }
       >
